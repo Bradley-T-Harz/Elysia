@@ -1,0 +1,210 @@
+version: 1
+source_canon: docs/canon/HER_MIND.md
+runtime_status: local_roles_declared_models_installed_not_yet_wired
+default_role: primary_general
+roles:
+  primary_general:
+    label: Elysia-General
+    purpose: Main day-to-day reasoning, conversation, planning, explanation, and synthesis.
+    status: candidate_declared
+    preferred_models:
+    - mistral-small-3.1
+    preferred_model_runtime_tags:
+    - mistral-small3.1:24b
+    fallback_models:
+    - granite-3.3-8b-instruct
+    fallback_model_runtime_tags:
+    - granite3.3:8b
+    runtime: ollama
+    local_only: true
+    signup_required: false
+    enabled_by_default: true
+    explicit_approval_required: false
+    privacy_risk: low
+    trust_note: Trust-first local general brain. Preferred over cloud and over optional
+      fallback models.
+    requirements:
+    - strong instruction following
+    - strong general reasoning
+    - good long-context handling
+    - stable conversational tone
+    candidate_notes:
+    - Matches blueprint role for Elysia-General.
+    - Intended as the default local daily-driver assistant brain.
+    - Canon name preserved; installed Ollama tag recorded separately.
+  primary_code:
+    label: Elysia-Code
+    purpose: Main coding, debugging, scripting, repo assistance, and technical problem-solving.
+    status: candidate_declared
+    preferred_models:
+    - starcoder2-15b-instruct
+    preferred_model_runtime_tags:
+    - starcoder2:instruct
+    fallback_models:
+    - granite-3.3-8b-instruct
+    fallback_model_runtime_tags:
+    - granite3.3:8b
+    runtime: ollama
+    local_only: true
+    signup_required: false
+    enabled_by_default: true
+    explicit_approval_required: false
+    privacy_risk: low
+    trust_note: Trust-first coding role. Preferred for repo work before heavier or
+      less-trusted specialists.
+    requirements:
+    - strong code generation
+    - strong debugging ability
+    - good structured output
+    - reliable technical reasoning
+    candidate_notes:
+    - Matches blueprint role for Elysia-Code.
+    - Intended for coding help, edits, refactors, and technical Q&A.
+    - Canon name preserved; installed Ollama tag recorded separately.
+  lighter_backup:
+    label: Elysia-Light
+    purpose: Faster lower-cost local support for simple tasks and fallback use.
+    status: candidate_declared
+    preferred_models:
+    - granite-3.3-8b-instruct
+    preferred_model_runtime_tags:
+    - granite3.3:8b
+    fallback_models: []
+    fallback_model_runtime_tags: []
+    runtime: ollama
+    local_only: true
+    signup_required: false
+    enabled_by_default: true
+    explicit_approval_required: false
+    privacy_risk: low
+    trust_note: Lightweight local support role for responsiveness, not the main reasoning
+      authority.
+    requirements:
+    - fast inference
+    - acceptable instruction following
+    - lightweight resource use
+    candidate_notes:
+    - Matches blueprint role for Elysia-Light.
+    - Good for simpler or faster local jobs.
+    - Canon name preserved; installed Ollama tag recorded separately.
+  optional_fallback:
+    label: Elysia-Utility
+    purpose: Emergency or compatibility fallback if preferred local roles are unavailable.
+    status: candidate_declared
+    preferred_models:
+    - llama-3.1-8b-instruct
+    preferred_model_runtime_tags:
+    - llama3.1:8b
+    fallback_models: []
+    fallback_model_runtime_tags: []
+    runtime: ollama
+    local_only: true
+    signup_required: false
+    enabled_by_default: false
+    explicit_approval_required: true
+    privacy_risk: moderate
+    trust_note: Optional local fallback only. Not part of the trust-first core and
+      not a default path.
+    requirements:
+    - broad compatibility
+    - acceptable general utility
+    candidate_notes:
+    - Matches blueprint role for Elysia-Utility.
+    - Keep available only as an explicitly chosen fallback.
+    - Canon name preserved; installed Ollama tag recorded separately.
+  optional_specialist:
+    label: Optional Specialist
+    purpose: Specialist models only when explicitly enabled for bounded tasks.
+    status: candidate_declared
+    preferred_models:
+    - qwen3-coder-30b
+    - qwen2.5-coder-14b
+    preferred_model_runtime_tags:
+    - qwen3-coder:30b
+    - qwen2.5-coder:14b
+    fallback_models:
+    - deepseek-coder-v2-16b
+    fallback_model_runtime_tags:
+    - deepseek-coder-v2:16b
+    supplementary_models:
+    - qwen3-14b
+    supplementary_model_runtime_tags:
+    - qwen3:14b
+    aspirational_models:
+    - qwen3-coder-next
+    activation_rule: explicit_only
+    runtime: ollama
+    local_only: true
+    signup_required: false
+    enabled_by_default: false
+    explicit_approval_required: true
+    privacy_risk: moderate
+    trust_note: Optional lab-only specialists. Never silent substitutes for the trust-first
+      core.
+    requirements:
+    - narrow task advantage
+    - clear boundary of use
+    - no silent substitution
+    candidate_notes:
+    - Qwen3-Coder 30B is the main currently installed optional coding specialist.
+    - Qwen2.5-Coder 14B is the lighter currently installed optional coding specialist.
+    - DeepSeek Coder V2 16B remains optional local lab-only fallback and not part
+      of the trust-first core.
+    - Qwen3 14B is a supplementary general-purpose lab model, not a silent replacement
+      for the core roles.
+    - Qwen3-Coder-Next remains aspirational and deferred until larger local compute
+      is available.
+external_helpers:
+  optional_cloud_consultant:
+    purpose: Explicitly requested outside help beyond local capacity.
+    status: disabled_by_default
+    preferred_service: chatgpt
+    alternate_services:
+    - openai_api
+    local_only: false
+    signup_required: true
+    enabled_by_default: false
+    explicit_approval_required: true
+    privacy_risk: high
+    trust_note: Never the default brain, never the holder of Elysia's private identity
+      or long-term memory.
+    allowed_uses:
+    - explicit outside consultation
+    - bounded comparison or second-opinion tasks
+    - explicit_openai_api_consultation
+    forbidden_uses:
+    - silent fallback
+    - default routing
+    - private memory authority
+    service_notes:
+    - OpenAI API may be used sometimes, but only as explicit bounded consultation.
+    - External helpers remain consultant-only and never become Elysia's default reasoning
+      authority.
+routing_principles:
+  local_first: true
+  explicit_role_selection: true
+  no_silent_cloud_fallback: true
+  specialist_models_require_explicit_enablement: true
+  reasoning_before_action: true
+  trust_first_core_over_experimental_capability: true
+  cloud_consultation_requires_explicit_approval: true
+  private_identity_must_remain_local: true
+privacy_and_trust_defaults:
+  preferred_runtime: ollama
+  preferred_interface: open_webui
+  default_outbound_model_use_forbidden: true
+  default_external_memory_sync_forbidden: true
+  default_sensitive_project_routing_local_only: true
+  model_downloads_should_prefer_open_local_sources: true
+notes:
+- This file defines canonical role structure plus candidate model assignments.
+- Preferred model lists and runtime-tag lists are ordered from highest to lowest priority.
+- Canonical model names must remain stable even when installed runtime tags differ.
+- Installed Ollama tags are recorded separately for later invocation wiring.
+- These assignments are still declarative until runtime model routing is wired.
+- No silent cloud fallback is allowed.
+- Optional fallback and specialist roles must never silently replace trust-first local
+  roles.
+- ChatGPT or any other cloud helper is consultant-only and explicit-only.
+- OpenAI API is permitted only as an explicit bounded external helper, never as silent
+  fallback.

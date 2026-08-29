@@ -1,0 +1,29 @@
+version: engineering-inspection-limits-0.1
+limits:
+  max_input_bytes: 536870912
+  max_text_bytes: 67108864
+  max_xml_bytes: 33554432
+  max_archive_members: 2000
+  max_archive_projected_bytes: 2147483648
+  max_archive_compression_ratio: 1000
+  max_entities: 2000000
+  max_triangles: 5000000
+  max_vertices: 5000000
+  max_lines: 2000000
+  max_external_references: 2000
+  max_names_in_response: 200
+  max_preview_segments: 20000
+  timeout_seconds: 30
+  max_worker_stdout_bytes: 4194304
+  max_worker_stderr_bytes: 65536
+permissions:
+  artifact_directory_mode: "0700"
+  artifact_file_mode: "0600"
+posture:
+  static_parse_only: true
+  resolve_inside_workspace_only: true
+  follow_absolute_references: false
+  fetch_external_references: false
+  follow_symlinks: false
+  execute_scripts_or_plugins: false
+  mutate_source: false

@@ -1,0 +1,74 @@
+right_drawer:
+  purpose:
+    summary_only: true
+    deep_explanation_location: "Chamber and later rooms"
+  layout:
+    internal_scroll: true
+    portrait_remains_visible: true
+  section_rule:
+    feature_state_markers_required: true
+    sections_must_support:
+      - live_value
+      - live_status
+      - empty_state
+      - blocked_degraded_planned_state
+
+  backend_mapping:
+    active_context:
+      primary_source: "POST /chat/send response packet"
+      fallback_source: "conversation state in current room"
+    memory_classes:
+      primary_source: "chat/runtime result memory summary"
+      fallback_source: "journal summary or memory-class policy output"
+    current_project:
+      primary_source: "conversation/project state"
+      fallback_source: "none"
+    files_in_use:
+      primary_source: "attached_context_summary"
+      fallback_source: "conversation attachment state"
+    plan_preview:
+      primary_source: "planner output in runtime result"
+      fallback_source: "response summary derived from plan"
+    boundary_flags:
+      primary_source: "policy gate result"
+      fallback_source: "runtime/governance status"
+    approval_needed:
+      primary_source: "approval/governance state"
+      fallback_source: "chat response approval field"
+    journal_summary:
+      primary_source: "journal policy/result"
+      fallback_source: "journal status in runtime result"
+    request_trace:
+      primary_source: "request_trace_service"
+      fallback_source: "request summary endpoint"
+
+  portrait:
+    present: true
+    locked: true
+    preserve_existing_layout: true
+    title: "PORTRAIT"
+    name: "Elysia"
+    subtitle: "Present in chamber"
+
+  section_order:
+    - active_context
+    - memory_classes
+    - current_project
+    - files_in_use
+    - plan_preview
+    - boundary_flags
+    - approval_needed
+    - journal_summary
+    - request_trace
+
+  right_drawer_contract:
+    current_implementation_state:
+      active_context: "partial"
+      memory_classes: "partial"
+      current_project: "partial"
+      files_in_use: "planned"
+      plan_preview: "partial"
+      boundary_flags: "live_by_default_degraded_or_blocked_when_packet_truth_says_so"
+      approval_needed: "inactive_by_default_live_when_request_is_gated"
+      journal_summary: "partial"
+      request_trace: "partial_by_default_live_during_request_or_when_terminal_packet_truth_exists"

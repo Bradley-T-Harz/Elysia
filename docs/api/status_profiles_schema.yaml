@@ -1,0 +1,187 @@
+status_profiles_schema:
+  name: status_profiles_schema
+  route: /status/profiles
+  method: GET
+  purpose: >
+    Read-only runtime truth for the four canonical Elysia install profiles,
+    their composed dependency groups, safe local presence checks, model/provider
+    metadata, local override posture, capability tiers, and worker readiness.
+  envelope_reference: standard_response_envelope
+  contract_version: elysia-install-profile-runtime-1.0
+  phase_scope: v1_finalization_pass_5
+
+  governing_rules:
+    - The endpoint installs, downloads, starts, enables, or mutates nothing.
+    - Profile selection grants no operation approval and weakens no safety floor.
+    - Python checks use module/distribution metadata without package import.
+    - Command checks use executable lookup without command invocation.
+    - Model, worker, vault, resource, sandbox, and isolation proof require doctor or later Lab gates.
+    - No provider network request, model load, worker run, sandbox run, or private-store inspection occurs.
+    - Raw local paths, provider URLs, model tags, executable paths, vault values, credentials, and override payloads are never returned.
+
+  request:
+    request_body_allowed: false
+    query_parameters: {}
+
+  response:
+    result_type: install_profile_status
+    locality: local
+    approval_state: not_needed
+    data_payload:
+      fields:
+        resolution_state:
+          required: true
+          allowed_values: [resolved, degraded, invalid]
+        active_profile_id:
+          required: true
+          allowed_values: [core, workstation, creator, developer]
+        active_profile_label:
+          required: true
+          type: string
+        selected_profile_ids:
+          required: true
+          type: list
+        resolved_profile_ids:
+          required: true
+          type: list
+        available_profiles:
+          required: true
+          type: list
+          entry_fields:
+            - profile_id
+            - display_name
+            - purpose
+            - selected
+            - included
+            - default_enabled
+            - maturity
+            - risk_level
+            - readiness
+            - dependency_count
+            - required_missing_count
+            - required_unknown_count
+            - optional_missing_count
+            - network_runtime_default
+            - large_downloads_may_occur
+            - private_data_leaves_machine_by_default
+            - doctor_checks
+        dependencies:
+          required: true
+          type: list
+          status_values:
+            - present
+            - missing
+            - optional_missing
+            - blocked
+            - degraded
+            - unknown
+            - profile_gated
+            - lab_gated
+            - not_applicable
+          category_values: [system, python, node, rust, model, worker, external]
+          entry_fields:
+            - dependency_id
+            - label
+            - profile_id
+            - category
+            - catalog_kind
+            - required
+            - purpose
+            - status
+            - activation_state
+            - check_method
+            - version
+            - warning
+            - external_download_required
+            - private_data_may_be_involved
+            - allowed_in_core
+        dependency_summary:
+          required: true
+          type: status_count_mapping
+        missing_core_dependency_ids:
+          required: true
+          type: list
+        resolved_capability_groups:
+          required: true
+          type: list
+        capability_tiers:
+          required: true
+          keys:
+            - core_v1_default
+            - optional_v1_profile
+            - v1_lab_or_developer_gated
+            - hard_prohibited_by_default
+        local_overrides:
+          required: true
+          safe_fields:
+            - state
+            - selection_source
+            - model_override_source
+            - configured_labels
+            - configured_count
+            - raw_values_exposed
+            - authority_granted
+            - warning
+          prohibited_fields:
+            - raw_path
+            - raw_value
+            - provider_url
+            - model_tag
+            - executable_path
+            - vault_path
+            - credential
+        provider_summary:
+          required: true
+          network_check_performed_must_be: false
+          model_loaded_must_be: false
+          selection_authority_available_must_be: false
+        worker_summaries:
+          required: true
+          enabled_must_be: false
+          doctor_proof_required_must_be: true
+        profile_selection_grants_approval:
+          required: true
+          must_be: false
+        install_authority_available:
+          required: true
+          must_be: false
+        download_authority_available:
+          required: true
+          must_be: false
+        worker_start_authority_available:
+          required: true
+          must_be: false
+        doctor_executed:
+          required: true
+          must_be: false
+        generated_at_utc:
+          required: true
+          format: iso_8601_utc
+
+  endpoint_status_behavior:
+    ok: Profile contracts resolved and active-profile required checks need no warning.
+    degraded: Resolution succeeded, but required dependency or later doctor proof warnings exist.
+    error: Tracked contracts could not be validated; only a sanitized error is returned.
+    blocked: Reserved for a future policy refusal; no mutation is attempted.
+    unavailable: Reserved for an unavailable local resolver path.
+
+  privacy_contract:
+    local_override_sources:
+      - $XDG_CONFIG_HOME/elysia/install/profiles.yaml
+      - $XDG_CONFIG_HOME/elysia/models/local_overrides.yaml
+    source_files_are_gitignored: true
+    response_is_allowlisted: true
+    raw_override_serialization_allowed: false
+    private_store_access_allowed: false
+    normal_ui_raw_path_display_allowed: false
+
+  future_pass_boundary:
+    pass_6_owns:
+      - XDG user-config migration
+      - installer execution
+      - doctor execution
+      - service lifecycle
+      - API authentication
+      - packaged origin policy
+      - CSP
+    pass_5_does_not_claim_these_are_live: true

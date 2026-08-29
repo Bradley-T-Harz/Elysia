@@ -1,0 +1,58 @@
+version: 1
+account_color_palette_version: "0.1"
+palette_key: identity_account_page_colors
+scope:
+  applies_to:
+    - first_run_user_creator_page
+    - later_user_creator_edit_page
+    - user_profile_page
+  does_not_apply_to:
+    - global_theme
+    - chamber
+    - conversations
+    - right_drawer
+    - left_rail
+    - bottom_status_bar
+    - governance
+    - memory
+    - projects
+    - artifacts
+    - requests
+    - health
+rules:
+  page_local_only: true
+  mutate_global_theme_tokens: false
+  user_creator_trim_allowed: false
+  user_profile_trim_allowed: true
+
+colors:
+  - id: meteor_rose
+    label: Meteor Rose
+    hex: "#FF4F79"
+  - id: aurora_teal
+    label: Aurora Teal
+    hex: "#16F4D0"
+  - id: volcanic_coral
+    label: Volcanic Coral
+    hex: "#FF6B35"
+  - id: stellar_indigo
+    label: Stellar Indigo
+    hex: "#4B2EFF"
+  - id: vapor_mint
+    label: Vapor Mint
+    hex: "#3DFF9E"
+  - id: laser_lemon
+    label: Laser Lemon
+    hex: "#F9FF3D"
+  - id: blue_flame
+    label: Blue Flame
+    hex: "#00A7FF"
+  - id: magenta_comet
+    label: Magenta Comet
+    hex: "#E600FF"
+  - id: prismatic_amber
+    label: Prismatic Amber
+    hex: "#FFB000"
+  - id: bioelectric_green
+    label: Bioelectric Green
+    hex: "#00E676"

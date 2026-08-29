@@ -1,0 +1,25 @@
+version: database-inspection-limits-0.1
+limits:
+  max_input_bytes: 1073741824
+  max_schema_objects: 2000
+  max_columns_per_object: 512
+  max_indexes: 4000
+  max_foreign_keys: 4000
+  max_schema_sql_chars: 8192
+  max_worker_stdout_bytes: 4194304
+  max_worker_stderr_bytes: 65536
+  timeout_seconds: 30
+permissions:
+  snapshot_directory_mode: "0700"
+  snapshot_file_mode: "0400"
+  artifact_directory_mode: "0700"
+  artifact_file_mode: "0600"
+posture:
+  fixed_introspection_only: true
+  snapshot_first: true
+  sqlite_source_open_mode: read_only
+  sqlite_extension_loading: false
+  duckdb_external_access: false
+  row_preview: false
+  arbitrary_sql: false
+  mutation: false

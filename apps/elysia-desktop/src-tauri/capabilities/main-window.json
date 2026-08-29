@@ -1,0 +1,27 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-window",
+  "description": "Capability set for the main Elysia chamber window, including authority to summon, reposition, show, and refocus the Quick Invoke child window.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:webview:allow-create-webview-window",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-position",
+    "dialog:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://elysia-marketplace.pages.dev/"
+        },
+        {
+          "url": "https://elysia-marketplace.pages.dev"
+        }
+      ]
+    }
+  ]
+}

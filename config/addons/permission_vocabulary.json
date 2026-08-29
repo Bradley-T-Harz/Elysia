@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "default_posture": {
+    "network": "deny_by_default",
+    "filesystem": "user_selected_or_project_scoped_only",
+    "memory": "denied_until_future_scoped_policy",
+    "shell": "blocked"
+  },
+  "risk_levels": ["low", "medium", "high", "critical"],
+  "permissions": {
+    "network.fetch": {
+      "label": "Fetch public network resources",
+      "risk_level": "medium",
+      "default": "deny",
+      "allowed_profiles": ["workstation", "creator", "developer"],
+      "doctor_prerequisite": "network_policy_and_bridge",
+      "runtime_available": false,
+      "notes": "Network access must be explicitly granted and scoped by local Elysia."
+    },
+    "filesystem.read_project": {
+      "label": "Read user-selected project files",
+      "risk_level": "medium",
+      "default": "deny",
+      "allowed_profiles": ["core", "workstation", "creator", "developer"],
+      "doctor_prerequisite": "approved_mount_and_bridge",
+      "runtime_available": false,
+      "notes": "No home directory, vault, logs, memory, or secrets access by default."
+    },
+    "filesystem.write_project": {
+      "label": "Write user-selected project files",
+      "risk_level": "high",
+      "default": "deny",
+      "allowed_profiles": ["developer"],
+      "doctor_prerequisite": "approved_mount_rollback_and_bridge",
+      "runtime_available": false,
+      "notes": "Requires explicit local approval and rollback planning."
+    },
+    "memory.read_scoped": {
+      "label": "Read scoped Elysia memory",
+      "risk_level": "critical",
+      "default": "blocked",
+      "allowed_profiles": [],
+      "doctor_prerequisite": "future_scoped_memory_contract",
+      "runtime_available": false,
+      "notes": "Private memory access is denied until a future scoped policy exists."
+    },
+    "memory.write_scoped": {
+      "label": "Write scoped Elysia memory",
+      "risk_level": "critical",
+      "default": "blocked",
+      "allowed_profiles": [],
+      "doctor_prerequisite": "future_scoped_memory_contract",
+      "runtime_available": false,
+      "notes": "Private memory mutation is denied until a future scoped policy exists."
+    },
+    "model.invoke.local": {
+      "label": "Invoke local model through Elysia",
+      "risk_level": "medium",
+      "default": "deny",
+      "allowed_profiles": ["workstation", "creator", "developer"],
+      "doctor_prerequisite": "local_model_bridge",
+      "runtime_available": false,
+      "notes": "Model calls must go through governed Elysia interfaces."
+    },
+    "tool.run_sandboxed": {
+      "label": "Run declared tool in sandbox",
+      "risk_level": "high",
+      "default": "deny",
+      "allowed_profiles": ["creator", "developer"],
+      "doctor_prerequisite": "local_sandbox_and_worker_bridge",
+      "runtime_available": false,
+      "notes": "Only future isolated sandbox workers may execute code."
+    },
+    "shell.run": {
+      "label": "Run shell command",
+      "risk_level": "critical",
+      "default": "blocked",
+      "allowed_profiles": [],
+      "doctor_prerequisite": "not_available",
+      "runtime_available": false,
+      "notes": "Shell execution is blocked by default."
+    },
+    "external_api.call": {
+      "label": "Call declared external API",
+      "risk_level": "high",
+      "default": "deny",
+      "allowed_profiles": ["workstation", "creator", "developer"],
+      "doctor_prerequisite": "external_boundary_and_bridge",
+      "runtime_available": false,
+      "notes": "External APIs must be declared, reviewed, and explicitly approved."
+    }
+  }
+}

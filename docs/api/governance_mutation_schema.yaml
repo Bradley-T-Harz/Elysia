@@ -1,0 +1,89 @@
+governance_mutation_schema:
+  name: governance_mutation_schema
+  contract_version: governance-mutation-contract-1.0
+  routes:
+    plan: POST /governance/changes/plan
+    apply: POST /governance/changes/apply
+    restore: POST /governance/changes/restore
+    approve: POST /approval/resolve
+
+  invariants:
+    - Production Pass 3 has zero safe-live-editable controls and zero writable targets.
+    - Every request remains local and fail-closed.
+    - Planning performs no mutation.
+    - Apply and restore require exact server-held hashes, explicit confirmation, and one-time approval.
+    - A stale state hash, changed registry, changed target value, or tampered plan is refused.
+    - Any future write is a scalar allowlisted YAML update under the approved config root.
+    - Any future write preserves a private-mode recovery copy before atomic replacement.
+    - Authoritative state is re-read after apply and restore.
+    - Receipts contain IDs, outcomes, risks, classes, hashes, and reason codes only.
+    - Receipts never contain raw values, paths, prompts, logs, private memory, vault data, or tokens.
+
+  plan_request:
+    required:
+      - control_id
+      - proposed_value
+      - expected_config_hash
+    optional:
+      - reason
+      - ui_surface
+    proposed_value_type: scalar only
+
+  apply_request:
+    required:
+      - plan_id
+      - plan_hash
+      - expected_config_hash
+      - approval_id
+      - approval_token
+      - confirmed
+    confirmation_required: true
+
+  restore_request:
+    required:
+      - restore_id
+      - restore_plan_hash
+      - expected_config_hash
+      - approval_id
+      - approval_token
+      - confirmed
+    confirmation_required: true
+
+  receipt:
+    fields:
+      - request_id
+      - operation_id
+      - action
+      - outcome
+      - control_id
+      - classification
+      - risk
+      - recorded_at_utc
+      - config_hash_before
+      - config_hash_after
+      - plan_hash
+      - approval_id
+      - reason_code
+      - sanitized
+      - raw_values_logged
+      - raw_paths_logged
+    forbidden_fields:
+      - approval_token
+      - proposed_value
+      - current_value
+      - absolute_path
+      - raw_reason
+      - resolver_identity
+      - raw_backend_payload
+
+  future_promotion_checklist:
+    - exact control ID
+    - low risk classification
+    - exact scalar allowlist
+    - authoritative tracked or user-local config target
+    - config validator
+    - stale-hash and concurrency tests
+    - atomic recovery and restore tests
+    - approval expiry and reuse tests
+    - UI plan and consequence preview
+    - doctor and profile proof where relevant

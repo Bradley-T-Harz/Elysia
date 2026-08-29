@@ -1,0 +1,25 @@
+version: 1
+worker_key: archiveforge_worker
+worker_kind: governed_local_archive_inspection_worker
+state: enabled_policy_bound
+enabled: true
+environment: elysia_workstation
+python_path: null
+worker_script: sandbox/archiveforge_worker/worker_cli.py
+network_allowed: false
+cloud_allowed: false
+shell_allowed: false
+stdin_allowed: false
+arbitrary_arguments_allowed: false
+max_concurrent_jobs: 1
+limits_policy: config/policies/archive_extraction_limits.yaml
+posture:
+  inspection_only_external_tools: true
+  exact_one_time_approval_required_for_extraction: true
+  extraction_destination: server_owned_tmp_sandbox_only
+  install_allowed: false
+  execute_allowed: false
+  import_allowed: false
+  project_root_write_allowed: false
+  archive_contents_in_central_trace: false
+  worker_output_in_central_trace: false

@@ -1,0 +1,581 @@
+phase1_ui_truth_contract:
+  title: "Phase 1 UI Truth Contract"
+
+  purpose:
+    summary: "Phase 1 UI exists to become Elysia’s first honest local face."
+    it_must:
+      - "stay downstream of canon -> policy -> runtime body -> governed invocation -> response/interface"
+      - "never bypass routing, policy, verification, logging, or memory discipline"
+      - "never fake capabilities the body does not yet have"
+      - "make locality, role, fallback, approval, and boundary state visible at all times"
+
+  governing_rule:
+    summary: "The UI is a front door, not the brain."
+    body_facing_order:
+      - "model routing chooses"
+      - "model invoker calls"
+      - "runtime orchestrates"
+      - "responder presents"
+      - "logging and journaling record what occurred under policy"
+    api_rule: "The UI must talk to Elysia’s local body-facing API contract, not directly to raw Ollama."
+
+  stable_trust_language:
+    summary: "These states must be used consistently throughout Phase 1 as chips, badges, or labels."
+    states:
+      Local: "request stayed inside the local core"
+      Read-only: "inspection happened without a write or outward action"
+      Draft only: "output was prepared but not executed or published"
+      Approval needed: "a boundary was reached that requires explicit approval"
+      Sandboxed: "work is being proposed for or delegated to an isolated worker"
+      External: "outside the local core boundary is involved or proposed"
+      Blocked: "policy, missing requirements, or trust boundaries prevented action"
+    permanent_ui_grammar_rule: "This permission language is part of the permanent UI grammar."
+
+  requests_ui_can_send:
+    conversation_requests:
+      endpoint: "POST /chat/send"
+      purpose: "Send one user turn into Elysia’s body-facing path."
+      ui_sends:
+        - conversation_id
+        - user_text
+        - mode_requested:
+            - companion
+            - tutor
+            - researcher
+            - writer
+            - coder
+            - strategist
+        - action_requested:
+            - send
+            - plan
+            - draft
+            - research
+        - active_project_id
+        - attached_file_refs
+        - ui_context_note
+        - allow_external_requested:
+            default: false
+            phase_1_note: "default false in Phase 1"
+        - approval_token:
+            condition: "only when continuing an already-approved boundary crossing"
+      important_rule:
+        - "The UI may request a mode."
+        - "The UI may not directly pick a model or bypass routing."
+        - "Role and runtime are chosen by the body, not the frontend."
+
+    conversation_navigation_requests:
+      endpoints:
+        - endpoint: "GET /chat/conversations"
+          purpose: "list conversations"
+        - endpoint: "GET /chat/conversations/{id}"
+          purpose: "load one thread"
+        - endpoint: "POST /chat/new"
+          purpose: "start a new conversation shell"
+      phase_1_note: "These are part of the initial Phase 1 API shape."
+      conversation_metadata_rule:
+        summary: "For GET /chat/conversations and GET /chat/conversations/{id}, the response should carry thread-level metadata, not just message content."
+        suggested_thread_metadata_fields:
+          - created_at
+          - updated_at
+          - active_project_id
+          - active_project_name
+          - last_effective_mode
+          - last_selected_role
+          - last_runtime_tag
+          - last_boundary_state
+          - conversation_note
+        reason: "This keeps the conversation list and project linkage inspectable from the beginning."
+
+    project_requests:
+      endpoints:
+        - endpoint: "GET /projects"
+          purpose: "list projects visible in Phase 1"
+        - endpoint: "POST /projects/select"
+          purpose: "set active project for the workspace"
+      phase_1_projects_scope: "Phase 1 Projects is intentionally modest: list, select, related chats, related notes, current phase/state."
+
+    memory_requests:
+      endpoints:
+        - endpoint: "GET /memory/summary"
+          purpose: "get high-level memory state for drawer and Memory room"
+        - endpoint: "GET /memory/items"
+          purpose: "list memory items with filters"
+        - endpoint: "POST /memory/item/update"
+          purpose: "edit label / pin / move metadata for a memory item"
+        - endpoint: "POST /memory/item/forget"
+          purpose: "forget or hide a memory item according to policy"
+      phase_1_memory_rule: "Phase 1 Memory is meant to be humane and inspectable, not a raw database browser."
+
+    governance_requests:
+      endpoints:
+        - endpoint: "GET /governance/state"
+          purpose: "show current governance and trust configuration"
+        - endpoint: "POST /governance/update"
+          purpose: "update only the governance controls that are truly live in the backend"
+      important_rule: "If a governance control is not yet wired in the body, the UI must show it as inactive or planned, not fake-editable."
+      governance_control_mutability_rule:
+        summary: "GET /governance/state must also return mutability truth for each surfaced governance control so the UI can distinguish live-editable, display-only, inactive, and planned controls."
+        reason: "This prevents fake toggles and keeps Governance honest."
+
+    status_requests:
+      endpoints:
+        - endpoint: "GET /status/runtime"
+          purpose: "current body/runtime status for top bar, drawer, and bottom bar"
+        - endpoint: "GET /status/health"
+          purpose: "local service health such as core, Ollama, and API bridge state"
+        - endpoint: "GET /status/capabilities"
+          purpose: "return the current capability truth for UI surfaces and controls so the frontend does not hardcode assumptions"
+      trust_surface_rule: "These support the visible trust surfaces rather than hidden magic."
+      capability_entries_rule: "Capability entries may include values such as live, inactive, planned, or mixed, depending on what the body actually supports."
+
+    approval_requests:
+      endpoint: "POST /approval/resolve"
+      purpose: "resolve an approval-needed boundary crossing in a governed, explicit way."
+      ui_sends:
+        - request_id
+        - approval_token
+        - decision:
+            - approve
+            - deny
+        - user_note:
+            phase_1_note: "optional in Phase 1"
+      handshake_rule: "This is the other half of the approval handshake. Approval must be explicit, inspectable, and tied to a real prior request."
+
+    request_trace_requests:
+      endpoint: "GET /requests/{id}/summary"
+      purpose: "return a compact, inspectable trace summary tied to request_id without dumping raw logs into the UI."
+      reason: "This exists so the drawer and Governance room can expose causality cleanly when needed."
+
+    account_requests:
+      endpoints:
+        - endpoint: "GET /account/state"
+          purpose: "determine whether to show first-run user creation, login, or the app shell"
+        - endpoint: "POST /account/create"
+          purpose: "create the first sealed local account and persistent local session"
+        - endpoint: "POST /account/login"
+          purpose: "verify local credentials and create a persistent local session"
+        - endpoint: "POST /account/logout"
+          purpose: "revoke the current local session"
+        - endpoint: "GET /account/profile"
+          purpose: "authenticated UI-only private profile read"
+        - endpoint: "PUT /account/profile"
+          purpose: "authenticated UI-only private profile update"
+        - endpoint: "GET /account/profile/elysia-visible"
+          purpose: "return only the tiny profile projection Elysia may see"
+        - endpoint: "POST /account/profile-photo/select"
+          purpose: "copy an explicitly selected jpg/png/webp profile image into sealed identity storage"
+        - endpoint: "DELETE /account/profile-photo"
+          purpose: "delete or deactivate the copied local profile photo asset"
+        - endpoint: "GET /account/profile-photo/{asset_id}/preview"
+          purpose: "render copied profile photo bytes only for the authenticated owner without exposing private paths"
+        - endpoint: "GET /account/colors"
+          purpose: "return the page-local identity color palette"
+        - endpoint: "GET /account/privacy"
+          purpose: "return account privacy contract truth"
+      startup_gate:
+        no_user: "show_user_creator_without_app_shell"
+        logged_out: "show_login_without_app_shell"
+        logged_in: "mount_app_shell"
+      private_profile_rule:
+        ui_readable_by_authenticated_user: true
+        runtime_private_readable: false
+        workers_private_readable: false
+        tools_private_readable: false
+        normal_memory_import_allowed: false
+      visible_projection_rule:
+        runtime_visible_projection_allowed: true
+        tools_visible_projection_allowed: false
+        workers_visible_projection_allowed: false
+        memory_visible_projection_import_allowed: false
+
+  exact_structured_packet_that_comes_back:
+    contract_versioning:
+      summary: "All UI-facing responses should also carry contract version truth so the frontend and body can evolve without quiet drift."
+      standard_envelope:
+        - ok
+        - status
+        - request_id
+        - timestamp
+        - api_version
+        - contract_version
+        - data
+        - error
+      field_meanings:
+        ok: "true or false"
+        status: "ok | blocked | error | inactive | planned"
+        request_id: "local trace id for UI/runtime correlation"
+        timestamp: "ISO-8601 string"
+        data: "endpoint-specific payload"
+        error: "null or human-readable error string"
+        api_version: "version of the local UI-facing API currently being served"
+        contract_version: "version of the Phase 1 UI truth contract currently being honored"
+      expanded_operational_status_vocabulary:
+        status: "ok | blocked | error | inactive | planned | unavailable | degraded"
+        unavailable: "a required local service is not reachable or not online"
+        degraded: "the request succeeded, but only through fallback or reduced capability/context"
+
+    post_chat_send:
+      endpoint: "POST /chat/send"
+      data_payload:
+        - conversation_id
+        - message_id
+        - response_text
+        - mode_requested
+        - mode_effective
+        - action_requested
+        - selected_role
+        - selected_role_container
+        - selected_model
+        - selected_model_runtime_tag
+        - selected_runtime
+        - stayed_local
+        - used_fallback
+        - fallback_from
+        - fallback_to
+        - approval_needed
+        - blocked
+        - block_reasons
+        - unmet_requirements
+        - invocation_note
+        - prompt_source
+        - plan_summary
+        - boundary_flags
+        - memory_summary
+        - journal_summary
+        - attached_context_summary
+        - latency_ms
+        - provider_metadata
+        - trace_summary
+      packet_shape_reason:
+        - "active model role"
+        - "active runtime tag"
+        - locality
+        - fallback
+        - approval-needed state
+        - "plan preview"
+        - "memory/journal/context summaries"
+        - "blocked or degraded states without inventing explanations"
+      alignment_note: "That matches the intended invoker result shape and the Phase 1 drawer/status design."
+      trace_summary_meaning: "compact inspectable route/log/journal summary tied to request_id"
+
+    get_chat_conversations_and_thread:
+      endpoints:
+        - "GET /chat/conversations"
+        - "GET /chat/conversations/{id}"
+      data_payload:
+        - conversation_id
+        - title
+        - created_at
+        - updated_at
+        - active_project_id
+        - active_project_name
+        - last_effective_mode
+        - last_selected_role
+        - last_runtime_tag
+        - last_boundary_state
+        - conversation_note
+        - message_count
+        - messages
+      reason: "These fields make the conversation list, thread view, and project linkage inspectable without inventing state in the frontend."
+
+    nested_summary_objects:
+      memory_summary:
+        - loaded_memory_classes
+        - memory_status
+        - promoted_write_candidates
+        - memory_note
+      journal_summary:
+        - will_journal
+        - journal_mode
+        - journal_note
+      attached_context_summary:
+        - active_project_id
+        - active_project_name
+        - files_in_use
+        - active_context_note
+      reason: "These nested objects exist so the right drawer can expose trust and context clearly without dumping ugly internals."
+
+    get_status_runtime:
+      endpoint: "GET /status/runtime"
+      data_payload:
+        - local_core_status
+        - runtime_status
+        - invoker_status
+        - ollama_status
+        - active_mode
+        - active_role
+        - active_runtime_tag
+        - stayed_local
+        - used_fallback
+        - memory_status
+        - sandbox_status
+        - approval_required
+        - outward_boundary_state
+        - indexing_state
+        - sync_state
+        - last_error
+        - status_note
+      reason: "This is the packet that feeds the top bar, right drawer, and bottom status bar. It must stay small, legible, and honest."
+
+    get_status_capabilities:
+      endpoint: "GET /status/capabilities"
+      data_payload:
+        - integrated_invoker_path
+        - responder_live_invoker_render
+        - memory_edit_actions
+        - governance_edit_controls
+        - quick_invoke
+        - external_tool_execution
+        - capability_manifest_note
+      reason: "This packet exists so the UI can ask the body what is really live right now instead of hardcoding guesses."
+
+    get_governance_state:
+      endpoint: "GET /governance/state"
+      data_payload:
+        - local_only_mode
+        - external_tools_state
+        - autonomy_level
+        - trust_zones
+        - memory_write_preferences
+        - model_role_defaults
+        - journal_policy_state
+        - vault_access_rules
+        - governance_note
+        - control_states
+        - control_sources
+        - governance_config_hash
+        - mutation_contract_version
+        - mutation_summary
+      control_rule: "Each surfaced governance control declares both display state and exact Pass 3 mutability classification. Current production safe-live-editable count is zero."
+      control_sources_rule: "control_sources should identify the authority behind the control, such as config/models/model_roles.yaml or another backend source of truth."
+      phase_1_scope_rule: "These are the fields the Governance room is allowed to show in Phase 1."
+
+    post_governance_change_plan:
+      endpoint: "POST /governance/changes/plan"
+      rule: "Preview only; no frontend state or plan request mutates Governance law."
+
+    post_governance_change_apply:
+      endpoint: "POST /governance/changes/apply"
+      rule: "Requires exact current hashes, explicit confirmation, one-time approval, an allowlisted authoritative adapter, atomic recovery, and re-read."
+
+    post_governance_change_restore:
+      endpoint: "POST /governance/changes/restore"
+      rule: "Requires the exact recovery record, current state hash, explicit confirmation, and a separate one-time approval."
+
+    post_approval_resolve:
+      endpoint: "POST /approval/resolve"
+      data_payload:
+        - approval_resolution.request_id
+        - approval_resolution.resolution_status
+        - approval_resolution.decision
+        - approval_resolution.request_state
+        - approval_resolution.can_proceed
+        - approval_resolution.approval_id
+        - approval_resolution.approval_token
+        - approval_resolution.expires_at_utc
+      reason: "This packet resolves a real server-held exact Governance request; it does not execute the change or grant generic authority."
+
+    get_request_summary:
+      endpoint: "GET /requests/{id}/summary"
+      data_payload:
+        - request_id
+        - route_decision_note
+        - log_written
+        - journal_candidate
+        - body_path_used
+        - prompt_source
+        - config_sources
+        - trace_note
+      reason: "This packet gives the UI a clean, inspectable causality view without dumping raw logs."
+
+  right_drawer_must_show:
+    summary: "The right drawer is a core trust surface, not decoration."
+    in_phase_1:
+      - "active context"
+      - "loaded memory classes"
+      - "current project"
+      - "files in use"
+      - "plan preview"
+      - "boundary flags"
+      - "approval-needed state"
+      - "journal policy summary"
+      - "active mode"
+      - "active model role"
+      - "stayed-local state"
+      - "fallback state if used"
+      - "request trace summary when available"
+    honesty_rule: "If a field is not live yet, it must be shown as Inactive or Planned, not faked or silently omitted."
+    reason: "The drawer exists to make the organism legible without exposing ugly internals."
+
+  right_drawer_contract:
+    portrait:
+      present: true
+      locked: true
+      preserve_existing_layout: true
+      title: "PORTRAIT"
+      name: "Elysia"
+      subtitle: "Present in chamber"
+
+    section_order:
+      - active_context
+      - memory_classes
+      - current_project
+      - files_in_use
+      - plan_preview
+      - boundary_flags
+      - approval_needed
+      - journal_summary
+      - request_trace
+
+    purpose:
+      summary_only: true
+      deep_explanation_location: "Chamber and later rooms"
+
+    layout:
+      internal_scroll: true
+      portrait_remains_visible: true
+
+    section_rule:
+      feature_state_markers_required: true
+      sections_must_support:
+        - live_value
+        - live_status
+        - empty_state
+        - blocked_degraded_planned_state
+
+    backend_mapping:
+      active_context:
+        primary_source: "POST /chat/send response packet"
+        fallback_source: "conversation state in current room"
+      memory_classes:
+        primary_source: "memory_summary"
+        fallback_source: "journal_summary or memory-class policy output"
+      current_project:
+        primary_source: "conversation/project state"
+        fallback_source: "none"
+      files_in_use:
+        primary_source: "attached_context_summary.files_in_use"
+        fallback_source: "conversation attachment state"
+      plan_preview:
+        primary_source: "plan_summary"
+        fallback_source: "response summary derived from plan"
+      boundary_flags:
+        primary_source: "boundary_flags"
+        fallback_source: "runtime/governance status"
+      approval_needed:
+        primary_source: "approval_needed"
+        fallback_source: "governance state"
+      journal_summary:
+        primary_source: "journal_summary"
+        fallback_source: "journal policy/result"
+      request_trace:
+        primary_source: "trace_summary or GET /requests/{id}/summary"
+        fallback_source: "request summary endpoint"
+
+  bottom_status_bar_must_show:
+    summary: "The bottom status bar is also a core trust surface."
+    in_phase_1:
+      - "Local Core state"
+      - "active role"
+      - "active runtime tag"
+      - "fallback state"
+      - "memory status"
+      - "sandbox state"
+      - "approval-needed state"
+      - "outward-boundary state"
+    optional_later_additions:
+      - "GPU/CPU usage"
+      - "indexing/sync activity"
+    priority_rule: "But these should not displace the core trust signals above."
+    main_point: "The user should never have to wonder whether Elysia is local, falling back, waiting for approval, or quietly leaving the house."
+    runtime_truth_rule: "If runtime is unavailable or degraded, that state should be shown clearly here as part of the core trust surface."
+
+  startup_truth:
+    when_phase_1_ui_starts_it_must_determine_and_display:
+      - "desktop shell status"
+      - "API bridge status"
+      - "local core status"
+      - "invoker status"
+      - "Ollama status"
+      - "current contract version"
+      - "current capability manifest state"
+    trust_rule: "The first moments after launch are part of trust. Elysia must not look ready if the body is not actually ready."
+
+  what_is_marked_live_vs_inactive_vs_planned:
+    capability_manifest_rule: "Capability truth must be queryable through GET /status/capabilities so the frontend reads what is actually live instead of baking assumptions into the shell."
+
+    phase_1_real_rooms:
+      - Conversations
+      - Projects
+      - Memory
+      - Governance/Settings
+    later_left_rail_growth_note: "The left rail may later grow to include Home, Library, Tasks, Domains, and Sandboxes, but those are not Phase 1 core rooms."
+
+    live_now_in_the_body:
+      - "deterministic mode and role routing"
+      - "privacy-first model role and routing config"
+      - "derived runtime role prompts"
+      - "standalone local model invoker"
+      - "local Ollama invocation capability at the invoker layer"
+      - "allowed local fallback logic"
+      - "runtime logging"
+      - "policy-aware journaling"
+      - "bounded recent session memory retrieval"
+      - "live local role-wrapper prototypes"
+    live_now_note: "These are not UI fantasies. They exist in the body now."
+
+    inactive_now_must_not_be_faked:
+      - "invoker wired through the main runtime loop"
+      - "responder rendering true live invoker output"
+      - "the future UI using the invoker as its body-facing contract"
+      - "invoker-specific automated test coverage"
+      - "live approved tool execution through the same integrated path"
+      - "full semantic long-term project-memory reasoning"
+      - "autonomous outward action beyond scaffold bookkeeping"
+    inactive_now_note: "These are exactly the kinds of things the UI must not pretend are already alive."
+
+    planned_later_not_phase_1_truth:
+      - "Library room"
+      - "Tasks room"
+      - "Domains room"
+      - "Sandboxes room as a full working interface"
+      - "full workbench multi-pane environment"
+      - "live web research integration if not truly wired"
+      - "cloud consultants as ordinary tools"
+      - "voice/avatar theater"
+      - "giant cockpit dashboard behavior"
+    planned_later_note: "Phase 1 is meant to feel excellent, not maximal."
+
+    specific_honesty_rule:
+      - "If a surface is fully usable now, mark it Live"
+      - "If a surface is defined by contract but not body-wired yet, mark it Inactive"
+      - "If a surface is intended for a later phase, mark it Planned"
+      - "Do not use cosmetic ambiguity."
+      - "Do not imply capability by aesthetic suggestion."
+      - "Do not hide architectural truth behind a pretty shell."
+
+    unknown_vs_inactive_vs_planned:
+      Unknown: "temporary loading or undetermined state because status has not yet been received"
+      Inactive: "defined by contract but not body-wired yet"
+      Planned: "intended for a later phase and not part of current live truth"
+    visibility_rule: "Unknown must never be styled as Live. Unknown, Inactive, Planned, Unavailable, and Degraded must remain visibly distinct in the UI."
+
+  quick_invoke_truth_rule:
+    summary: "Quick Invoke must use the same body-facing contract and the same governance/trust language as the full shell."
+    rule: "It is a compact entrance, not a bypass."
+
+  final_phase_1_rule:
+    summary: "The UI must not behave like 'ChatGPT with extra panels.'"
+    it_must_behave_like:
+      - "Elysia’s first honest local chamber"
+      - "one sovereign shell"
+      - "one real body-facing contract"
+      - "visible locality"
+      - "visible role truth"
+      - "visible fallback truth"
+      - "visible approval truth"
+      - "visible boundary truth"
+    final_priorities:
+      - "If there is any tension between pretty and truthful, choose truthful."
+      - "If there is any tension between fast and governed, choose governed."
+      - "If there is any tension between impressive and inspectable, choose inspectable."

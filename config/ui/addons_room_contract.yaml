@@ -1,0 +1,111 @@
+version: 2
+contract_key: addons_room_boundary
+contract_version: "1.0"
+
+room:
+  label: Add-ons
+  purpose: "Local governed add-on manager plus optional Marketplace catalog and review truth."
+  operator_only: true
+  model_accessible: false
+  chat_accessible: false
+  memory_promotion_allowed: false
+  outward_sharing_allowed: false
+
+gate:
+  applies_to: marketplace_catalog_and_saved_list_only
+  local_package_manager_requires_marketplace_session: false
+  requires_marketplace_frontend_session: true
+  requires_local_marketplace_link: true
+  requires_session_user_id_matches_local_link: true
+  locked_messages:
+    no_marketplace_session: "Sign in to Marketplace in Personal Identity to use Add-ons."
+    signed_in_not_linked: "Marketplace is signed in, but this local Elysia chamber is not linked yet."
+    account_mismatch: "You are signed into a different Marketplace account than the one linked to this local Elysia chamber."
+  locked_message: "Sign in and link your Marketplace account in Personal Identity to use Add-ons."
+
+allowed_cloud_reads:
+  - approved_marketplace_addon_catalog
+  - current_user_saved_addon_slugs
+
+forbidden_uploads:
+  - local_elysia_password
+  - local_files
+  - memory
+  - request_traces
+  - dependency_inventory
+  - local_paths
+  - private_profile_fields
+
+actions:
+  save_to_my_addons:
+    live: true
+    location: marketplace_supabase
+    local_execution: false
+  remove_from_my_addons:
+    live: true
+    location: marketplace_supabase
+    local_execution: false
+  install:
+    live: true
+    exact_plan_approval_apply: true
+    result_state: installed_disabled
+    execution: false
+  enable:
+    live: true
+    exact_plan_approval_apply: true
+    result_state: enabled_limited
+    execution: false
+  disable:
+    live: true
+    exact_plan_approval_apply: true
+    runtime_authority_after: false
+  revoke:
+    live: true
+    exact_plan_approval_apply: true
+    runtime_authority_after: false
+  uninstall:
+    live: false
+    preview_only: false
+    registry_remove_live: true
+    files_deleted: false
+    files_retained: true
+
+local_execution:
+  command_execution_allowed: false
+  package_install_allowed: false
+  package_uninstall_allowed: false
+  shell_allowed: false
+  subprocess_allowed: false
+  file_mutation_allowed: false
+  package_staging_file_mutation_allowed: true
+  package_staging_root: xdg_user_addon_data
+  arbitrary_core_import_allowed: false
+  future_execution_requires:
+    - local_elysia_password
+    - exact_manifest
+    - exact_action
+    - previewed_plan
+    - operator_approval
+    - ledger_write
+    - rollback_note
+
+submission:
+  upload_live: false
+  website_upload_is_local_only: false
+  privacy_notice_required: true
+  pending_review_not_public: true
+  admin_approval_required: true
+  ordinary_intake_executes_code: false
+
+review:
+  admin_review_guarantees_safety: false
+  exact_hash_binding: true
+  changed_hash_requires_new_review: true
+
+official_candidates:
+  codev:
+    listing_state: official_v1_release
+    developer_profile_required: true
+    local_vsix_install_action_live: true
+    public_distribution_supported: true
+    in_app_marketplace_install_action_live: false

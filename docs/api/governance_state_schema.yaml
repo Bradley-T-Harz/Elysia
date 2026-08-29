@@ -1,0 +1,126 @@
+governance_state_schema:
+  name: governance_state_schema
+  route: /governance/state
+  method: GET
+  contract_version: phase1-ui-contract-1.0
+  mutation_contract_version: governance-mutation-contract-1.0
+  purpose: >
+    Return compact authoritative Governance truth, including the exact Pass 3
+    mutability class and risk boundary for every surfaced control.
+  envelope_reference: standard_response_envelope
+  locality: local
+  read_only: true
+
+  governing_rules:
+    - GET /governance/state never mutates policy or configuration.
+    - Frontend state is never Governance authority.
+    - Every surfaced control resolves through config/governance/control_registry.yaml.
+    - Unknown or unclassified controls fail closed as read-only constitutional.
+    - No raw policy file, private path, secret, log, memory, vault, or credential is returned.
+    - The state hash covers compact control IDs, values, mutability classes, and risks only.
+
+  response_data:
+    required:
+      - locality_summary
+      - trust_zones
+      - role_authority
+      - routing_summary
+      - memory_summary
+      - approval_summary
+      - journaling_summary
+      - control_states
+      - control_sources
+      - governance_config_hash
+      - mutation_contract_version
+      - mutation_summary
+    fields:
+      locality_summary:
+        type: mapping
+        meaning: Local bridge and outward-boundary posture.
+      trust_zones:
+        type: list
+        meaning: Compact workspace, Commons, publish-queue, sealed-private, and audit boundaries.
+      role_authority:
+        type: mapping
+        meaning: Model-role declarations and runtime wiring truth; not a model selector.
+      routing_summary:
+        type: mapping
+        meaning: Local-first, fallback, sensitive-work, and preferred-role posture.
+      memory_summary:
+        type: mapping
+        meaning: Compact memory-mutation, class, sealed, retention, and promotion posture.
+      approval_summary:
+        type: mapping
+        meaning: Risky, destructive, outbound, and autonomy approval posture.
+      journaling_summary:
+        type: mapping
+        meaning: Compact journaling, request-trace, and append-only audit posture.
+      control_states:
+        type: list
+        item_contract:
+          required:
+            - control_id
+            - label
+            - state
+            - source
+            - mutation_classification
+            - mutation_risk
+            - mutation_allowed
+            - approval_required
+            - mutation_reason
+          optional:
+            - value
+            - detail
+            - category
+            - authority_note
+            - mutation_later_gate
+      control_sources:
+        type: list
+        meaning: Sanitized labels and tracked relative source paths for authority surfaces.
+      generated_at_utc:
+        type: string
+        format: ISO-8601 UTC
+      governance_note:
+        type: string
+        meaning: Compact non-authoritative UI guidance.
+      governance_config_hash:
+        type: string
+        format: lowercase SHA-256 hex
+        meaning: Version guard required by every Governance change plan.
+      mutation_contract_version:
+        type: string
+        current: governance-mutation-contract-1.0
+      mutation_summary:
+        type: mapping
+        meaning: Count of surfaced controls in each exact mutability class.
+
+  mutation_classifications:
+    safe-live-editable-now: >
+      A reviewed low-risk control with an exact allowlist, authoritative adapter,
+      expiring approval, atomic write, recovery copy, re-read, receipt, and tests.
+    plan-only: >
+      Architecture may preview a future exact change, but current production law cannot apply it.
+    read-only-constitutional: >
+      Current protective or derived truth is inspectable and cannot be changed through Governance.
+    profile-gated-later: >
+      Requires a real optional profile, dependency/boundary proof, approval, and doctor checks.
+    lab-gated-later: >
+      Requires a bounded Lab contract, stop/revoke/recovery paths, and safety proof.
+    hard-prohibited-by-default: >
+      Cannot be silently or casually enabled in Core. This does not erase carefully governed future work.
+
+  production_pass_3_truth:
+    safe_live_editable_count: 0
+    tracked_config_write_targets: 0
+    plan_apply_restore_contracts_live: true
+    approval_resolution_live_for_governance_changes: true
+    frontend_only_mutation_possible: false
+    note: >
+      No current production Governance control is low-risk enough to promote in Pass 3.
+      The framework is live and fail-closed so later passes can promote exact controls safely.
+
+  related_routes:
+    - POST /governance/changes/plan
+    - POST /governance/changes/apply
+    - POST /governance/changes/restore
+    - POST /approval/resolve

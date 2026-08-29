@@ -1,0 +1,36 @@
+version: "0.1"
+scope: "marketplace_addon_action_planning"
+state: "preview_only"
+
+authority:
+  execution_enabled: false
+  mutation_allowed: false
+  command_execution_allowed: false
+  package_manager_allowed: false
+  shell_allowed: false
+  subprocess_allowed: false
+  worker_execution_allowed: false
+
+privacy:
+  sends_local_password: false
+  sends_local_files: false
+  sends_memory: false
+  sends_request_traces: false
+  sends_dependency_inventory: false
+  sends_local_paths: false
+  sends_supabase_tokens_to_backend: false
+
+future_execution_requirements:
+  - exact_manifest_validation
+  - local_elysia_password_or_operator_approval
+  - explicit_action_kind
+  - exact_target_addon
+  - path_and_scope_guard_if_files_are_ever_involved
+  - ledger_write
+  - rollback_story
+  - refusal_tests
+
+notes:
+  - "This policy supports Marketplace action previews only."
+  - "Install, enable, disable, and uninstall remain non-executing plans."
+  - "Local Elysia does not run package managers, shells, workers, or file mutations from this path."

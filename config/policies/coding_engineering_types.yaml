@@ -1,0 +1,24 @@
+version: engineering-types-0.1
+domain_layer: EngineeringForge
+families:
+  geometry: [stl, obj, dae]
+  cad: [step, stp, iges, igs, dxf]
+  robot_model: [urdf, sdf]
+  cam: [gcode]
+  blend: [blend]
+  fusion: [f3d, f3z]
+authority:
+  levels_0_to_3: available_where_registered_and_bounded
+  level_4: exact_approval_required_where_available
+  levels_5_to_7: plan_only_or_unavailable
+  level_8: unavailable_by_design
+  level_9: unavailable_by_design
+hard_boundaries:
+  - no_physical_output
+  - no_machine_send
+  - no_robot_control
+  - no_script_or_plugin_execution
+  - no_external_fetch
+  - no_cloud_translation_or_upload
+  - no_source_mutation
+  - no_engineering_safety_certification

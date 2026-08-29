@@ -1,0 +1,184 @@
+contract_id: vscode-coding-agent-policy
+contract_version: vscode-coding-agent-contract-0.1
+local_only: true
+marketplace_account_required: false
+cloud_upload_allowed: false
+
+capabilities:
+  status: true
+  session_start: true
+  chat: true
+  repo_inspect_preview: true
+  exact_repo_approval: true
+  read_only_git_truth: true
+  selected_file_read: true
+  document_inspection: true
+  document_export: true
+  document_stable_edit: true
+  data_inspection: true
+  data_export: true
+  data_stable_edit: true
+  visual_inspection: true
+  visual_export: true
+  visual_derived_edit: true
+  media_metadata_inspection: true
+  media_video_thumbnail: true
+  media_transcription: true
+  media_tts: true
+  media_generation: false
+  media_image_generation_lab_only: true
+  media_video_generation_lab_only: true
+  voice_cloning: false
+  archive_inspection: true
+  archive_risk_reporting: true
+  archive_selected_sandbox_extraction: true
+  archive_extract_to_project: false
+  archive_install: false
+  archive_execute: false
+  archive_autonomous_extraction: false
+  generic_text_file_operations: true
+  operation_approval_tokens: true
+  operation_audit_read: true
+  patch_proposal: true
+  patch_apply: true
+  command_execution: true
+  test_execution: true
+  command_catalog: true
+  bounded_task_plan: true
+  receipt_only_task_checkpoint: true
+  git_mutation: false
+  package_manager: false
+  autonomous_loop: false
+  background_task_continuation: false
+
+limits:
+  max_preview_entries: 100
+  max_preview_depth: 3
+  max_file_preview_bytes: 12000
+  max_file_preview_lines: 240
+  max_patch_preview_bytes: 20000
+  max_text_file_bytes: 1048576
+  max_data_file_bytes: 26214400
+
+ignored_names:
+  - .git
+  - node_modules
+  - dist
+  - build
+  - target
+  - __pycache__
+  - .venv
+  - .pytest_cache
+  - .elysia_backups
+  - data/identity
+  - data/coding
+  - memory
+  - vault
+  - sealed_private
+  - sealed-private
+  - private
+  - journal
+  - journals
+  - secrets
+  - credentials
+  - .aws
+  - .azure
+  - .kube
+  - logs
+
+ignored_globs:
+  - "*.sqlite"
+  - ".env"
+  - ".env.local"
+  - ".env.*"
+  - "*.pem"
+  - "*.key"
+  - "*.crt"
+  - "*id_rsa*"
+  - "*id_ed25519*"
+
+blocked_path_parts:
+  - .git
+  - .ssh
+  - .gnupg
+  - node_modules
+  - dist
+  - build
+  - target
+  - __pycache__
+  - .venv
+  - .pytest_cache
+  - .elysia_backups
+  - data/identity
+  - data/account
+  - data/coding
+  - memory
+  - vault
+  - sealed_private
+  - sealed-private
+  - private
+  - journal
+  - journals
+  - secrets
+  - credentials
+  - .aws
+  - .azure
+  - .kube
+  - logs
+
+blocked_file_names:
+  - .env
+  - .env.local
+  - known_hosts
+  - authorized_keys
+  - credentials.json
+  - secrets.json
+  - secrets.yaml
+  - secrets.yml
+  - token.json
+  - tokens.json
+  - passwords.txt
+
+binary_extensions:
+  - .png
+  - .jpg
+  - .jpeg
+  - .gif
+  - .webp
+  - .sqlite
+  - .db
+  - .zip
+  - .gz
+  - .tar
+  - .7z
+  - .exe
+  - .dll
+  - .so
+  - .dylib
+  - .sqlite3
+  - .duckdb
+  - .bin
+  - .o
+  - .class
+  - .wasm
+
+notes:
+  - "The VS Code companion bridge is local-only and governed by explicit approval modes."
+  - "VS Code trust and exact XDG-local Elysia repository approval are both required before repository access; neither grants broad filesystem authority."
+  - "Git truth uses fixed read-only argv and real SCM state; commit, checkout, stash, reset, clean, push, and all other Git mutation are unavailable."
+  - "Selected file read previews require explicit approval and are bounded, sanitized, and workspace-scoped."
+  - "Patch proposals are preview-only until exact approval; approved patch apply is workspace-scoped, text-only, hash-checked, and audited."
+  - "Approved command/test execution is limited to the exact read-only git diff check with shell=False, timeout, and bounded output; npm/Cargo build-script entries are policy-disabled pending isolated, state-bound execution."
+  - "Developer Lab task planning is bounded to approved repos, selected files, eight steps, and thirty minutes. One explicit checkpoint creates one receipt but executes no tool, command, patch, or background continuation."
+  - "Git mutation, package managers, cloud upload, arbitrary shell, and autonomous coding loops are not live."
+  - "Repository inspection preview returns metadata only, not source-code contents."
+  - "Supported document containers use bounded document adapters; macro-enabled and legacy Office documents remain blocked."
+  - "Science/data and visual stewardship are adapter-specific; unsupported mutations are refused rather than advertised as live."
+  - "Audio/video stewardship includes read-only metadata inspection, fixed-argument derived video thumbnails, exact-approved local STT, and exact-approved non-cloning Kokoro reading voice. Transcoding and media mutation are not live."
+  - "ImageForge exposes one cancellable Creator-profile FLUX lane; CommonCanvas and Mitsua remain blocked. VideoForge remains a fixed-profile, cancellable lab route. Voice cloning is unavailable by design."
+  - "ArchiveForge lists and risk-reports registered archives locally. ZIP, TAR, and TAR.GZ allow only exact-approved selected regular-file extraction into a disposable sandbox outside project roots."
+  - "7Z is list-only; RAR extraction is license-sensitive lab-only; WHL, JAR, VSIX, AppImage, and DEB are inspect-only. Archive install, execution, import, trust, auto-open, extract-all, project merge, and autonomous extraction are unavailable."
+  - "DatabaseForge identifies and hashes SQLite, DuckDB, and ambiguous .db files; only exact-approved snapshot-first fixed schema introspection is live. Rows, arbitrary SQL, export, extension loading, external access, and mutation are unavailable."
+  - "BinaryForge provides bounded static metadata for PE, ELF, CLASS, WASM, and unknown BIN. Execution, loading, import, install, linking, mutation, patching, and trust are unavailable; deeper analysis is future-sandbox-gated."
+  - "All coding mutations consume exact, expiring, one-time approval records bound to root, relative paths, source hash, plan hash, and mutation class."
+  - "Coding chat is a bounded deterministic bridge, not yet a general coding-reasoning model; the Fibonacci transform is a contained contract fixture."

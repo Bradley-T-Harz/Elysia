@@ -1,0 +1,12 @@
+version: 1
+contract_version: elysia-local-profile-selection-1.0
+
+# Copy this template to $XDG_CONFIG_HOME/elysia/install/profiles.yaml.
+# Selecting a profile changes truth resolution only. It installs nothing,
+# starts nothing, grants no approval, and does not weaken the safety floor.
+active_profile: core
+additional_profiles: []
+
+notes:
+  - Core is the portable default.
+  - Optional profile selection remains non-mutating; doctor reports readiness but installs nothing.

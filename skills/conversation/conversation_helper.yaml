@@ -1,0 +1,74 @@
+id: conversation.conversation_helper
+name: Conversation Helper
+version: 0.1.0
+status: draft
+
+purpose: >
+  Handle general conversation, clarification, summarization, and lightweight response support
+  while preserving tone, truthfulness, and policy alignment.
+
+triggers:
+  - general question
+  - casual conversation
+  - summarize this
+  - help me think through this
+  - clarify what I mean
+
+inputs:
+  required:
+    - user_message
+  optional:
+    - conversation_context
+    - user_preferences
+    - active_project_context
+
+permissions:
+  network_access: none
+  file_read: false
+  file_write: false
+  shell_access: false
+  external_posting: false
+
+memory_access:
+  read:
+    - conversation_memory
+    - preference_memory
+  write:
+    - conversation_memory
+
+risk_level: low
+
+approval_required_when:
+  - sensitive private material is being persisted
+  - the task shifts into external action
+  - the task shifts into system change
+  - uncertainty becomes high enough to require explicit caution
+
+steps:
+  - interpret the user's immediate intent
+  - identify whether the task is conversation, clarification, or summarization
+  - gather only relevant conversational context
+  - generate a grounded response aligned with policy
+  - mark uncertainty if confidence is limited
+  - return response and any suggested next route
+
+verification:
+  - consistency with personality policy
+  - no unsupported certainty
+  - no hidden escalation into higher-risk behavior
+
+output_schema:
+  summary: string
+  response: string
+  suggested_route: string
+  caveats: list
+
+failure_modes:
+  - ambiguous intent
+  - insufficient context
+  - policy boundary hit
+  - confidence too low for a strong answer
+
+notes: >
+  This is the default low-risk conversational skill. It should remain simple, stable,
+  and easy to audit.

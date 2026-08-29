@@ -1,0 +1,15 @@
+version: cam-gcode-safety-0.1
+analysis_only: true
+temperature_warning_celsius: 300
+feedrate_warning: 20000
+forbidden:
+  - open_serial_port
+  - connect_printer_or_cnc
+  - call_controller_api
+  - upload_gcode
+  - send_gcode
+  - execute_mcode
+  - start_machine_job
+claims:
+  machine_compatibility_verdict_allowed: false
+  manufacturing_safety_verdict_allowed: false

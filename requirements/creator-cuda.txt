@@ -1,0 +1,6 @@
+# Hardware-selected supported-CUDA Creator / Perception environment.
+-r creator.txt
+
+# The PyPI Torch 2.13 package resolves its exact CUDA 13 split dependencies;
+# Setup selects this variant only after driver/VRAM compatibility proof.
+torch==2.13.0

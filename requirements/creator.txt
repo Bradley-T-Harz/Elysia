@@ -1,0 +1,14 @@
+# Creator / AI Media common dependencies extend Recommended Workstation.
+-r workstation.txt
+
+# These names follow current worker imports. Torch is selected by hardware in
+# creator-cpu.txt or creator-cuda.txt; it must not silently install CUDA on a
+# CPU-only host. The authoritative reproducible installer inputs are the
+# corresponding creator-{cpu,cuda}-py312 locks.
+# Models remain separately acquired under exact model/asset manifests.
+diffusers
+safetensors
+kokoro-onnx
+
+# Local Whisper, image, video, and voice model assets are not Python packages.
+# They are explicit user-selected assets governed by model manifests and doctor.

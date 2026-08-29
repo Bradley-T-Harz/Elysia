@@ -1,0 +1,105 @@
+version: 1
+source_canons:
+  - docs/canon/HER_SOUL.md
+  - docs/canon/HER_BODY.md
+
+approval_principles:
+  explicit_before_sensitive: true
+  no_silent_escalation: true
+  no_destructive_action_without_confirmation: true
+  no_external_action_without_confirmation: true
+  fresh_consent_for_restricted_zones: true
+
+always_require_approval:
+  - vault_access
+  - secret_access
+  - credential_access
+  - destructive_file_deletion
+  - destructive_shell_commands
+  - host_package_installs
+  - host_system_configuration_changes
+  - public_posting
+  - outbound_data_export
+  - writing_outside_project_workspace
+  - private_memory_export
+  - unrestricted_network_actions
+  - applying_code_patches
+  - writing_repo_files
+  - running_shell_commands
+  - invoking_external_code_workers
+  - modifying_git_state
+
+approval_by_category:
+  filesystem:
+    - touching_vault_zone
+    - deleting_files
+    - moving_files_outside_project_workspace
+    - writing_to_sensitive_locations
+
+  system:
+    - apt_install
+    - apt_remove
+    - systemctl_changes
+    - firewall_changes
+    - service_exposure_beyond_localhost
+
+  network:
+    - public_web_research_when_disabled
+    - connecting_new_external_services
+    - posting_or_sending_data_outward
+    - enabling_cloud_assistance
+
+  memory:
+    - sealed_private_memory_access
+    - sealed_private_memory_write
+    - audit_memory_export
+
+  coder:
+    - applying_code_patches
+    - writing_repo_files
+    - running_shell_commands
+    - invoking_external_code_workers
+    - modifying_git_state
+    - installing_project_dependencies
+
+  bounded_public_research:
+    default_public_query_allowed: true
+    first_enable_requires_approval: true
+    private_context_outward_allowed: false
+    sensitive_query_requires_approval: true
+    page_fetch_requires_approval: true
+    cloud_search_requires_approval: true
+    cloud_model_requires_approval: true
+    login_required_sources_blocked: true
+    secrets_blocked_before_network: true
+    vault_blocked_before_network: true
+
+research_sensitive_triggers:
+  - private_memory
+  - private_file_content
+  - vault_reference
+  - credential_or_secret
+  - email_address
+  - phone_number
+  - home_address
+  - legal_personal_specifics
+  - medical_personal_specifics
+  - financial_personal_specifics
+  - activism_or_organizing_strategy
+  - security_vulnerability_details
+  - business_strategy
+  - private_person_investigation
+  - local_path_or_repo_context
+
+response_behavior:
+  ask_before_acting: true
+  explain_why_approval_is_needed: true
+  restate_scope_of_requested_action: true
+  prefer_reversible_actions: true
+  log_sensitive_approvals: true
+
+notes:
+  - Approval rules are part of Elysia's gatekeeper layer.
+  - High-risk or privacy-sensitive actions must never be treated as routine.
+  - Mode profiles may increase approval sensitivity, but they must never reduce baseline approval requirements.
+  - No mode profile may authorize shell execution, file mutation, patch application, external posting, private-memory export, cloud use, or outward boundary crossing by itself.

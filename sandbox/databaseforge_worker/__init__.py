@@ -1,0 +1,1 @@
+"""Fixed-operation DatabaseForge worker."""

@@ -1,0 +1,505 @@
+status_health_schema:
+  name: status_health_schema
+  route: /status/health
+  method: GET
+  purpose: >
+    Read-only service and system health endpoint for Phase 1.
+    This endpoint returns a compact health snapshot describing whether the local API,
+    runtime path, and core local dependencies are healthy enough for governed use.
+    It is intended for UI trust surfaces such as startup checks, reconnect checks,
+    settings/governance status panels, and later troubleshooting surfaces.
+  envelope_reference: standard_response_envelope
+  phase_scope: phase_1
+  surfaces_expected_to_use_this_endpoint:
+    - startup_check
+    - reconnect_check
+    - settings_status_panel
+    - governance_status_panel
+    - right_drawer_health_section
+    - future_troubleshooting_surfaces
+
+  governing_rules:
+    - >
+      This endpoint is a read-only inspection surface, not a control surface.
+    - >
+      It must report service and system health truth rather than UI optimism.
+    - >
+      It must not expose secrets, raw stack traces, full logs, full config contents,
+      or other implementation-detail dumps in the main data object.
+    - >
+      It is distinct from /status/runtime and /status/capabilities and must not
+      pretend to be either of those.
+
+  request:
+    description: >
+      Phase 1 read-only health request. No request body is required or expected.
+    request_body_allowed: false
+    query_parameters:
+      include_checks:
+        type: boolean
+        required: false
+        live_state: planned
+        description: >
+          Optional future query parameter for explicitly requesting a fuller check set.
+        notes:
+          - Planned only for now.
+          - Must not change health truth, only detail level.
+      include_details:
+        type: boolean
+        required: false
+        live_state: planned
+        description: >
+          Optional future query parameter for requesting extra compact detail fields.
+        notes:
+          - Planned only for now.
+          - Must not expose secrets or raw debugging output.
+
+  response:
+    envelope_reference: standard_response_envelope
+    description: >
+      Standard response envelope containing endpoint-specific health data inside
+      the data field.
+
+    data_payload:
+      description: >
+        Compact service and system health snapshot for Phase 1 trust surfaces.
+      fields:
+        health_state:
+          type: string
+          required: true
+          live_state: live
+          description: >
+            Overall health state of the relevant local services/subsystems.
+          allowed_values:
+            - healthy
+            - degraded
+            - starting
+            - unhealthy
+            - unavailable
+            - unknown
+
+        healthy:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Broad boolean summary for whether the system is healthy enough for
+            normal governed use.
+
+        startup_state:
+          type: string
+          required: true
+          live_state: live
+          description: >
+            Startup-readiness posture distinct from general health.
+          allowed_values:
+            - ready
+            - starting
+            - warming
+            - not_ready
+            - unknown
+
+        api_reachable:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Whether the local API layer is reachable enough to serve requests.
+
+        runtime_reachable:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Whether the core governed runtime path is reachable enough for use.
+
+        ollama_reachable:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Whether the configured local model service is reachable enough for Phase 1 use.
+
+        config_loadable:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Whether required config sources can be loaded successfully.
+
+        logging_writable:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Whether the runtime logging path is writable enough for governed operation.
+
+        journaling_writable:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Whether the session journaling path is writable enough for governed operation.
+
+        memory_path_available:
+          type: boolean
+          required: true
+          live_state: partial
+          description: >
+            Whether the memory-related local storage path(s) required for this phase
+            are available enough for use.
+
+        last_health_check_utc:
+          type: string
+          format: iso_8601_utc
+          required: true
+          live_state: live
+          description: >
+            UTC timestamp for when this health snapshot was produced.
+
+        health_notes:
+          type: list
+          item_type: string
+          required: true
+          live_state: live
+          description: >
+            Compact health notes suitable for UI inspection.
+          notes:
+            - Keep concise and safe for UI display.
+            - Do not place raw stack traces here.
+
+        subsystems:
+          type: mapping
+          required: true
+          live_state: partial
+          description: >
+            Compact per-subsystem health summary.
+          subsystem_keys_expected:
+            - api
+            - runtime
+            - ollama
+            - config
+            - logging
+            - journaling
+            - memory
+          subsystem_entry_shape:
+            state:
+              type: string
+              allowed_values:
+                - healthy
+                - degraded
+                - starting
+                - unhealthy
+                - unavailable
+                - unknown
+            healthy:
+              type: boolean
+            note:
+              type: string
+
+  health_state_semantics:
+    description: >
+      Canonical meanings for health_state values returned inside data.
+    values:
+      healthy: >
+        Core services/subsystems needed for normal Phase 1 governed use are functioning.
+      degraded: >
+        The system is usable, but one or more relevant subsystems are impaired,
+        reduced, or operating with limitations.
+      starting: >
+        The system is still initializing and not yet ready for normal use.
+      unhealthy: >
+        The system is reachable enough to inspect, but one or more critical subsystems
+        are failing or not healthy enough for normal use.
+      unavailable: >
+        Required local services or paths are not currently reachable.
+      unknown: >
+        Health state could not yet be confirmed.
+
+  startup_state_semantics:
+    description: >
+      Canonical meanings for startup_state values returned inside data.
+    values:
+      ready: >
+        Startup requirements for normal Phase 1 use are satisfied.
+      starting: >
+        The system is still coming online.
+      warming: >
+        Core components are reachable, but still warming or stabilizing.
+      not_ready: >
+        The system is present but not ready for normal Phase 1 use.
+      unknown: >
+        Startup readiness could not yet be confirmed.
+
+  endpoint_status_behavior:
+    description: >
+      How the standard response envelope status field should be used for this endpoint.
+    status_meanings:
+      ok: >
+        The /status/health request succeeded and returned a valid health snapshot.
+      blocked: >
+        The health-inspection request itself was blocked by policy or boundary rules.
+        This should be rare for Phase 1.
+      degraded: >
+        The health-inspection request succeeded, but some parts of the health snapshot
+        are partial, stale, or reduced.
+      error: >
+        The health-inspection request failed unexpectedly and did not produce a clean snapshot.
+      unavailable: >
+        The health endpoint could not access the required local inspection path or service.
+
+  capability_state_behavior:
+    description: >
+      How capability_state should be interpreted when returned in the standard envelope.
+    notes:
+      - >
+        capability_state describes the relevant feature/path truth, not the service-health
+        state itself.
+      - >
+        A response may have envelope status: ok while data.health_state is degraded.
+      - >
+        A response may have capability_state: live while data.health_state is unhealthy
+        if the feature concept exists but supporting services are currently impaired.
+      - >
+        The UI must not collapse capability_state and health_state into the same label.
+
+  semantic_rules:
+    - >
+      Envelope status and data.health_state must remain distinct.
+      Envelope status describes whether the /status/health request succeeded.
+      data.health_state describes the health of the services/subsystems being reported.
+    - >
+      This endpoint must not imply runtime activity.
+      That belongs to /status/runtime.
+    - >
+      This endpoint must not imply capability catalog truth.
+      That belongs to /status/capabilities.
+    - >
+      health_notes and subsystems.note entries must remain compact and safe for UI display.
+    - >
+      Degraded or unhealthy subsystem signals must not be hidden for cosmetic reasons.
+    - >
+      The UI must not infer health truth without asking this endpoint or an equivalent
+      governed health source.
+
+  live_planned_guidance:
+    description: >
+      Honest implementation-readiness guidance for Phase 1.
+    likely_live:
+      - health_state
+      - healthy
+      - startup_state
+      - api_reachable
+      - runtime_reachable
+      - ollama_reachable
+      - config_loadable
+      - logging_writable
+      - journaling_writable
+      - last_health_check_utc
+      - health_notes
+    likely_partial:
+      - memory_path_available
+      - subsystems
+    likely_planned:
+      - include_checks
+      - include_details
+
+  examples:
+    healthy_ready_system:
+      envelope_status: ok
+      result_type: health_status
+      capability_state: live
+      locality: local
+      approval_state: not_needed
+      data:
+        health_state: healthy
+        healthy: true
+        startup_state: ready
+        api_reachable: true
+        runtime_reachable: true
+        ollama_reachable: true
+        config_loadable: true
+        logging_writable: true
+        journaling_writable: true
+        memory_path_available: true
+        last_health_check_utc: "2026-03-23T08:35:00Z"
+        health_notes: []
+        subsystems:
+          api:
+            state: healthy
+            healthy: true
+            note: ""
+          runtime:
+            state: healthy
+            healthy: true
+            note: ""
+          ollama:
+            state: healthy
+            healthy: true
+            note: ""
+          config:
+            state: healthy
+            healthy: true
+            note: ""
+          logging:
+            state: healthy
+            healthy: true
+            note: ""
+          journaling:
+            state: healthy
+            healthy: true
+            note: ""
+          memory:
+            state: healthy
+            healthy: true
+            note: ""
+
+    degraded_system_ollama_down:
+      envelope_status: ok
+      result_type: health_status
+      capability_state: degraded
+      locality: local
+      approval_state: not_needed
+      data:
+        health_state: degraded
+        healthy: false
+        startup_state: ready
+        api_reachable: true
+        runtime_reachable: false
+        ollama_reachable: false
+        config_loadable: true
+        logging_writable: true
+        journaling_writable: true
+        memory_path_available: true
+        last_health_check_utc: "2026-03-23T08:40:00Z"
+        health_notes:
+          - "Local model service is not reachable."
+        subsystems:
+          api:
+            state: healthy
+            healthy: true
+            note: ""
+          runtime:
+            state: degraded
+            healthy: false
+            note: "Runtime path depends on local model service availability."
+          ollama:
+            state: unavailable
+            healthy: false
+            note: "Local model service is unreachable."
+          config:
+            state: healthy
+            healthy: true
+            note: ""
+          logging:
+            state: healthy
+            healthy: true
+            note: ""
+          journaling:
+            state: healthy
+            healthy: true
+            note: ""
+          memory:
+            state: healthy
+            healthy: true
+            note: ""
+
+    starting_not_ready_system:
+      envelope_status: ok
+      result_type: health_status
+      capability_state: unknown
+      locality: local
+      approval_state: unknown
+      data:
+        health_state: starting
+        healthy: false
+        startup_state: starting
+        api_reachable: true
+        runtime_reachable: false
+        ollama_reachable: false
+        config_loadable: true
+        logging_writable: true
+        journaling_writable: false
+        memory_path_available: false
+        last_health_check_utc: "2026-03-23T08:42:00Z"
+        health_notes:
+          - "System is still starting and not yet ready for normal use."
+        subsystems:
+          api:
+            state: healthy
+            healthy: true
+            note: ""
+          runtime:
+            state: starting
+            healthy: false
+            note: "Runtime path is not ready yet."
+          ollama:
+            state: starting
+            healthy: false
+            note: "Local model service is still warming."
+          config:
+            state: healthy
+            healthy: true
+            note: ""
+          logging:
+            state: healthy
+            healthy: true
+            note: ""
+          journaling:
+            state: starting
+            healthy: false
+            note: "Journal path not yet ready."
+          memory:
+            state: starting
+            healthy: false
+            note: "Memory path not yet ready."
+
+    unavailable_health_path:
+      envelope_status: unavailable
+      result_type: health_status
+      capability_state: unavailable
+      locality: unknown
+      approval_state: unknown
+      data:
+        health_state: unavailable
+        healthy: false
+        startup_state: unknown
+        api_reachable: false
+        runtime_reachable: false
+        ollama_reachable: false
+        config_loadable: false
+        logging_writable: false
+        journaling_writable: false
+        memory_path_available: false
+        last_health_check_utc: "2026-03-23T08:45:00Z"
+        health_notes:
+          - "Health inspection path is unavailable."
+        subsystems:
+          api:
+            state: unavailable
+            healthy: false
+            note: "Local API is unreachable."
+          runtime:
+            state: unavailable
+            healthy: false
+            note: ""
+          ollama:
+            state: unknown
+            healthy: false
+            note: ""
+          config:
+            state: unknown
+            healthy: false
+            note: ""
+          logging:
+            state: unknown
+            healthy: false
+            note: ""
+          journaling:
+            state: unknown
+            healthy: false
+            note: ""
+          memory:
+            state: unknown
+            healthy: false
+            note: ""

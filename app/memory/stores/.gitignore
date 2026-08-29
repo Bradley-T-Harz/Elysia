@@ -1,0 +1,7 @@
+# Ignore live memory items
+**/*.json
+
+# Keep structure and hygiene files
+!.gitignore
+!README.md
+!**/.gitkeep

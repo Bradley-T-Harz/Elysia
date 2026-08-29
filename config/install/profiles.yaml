@@ -1,0 +1,272 @@
+version: 1
+contract_version: elysia-install-profiles-1.0
+target_product_version: 1.0.0
+current_channel: stable
+
+doctrine:
+  canonical_codebases: 1
+  profile_selection_grants_operation_approval: false
+  profiles_may_weaken_safety_floor: false
+  silent_cloud_fallback_allowed: false
+  private_data_export_allowed_by_default: false
+
+profiles:
+  core:
+    display_name: Elysia Core
+    purpose: Useful local Desktop and governed API without giant optional stacks.
+    extends: []
+    default_enabled: true
+    maturity: v1_stable_target
+    risk_level: bounded
+    dependency_groups:
+      - core_python_runtime
+      - core_desktop_runtime
+    capability_groups:
+      - core_chamber
+      - core_stewardship
+      - core_truth_and_audit
+    network:
+      runtime_default: disabled
+      install_downloads: explicit_package_acquisition_only
+    large_downloads_may_occur: false
+    private_data_leaves_machine_by_default: false
+    doctor_checks:
+      - core_python_imports
+      - desktop_api_contract_compatibility
+      - local_api_lifecycle_and_authentication
+      - xdg_user_paths
+      - optional_local_model_provider
+    intentionally_excluded:
+      - creator_generative_models
+      - speech_model_assets
+      - codev_extension
+      - sandbox_engines
+      - cloud_accounts
+      - arbitrary_shell
+      - physical_actuation
+
+  workstation:
+    display_name: Recommended Workstation
+    purpose: Common local document, data, visual, OCR, and media-metadata adapters.
+    extends:
+      - core
+    default_enabled: false
+    maturity: v1_optional_target
+    risk_level: moderate_local_tools
+    dependency_groups:
+      - workstation_python_adapters
+      - workstation_system_tools
+    capability_groups:
+      - workstation_documents_and_data
+      - workstation_visual_and_ocr
+      - workstation_media_metadata
+    network:
+      runtime_default: disabled
+      install_downloads: explicit_profile_install_only
+    large_downloads_may_occur: false
+    private_data_leaves_machine_by_default: false
+    doctor_checks:
+      - workstation_python_imports
+      - ffmpeg_and_ffprobe
+      - tesseract_if_ocr_enabled
+      - adapter_dependency_truth
+    intentionally_excluded:
+      - creator_generative_models
+      - voice_cloning
+      - codev_extension
+      - physical_actuation
+
+  semantic_local:
+    display_name: Local Semantic Memory
+    purpose: Optional production hybrid retrieval over canonical Memory with local Qwen embeddings and authenticated loopback Qdrant.
+    extends:
+      - core
+    default_enabled: false
+    maturity: v1_optional_production
+    risk_level: bounded_local_resources
+    dependency_groups:
+      - semantic_local_runtime
+    capability_groups:
+      - canonical_memory_hybrid_retrieval
+    network:
+      runtime_default: loopback_only_no_external_egress
+      install_downloads: explicit_profile_install_only
+    large_downloads_may_occur: true
+    private_data_leaves_machine_by_default: false
+    doctor_checks:
+      - qdrant_loopback_authenticated
+      - qdrant_derived_projection_rebuildable
+      - qwen3_embedding_local_model
+      - semantic_private_and_sealed_exclusion
+    intentionally_excluded:
+      - qdrant_cloud
+      - lan_or_public_vector_listener
+      - persistent_private_vectors
+      - sealed_vectors
+      - automatic_boot_start
+      - learned_compute_governor
+
+  neurofabric_cpu:
+    display_name: Neurofabric CPU
+    purpose: Explicit CPU-capable scientific Neurofabric runtime outside the packaged Core.
+    extends:
+      - core
+    default_enabled: false
+    maturity: v1_optional_production
+    risk_level: bounded_specialized_compute
+    dependency_groups:
+      - neurofabric_cpu_runtime
+    capability_groups:
+      - neurofabric_cpu_compute
+    network:
+      runtime_default: disabled
+      install_downloads: explicit_profile_install_only
+    large_downloads_may_occur: true
+    private_data_leaves_machine_by_default: false
+    doctor_checks:
+      - neurofabric_cpu_runtime
+      - neurofabric_environment_isolation
+      - neurofabric_cpu_fallback
+    intentionally_excluded:
+      - packaged_core_torch
+      - forced_cuda
+      - hidden_environment_collapse
+      - learned_cognition_authority
+
+  neurofabric_cuda:
+    display_name: Neurofabric CUDA MEGA
+    purpose: Explicit CUDA-accelerated scientific Neurofabric runtime on doctor-proven supported NVIDIA workstations.
+    extends:
+      - core
+    default_enabled: false
+    maturity: v1_optional_production
+    risk_level: elevated_local_compute
+    dependency_groups:
+      - neurofabric_cuda_runtime
+    capability_groups:
+      - neurofabric_cuda_compute
+    network:
+      runtime_default: disabled
+      install_downloads: explicit_profile_install_only
+    large_downloads_may_occur: true
+    private_data_leaves_machine_by_default: false
+    doctor_checks:
+      - neurofabric_cuda_runtime
+      - neurofabric_environment_isolation
+      - neurofabric_gpu_and_driver
+      - neurofabric_oom_and_cpu_fallback
+    intentionally_excluded:
+      - packaged_core_torch
+      - unsupported_gpu_activation
+      - full_system_cuda_toolkit_requirement
+      - hidden_environment_collapse
+      - learned_cognition_authority
+
+  creator:
+    display_name: Creator / AI Media
+    purpose: Explicit local speech, image, video, and future engineering-lab capability.
+    extends:
+      - workstation
+    default_enabled: false
+    maturity: mixed_optional_and_lab_target
+    risk_level: elevated_resources_and_models
+    dependency_groups:
+      - creator_python_runtime
+      - creator_model_assets
+      - creator_optional_local_sandbox
+    capability_groups:
+      - speechforge_local
+      - imageforge_creator_target
+      - videoforge_lab
+      - engineeringforge_heavy_lab
+      - reference_voice_lab
+    network:
+      runtime_default: disabled
+      install_downloads: exact_asset_selection_and_warning_required
+    large_downloads_may_occur: true
+    private_data_leaves_machine_by_default: false
+    doctor_checks:
+      - creator_model_vault
+      - model_license_and_provenance
+      - disk_ram_vram_and_cuda
+      - cancellation_and_resource_limits
+      - local_sandbox_before_heavy_workers
+    intentionally_excluded:
+      - silent_model_downloads
+      - unconsented_voice_cloning
+      - cloud_inference_by_default
+      - physical_actuation
+      - unlimited_jobs
+
+  developer:
+    display_name: Developer / Codev
+    purpose: Official Codev and governed repository, patch, check, and future bounded-task workflows.
+    extends:
+      - core
+    default_enabled: false
+    maturity: v1_optional_with_developer_lab
+    risk_level: elevated_repo_and_mutation
+    dependency_groups:
+      - developer_runtime
+      - developer_optional_build_tools
+    capability_groups:
+      - codev_companion
+      - governed_repo_context
+      - governed_patch_and_checks
+      - pursue_goal_developer_lab
+    network:
+      runtime_default: disabled
+      install_downloads: explicit_profile_install_only
+    large_downloads_may_occur: false
+    private_data_leaves_machine_by_default: false
+    doctor_checks:
+      - codev_api_contract_compatibility
+      - vscode_engine_compatibility
+      - workspace_trust_and_approved_repo
+      - exact_command_catalog
+      - local_sandbox_before_task_loop_workers
+      - task_loop_stop_and_recovery
+    intentionally_excluded:
+      - arbitrary_shell
+      - hidden_git_mutation_or_push
+      - broad_repo_ingestion
+      - private_memory_mounts
+      - cloud_code_upload
+      - unbounded_autonomy
+
+capability_tiers:
+  core_v1_default:
+    - conversations_projects_and_identity
+    - governed_file_document_data_visual_basics
+    - archive_inspection_and_selected_extraction
+    - database_schema_only_inspection
+    - binary_static_inspection
+    - engineering_static_reports_and_safe_projections
+    - artifacts_requests_health_capabilities
+    - read_only_governance
+  optional_v1_profile:
+    - workstation_adapters
+    - bounded_public_research
+    - imageforge_creator_target
+    - speechforge_local
+    - codev_companion
+    - governed_manual_publish_queue
+    - canonical_memory_hybrid_retrieval
+    - neurofabric_cpu_compute
+    - neurofabric_cuda_compute
+  v1_lab_or_developer_gated:
+    - pursue_goal_bounded_task_loops
+    - engineeringforge_heavy_workers
+    - videoforge
+    - reference_voice_lab
+    - advanced_governance_mutation
+    - locally_sandboxed_addon_execution
+  hard_prohibited_by_default:
+    - silent_cloud_fallback
+    - unapproved_outbound_posting
+    - unconsented_voice_cloning_or_impersonation
+    - raw_private_logs_or_paths_in_ui
+    - archive_code_execution_by_open
+    - arbitrary_host_shell_or_package_scripts
+    - physical_actuation_without_hardware_profile_and_final_approval
+    - addon_execution_without_local_sandbox_and_effective_permissions

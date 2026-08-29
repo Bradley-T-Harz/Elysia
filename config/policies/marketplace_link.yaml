@@ -1,0 +1,88 @@
+version: 1
+policy_key: marketplace_account_link_boundary
+policy_version: "0.1"
+
+purpose:
+  summary: "Define the local/cloud boundary for linking Elysia to a Marketplace account."
+  this_file_is:
+    - "A boundary contract for local Marketplace account linking."
+    - "A declaration that Marketplace identity is separate from the sealed local Elysia identity."
+    - "A guard against sending local files, memory, traces, dependency inventory, paths, or private profile data to Marketplace."
+  this_file_is_not:
+    - "Not permission for add-on installation."
+    - "Not permission for local Elysia password sharing."
+    - "Not permission for automatic profile sync."
+    - "Not permission for runtime, tools, workers, or chat to use Marketplace sessions."
+
+local_identity_password:
+  purpose: "Local Elysia login and future local operator approval."
+  shared_with_marketplace: false
+  shared_with_supabase: false
+
+marketplace_password:
+  purpose: "Supabase Marketplace account login."
+  received_by_local_backend: false
+  stored_by_local_backend: false
+  stored_in_memory: false
+
+backend_link_store:
+  location: data/identity/marketplace_link.json
+  gitignored: true
+  local_only: true
+  allowed_fields:
+    - marketplace_user_id
+    - marketplace_email
+    - marketplace_username
+    - linked_at_utc
+    - last_sync_at_utc
+    - sync_enabled_fields
+  forbidden_fields:
+    - marketplace_password
+    - marketplace_password_hash
+    - supabase_access_token
+    - supabase_refresh_token
+    - service_role_key
+    - local_elysia_password
+    - local_elysia_password_hash
+    - local_session_token
+    - request_traces
+    - memory
+    - local_files
+    - dependency_inventory
+    - local_paths
+
+profile_sync:
+  automatic_sync_allowed: false
+  explicit_sync_only: false
+  retired: true
+  allowed_public_fields: []
+  doctrine: "Commons Profile is edited online. Personal Identity, Story, interests, local photos, memory, files, vaults, logs, chats, and request traces do not sync through Marketplace Link."
+  local_only_fields:
+    - birthdate
+    - emails
+    - phone_number
+    - social_media
+    - github
+    - city_state
+    - original_profile_photo_path
+    - identity_storage_path
+
+runtime_access:
+  marketplace_session_allowed: false
+  marketplace_tokens_allowed: false
+  private_local_profile_allowed: false
+  link_status_summary_allowed: false
+
+tools_workers_memory_access:
+  marketplace_session_allowed: false
+  marketplace_tokens_allowed: false
+  dependency_inventory_upload_allowed: false
+  request_trace_upload_allowed: false
+  memory_upload_allowed: false
+
+add_on_boundary:
+  manifests_may_be_imported_for_operator_review: true
+  local_install_execution_live: false
+  local_enable_disable_execution_live: false
+  local_uninstall_execution_live: false
+  local_actions_require_future_password_gate: true

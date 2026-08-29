@@ -1,0 +1,296 @@
+version: 1
+authority: compatibility_only
+canonical_policy: canonical_memory_policy.yaml
+source_canons:
+  - docs/canon/HER_MIND.md
+  - docs/canon/HER_BODY.md
+
+memory_principles:
+  layered_not_monolithic: true
+  selective_not_hoarding: true
+  context_sensitive: true
+  sensitivity_aware: true
+  local_first: true
+  no_surveillance_style_accumulation: true
+
+layers:
+  working_memory:
+    purpose: Short-lived task context for the current active interaction.
+    persistence: temporary
+    sensitivity: medium
+
+  conversation_memory:
+    purpose: Summaries of ongoing conversations and recent interaction continuity.
+    persistence: renewable
+    sensitivity: medium
+
+  project_memory:
+    purpose: Decisions, assumptions, plans, and continuity for named projects.
+    persistence: long_term
+    sensitivity: medium
+
+  research_memory:
+    purpose: Literature maps, evidence summaries, source comparisons, and methodological notes.
+    persistence: long_term
+    sensitivity: medium
+
+  operational_memory:
+    purpose: System setup notes, environment facts, runtime decisions, and technical procedures.
+    persistence: long_term
+    sensitivity: medium
+
+  preference_memory:
+    purpose: Stable user preferences about tone, workflow, formatting, and learning style.
+    persistence: long_term
+    sensitivity: medium
+
+  sealed_private_memory:
+    purpose: Sensitive personal material requiring stricter handling and access boundaries.
+    persistence: restricted
+    sensitivity: high
+
+  audit_memory:
+    purpose: Logged records of sensitive actions, approvals, and major system decisions.
+    persistence: long_term
+    sensitivity: high
+
+write_rules:
+  store_long_term_preferences: true
+  store_project_decisions: true
+  store_research_summaries: true
+  store_sensitive_personal_content_only_when_necessary: true
+  avoid_storing_raw_private_material_by_default: true
+  require_boundary_checks_for_sealed_private_memory: true
+
+retrieval_rules:
+  retrieve_by_relevance: true
+  retrieve_by_context: true
+  retrieve_by_sensitivity: true
+  do_not_load_all_memory_by_default: true
+  prefer_small_relevant_context_over_mass_dumping: true
+
+scaffold_retrieval:
+  local_session_memory_enabled: true
+  exclude_current_day_journal: true
+  session_memory_limit: 3
+
+  mode_overrides:
+    tutor:
+      session_memory_limit: 3
+
+    researcher:
+      session_memory_limit: 5
+
+    default:
+      session_memory_limit: 2
+
+    writer:
+      local_session_memory_enabled: false
+
+  autonomy_overrides:
+    "2":
+      session_memory_limit: 4
+
+    "3":
+      local_session_memory_enabled: false
+
+scaffold_journaling:
+  journaling_enabled: true
+  default_journal_mode: standard
+  include_plan_summary: true
+  include_retrieval_summary: true
+  include_boundary_flags: true
+  include_memory_class: true
+  include_policy_summary: true
+  store_raw_user_input: false
+  redact_sensitive_content: true
+
+  mode_overrides:
+    tutor:
+      default_journal_mode: standard
+      include_plan_summary: true
+
+    researcher:
+      default_journal_mode: detailed
+      include_retrieval_summary: true
+
+    default:
+      default_journal_mode: minimal
+
+    writer:
+      default_journal_mode: minimal
+      include_retrieval_summary: false
+
+  autonomy_overrides:
+    "2":
+      default_journal_mode: standard
+
+    "3":
+      default_journal_mode: minimal
+      include_plan_summary: false
+      include_retrieval_summary: false
+
+  boundary_overrides:
+    sealed_private_memory:
+      default_journal_mode: minimal
+      redact_sensitive_content: true
+      include_retrieval_summary: false
+
+    sensitive_personal_content:
+      default_journal_mode: minimal
+      redact_sensitive_content: true
+
+    approval_required:
+      default_journal_mode: minimal
+      include_boundary_flags: true
+      include_policy_summary: true
+
+scaffold_memory_classes:
+  require_declared_memory_class: true
+  planner_must_record_memory_class: true
+  journal_selected_memory_class: true
+  retrieval_must_respect_allowed_classes: true
+  default_memory_class: conversation_memory
+  fallback_memory_class: working_memory
+
+  classes:
+    working_memory:
+      allowed_for_scaffold: true
+      retrieval_default: true
+      journaling_default: true
+      detail_access: standard
+      boundary_sensitive: false
+      requires_boundary_check: false
+      default_priority: 100
+
+    conversation_memory:
+      allowed_for_scaffold: true
+      retrieval_default: true
+      journaling_default: true
+      detail_access: standard
+      boundary_sensitive: false
+      requires_boundary_check: false
+      default_priority: 95
+
+    project_memory:
+      allowed_for_scaffold: true
+      retrieval_default: true
+      journaling_default: true
+      detail_access: standard
+      boundary_sensitive: false
+      requires_boundary_check: false
+      default_priority: 85
+
+    research_memory:
+      allowed_for_scaffold: true
+      retrieval_default: true
+      journaling_default: true
+      detail_access: standard
+      boundary_sensitive: false
+      requires_boundary_check: false
+      default_priority: 90
+
+    operational_memory:
+      allowed_for_scaffold: true
+      retrieval_default: true
+      journaling_default: true
+      detail_access: standard
+      boundary_sensitive: false
+      requires_boundary_check: false
+      default_priority: 75
+
+    preference_memory:
+      allowed_for_scaffold: true
+      retrieval_default: true
+      journaling_default: true
+      detail_access: standard
+      boundary_sensitive: false
+      requires_boundary_check: false
+      default_priority: 92
+
+    sealed_private_memory:
+      allowed_for_scaffold: true
+      retrieval_default: false
+      journaling_default: false
+      detail_access: restricted
+      boundary_sensitive: true
+      requires_boundary_check: true
+      default_priority: 20
+
+    audit_memory:
+      allowed_for_scaffold: true
+      retrieval_default: false
+      journaling_default: true
+      detail_access: restricted
+      boundary_sensitive: true
+      requires_boundary_check: true
+      default_priority: 30
+
+  mode_overrides:
+    default:
+      primary_memory_class: conversation_memory
+      allowed_memory_classes:
+        - working_memory
+        - conversation_memory
+        - preference_memory
+
+    tutor:
+      primary_memory_class: working_memory
+      allowed_memory_classes:
+        - working_memory
+        - conversation_memory
+        - preference_memory
+        - project_memory
+
+    researcher:
+      primary_memory_class: research_memory
+      allowed_memory_classes:
+        - working_memory
+        - research_memory
+        - project_memory
+        - preference_memory
+        - operational_memory
+
+    writer:
+      primary_memory_class: project_memory
+      allowed_memory_classes:
+        - working_memory
+        - conversation_memory
+        - project_memory
+        - preference_memory
+
+  autonomy_overrides:
+    "2":
+      allowed_memory_classes:
+        - working_memory
+        - conversation_memory
+        - project_memory
+        - research_memory
+        - preference_memory
+        - operational_memory
+
+    "3":
+      disallowed_memory_classes:
+        - sealed_private_memory
+
+  boundary_overrides:
+    local_session_memory:
+      forced_memory_class: working_memory
+
+    sensitive_personal_content:
+      forced_memory_class: sealed_private_memory
+      require_boundary_check: true
+
+    sealed_private_memory:
+      forced_memory_class: sealed_private_memory
+      require_boundary_check: true
+
+    approval_required:
+      audit_memory_required: true
+
+notes:
+  - Memory should help continuity, not become surveillance.
+  - Not all memory layers should be accessible in every context.
+  - Sealed private memory requires stricter consent and boundary handling.
+  - Journaling should explain system behavior without dumping unnecessary raw sensitive material.
+  - Runtime, planner, policy, retrieval, and journaling should converge on explicit memory class selection rather than treating memory as one undifferentiated bucket.

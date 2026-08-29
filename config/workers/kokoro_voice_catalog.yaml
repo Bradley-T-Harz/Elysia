@@ -1,0 +1,44 @@
+version: 1
+catalog_state: lab_local_reading_voices
+voice_cloning_available: false
+reference_voice_input_allowed: false
+voices:
+  - id: af_sarah
+    display_name: Sarah
+    language: en-us
+    kind: synthetic_reading_voice
+    identity_bearing: false
+    enabled: true
+  - id: am_adam
+    display_name: Adam
+    language: en-us
+    kind: synthetic_reading_voice
+    identity_bearing: false
+    enabled: true
+  - id: bf_emma
+    display_name: Emma
+    language: en-gb
+    kind: synthetic_reading_voice
+    identity_bearing: false
+    enabled: true
+  - id: bm_george
+    display_name: George
+    language: en-gb
+    kind: synthetic_reading_voice
+    identity_bearing: false
+    enabled: true
+  - id: ff_siwis
+    display_name: Siwis
+    language: fr-fr
+    kind: synthetic_reading_voice
+    identity_bearing: false
+    enabled: true
+  - id: zf_xiaoxiao
+    display_name: Xiaoxiao
+    language: zh
+    kind: synthetic_reading_voice
+    identity_bearing: false
+    enabled: true
+notes:
+  - "Every entry is a bundled synthetic reading voice; no reference voice input is accepted."
+  - "The official Kokoro-82M model repository publishes model and voice assets under Apache-2.0; exact local asset hashes remain recorded in the SpeechForge registry."

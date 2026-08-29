@@ -1,0 +1,48 @@
+status_doctor_schema:
+  version: 1
+  contract_version: elysia-install-doctor-1.0
+  route: /status/doctor
+  method: GET
+  posture: read_only_non_repairing_local_truth
+  query:
+    probe_local_services:
+      type: boolean
+      default: false
+      boundary: allowlisted loopback reachability only; no model load or prompt
+  required_data_fields:
+    - doctor_version
+    - overall_status
+    - runtime_mode
+    - active_profile_id
+    - checks
+    - status_counts
+    - core_ready
+    - optional_profiles_ready
+    - local_api_reachable
+    - local_auth
+    - path_contract
+    - first_run
+    - desktop_api_compatible
+    - worker_execution_enabled
+    - install_authority_available
+    - repair_authority_available
+    - raw_paths_exposed
+  invariants:
+    worker_execution_enabled: false
+    install_authority_available: false
+    repair_authority_available: false
+    raw_paths_exposed: false
+    credential_value_exposed: false
+  forbidden_output:
+    - raw absolute paths
+    - credentials or tokens
+    - environment values
+    - logs, prompts, transcripts, journals, or private memory
+    - vault, identity, or model-store contents
+  forbidden_actions:
+    - install or download
+    - repair or service mutation
+    - worker or sandbox start
+    - model load or prompt
+    - cloud or outbound action
+    - hardware access

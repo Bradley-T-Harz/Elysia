@@ -1,0 +1,92 @@
+version: coding-file-types-0.1
+
+defaults:
+  max_preview_bytes: 65536
+  max_patch_bytes: 131072
+  allow_binary_preview: false
+  require_hash_for_apply: true
+  require_workspace_scope: true
+  preserve_line_endings: true
+
+blocked_paths:
+  - ".git/**"
+  - "node_modules/**"
+  - "dist/**"
+  - "out/**"
+  - "build/**"
+  - "target/**"
+  - "data/identity/**"
+  - "data/coding/**"
+  - "vault/**"
+  - "memory/**"
+  - "logs/**"
+  - "**/.env"
+  - "**/.env.local"
+  - "**/*.pem"
+  - "**/*.key"
+  - "**/*secret*"
+  - "**/*token*"
+
+allowed_secret_examples:
+  - ".env.example"
+  - "*.env.example"
+
+supported_chunk1_formats:
+  code:
+    - ".py"
+    - ".ts"
+    - ".tsx"
+    - ".js"
+    - ".jsx"
+    - ".css"
+    - ".sql"
+    - ".sh"
+    - "Dockerfile"
+    - "requirements.txt"
+  structured_data:
+    - ".json"
+    - ".yaml"
+    - ".yml"
+    - ".toml"
+    - ".ini"
+    - ".cfg"
+    - "package.json"
+    - "package-lock.json"
+    - "Cargo.toml"
+    - "Cargo.lock"
+    - "docker-compose.yml"
+  docs:
+    - ".md"
+    - ".txt"
+    - ".rst"
+    - "README"
+    - "LICENSE"
+    - "CHANGELOG"
+  data:
+    - ".csv"
+    - ".tsv"
+  markup:
+    - ".xml"
+    - ".html"
+  dotfiles:
+    - ".env.example"
+    - ".gitignore"
+
+rules:
+  env_secret:
+    readable: false
+    patchable: false
+    writable: false
+    risk: blocked
+  env_example:
+    readable: true
+    patchable: true
+    writable: true
+    risk: caution
+    secret_scan_required: true
+  lockfiles:
+    readable: true
+    patchable: true
+    writable: true
+    risk: caution
+    warning: "Prefer package-manager regeneration later; package-manager mutation is not live."

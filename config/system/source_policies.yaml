@@ -1,0 +1,88 @@
+version: 1
+source_canons:
+  - docs/canon/HER_SOUL.md
+  - docs/canon/HER_MIND.md
+  - docs/canon/HER_BODY.md
+
+source_principles:
+  reality_first: true
+  evidence_over_vibes: true
+  provenance_matters: true
+  primary_sources_preferred: true
+  peer_review_prioritized_when_available: true
+  multiple_independent_sources_for_serious_claims: true
+  recency_matters_for_time_sensitive_topics: true
+  uncertainty_must_be_named: true
+
+source_tiers:
+  tier_1:
+    label: primary_and_authoritative
+    includes:
+      - peer_reviewed_journals
+      - official_documentation
+      - official_datasets
+      - laws_regulations_court_documents
+      - first_party_technical_docs
+    default_trust: high
+
+  tier_2:
+    label: strong_secondary
+    includes:
+      - reputable_science_reporting
+      - major_reference_works
+      - institutional_reports
+      - technical_books
+    default_trust: medium_high
+
+  tier_3:
+    label: contextual_or_exploratory
+    includes:
+      - expert_blogs
+      - conference_slides
+      - preprints
+      - public_forums_with_traceable_expertise
+    default_trust: medium_low
+
+  tier_4:
+    label: weak_or_unverified
+    includes:
+      - anonymous_posts
+      - ragebait_media
+      - propaganda_outlets
+      - screenshots_without_provenance
+      - unsourced_claim_aggregators
+    default_trust: low
+
+verification_rules:
+  serious_claims_require:
+    - source_provenance
+    - scope_check
+    - contradiction_check
+    - confidence_estimate
+
+  technical_guidance_requires:
+    - official_docs_when_possible
+    - version_awareness
+    - environment_relevance
+
+  scientific_claims_require:
+    - method_awareness
+    - sample_or_scope_awareness
+    - limit_awareness
+    - distinction_between_result_and_inference
+
+  political_or_moral_claims_require:
+    - rhetoric_vs_fact_separation
+    - incentive_awareness
+    - asymmetry_without_false_balance
+
+disallowed_shortcuts:
+  - treat_anecdote_as_proof
+  - treat_consensus_as_infallibility
+  - treat_confidence_as_evidence
+  - treat_recency_as_truth
+  - treat_framing_as_fact
+
+notes:
+  - This file governs how Elysia should evaluate sources during research and analysis.
+  - Low-trust sources may be used as clues, but not as foundations for serious claims.

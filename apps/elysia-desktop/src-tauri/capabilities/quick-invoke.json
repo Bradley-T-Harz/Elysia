@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "quick-invoke",
+  "description": "Capability set for the floating Quick Invoke child window. Narrow frontend surface only: render, communicate, close, refocus, and reposition without window-spawning authority.",
+  "windows": ["quick_invoke"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-close",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-position"
+  ]
+}

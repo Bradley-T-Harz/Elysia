@@ -1,0 +1,61 @@
+id: category.skill_name
+name: Human Readable Skill Name
+version: 0.1.0
+status: draft
+
+purpose: >
+  One clear sentence describing what this skill is for.
+
+triggers:
+  - example trigger phrase
+  - another trigger phrase
+
+inputs:
+  required:
+    - primary_input
+  optional:
+    - optional_input
+
+permissions:
+  network_access: none
+  file_read: false
+  file_write: false
+  shell_access: false
+  external_posting: false
+
+memory_access:
+  read: []
+  write: []
+
+risk_level: low
+
+approval_required_when:
+  - file deletion is requested
+  - external communication is requested
+  - uncertainty is high
+  - sensitive data is involved
+
+steps:
+  - interpret the request
+  - gather allowed context
+  - perform the bounded task
+  - verify the result
+  - return structured output
+
+verification:
+  - basic consistency check
+  - policy compliance check
+
+output_schema:
+  summary: string
+  result: string
+  caveats: list
+
+failure_modes:
+  - missing required input
+  - insufficient permission
+  - low confidence
+  - policy boundary hit
+
+notes: >
+  Keep this skill narrow, inspectable, and easy to audit.

@@ -1,0 +1,59 @@
+schema_version: 1
+authority: canonical_memory_fabric
+canonical_writer: xdg_sqlite
+
+dimensions:
+  scope: [user, conversation, project, research, operational, system, shared_space]
+  form: [episodic, semantic, procedural, prospective, relational, predictive, corrective, metacognitive, audit]
+  privacy: [normal, private, sealed]
+  lifecycle: [candidate, active, working, archived, superseded, blocked, deleted]
+  activation: [working, hot, warm, cold, archived]
+
+legacy_class_mapping:
+  working: {scope: user, form: episodic, activation_tier: working}
+  conversation: {scope: conversation, form: episodic, activation_tier: warm}
+  project: {scope: project, form: semantic, activation_tier: warm}
+  research: {scope: research, form: semantic, activation_tier: warm}
+  operational: {scope: operational, form: procedural, activation_tier: warm}
+  preference: {scope: user, form: semantic, subtype: preference, activation_tier: warm}
+  sealed_private: {scope: user, form: semantic, privacy: sealed, activation_tier: cold}
+  audit: {scope: system, form: audit, activation_tier: cold}
+
+authorization:
+  default_scope: owner_only
+  shared_roles:
+    owner: [read, create, correct, archive, restore, pin, share, change_privacy, delete, manage_members]
+    editor: [read, create, correct, archive, restore, pin]
+    contributor: [read, create]
+    reader: [read]
+
+approval_required:
+  - hard_delete
+  - change_privacy
+  - move_to_space
+  - add_space_member
+  - invite_space_member
+  - change_space_member_role
+  - remove_space_member
+
+account_lifecycle:
+  export:
+    default_format: encrypted_portability_package
+    plaintext_requires_explicit_preview_and_reauthentication: true
+    shared_records_exported_as_links_unless_owned: true
+    sealed_records_remain_encrypted: true
+  deletion:
+    exact_preview_and_reauthentication_required: true
+    blocked_while_shared_space_ownership_requires_transfer: true
+    personal_records: cryptographically_and_physically_purged
+    shared_records_owned_by_another_account: retained_under_shared_acl
+    owned_shared_records: transfer_or_explicitly_purge_before_account_deletion
+    sealed_keys: destroyed_after_disclosed_backup_consequence
+    receipt: content_free_minimal_identity_tombstone
+
+constitutional:
+  sealed_memory_egress: denied
+  sealed_persistent_index: denied
+  unauthenticated_memory_access: denied
+  cross_account_relevance_bypass: denied
+  identity_inference_direct_mutation: denied

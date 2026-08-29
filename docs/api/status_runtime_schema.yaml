@@ -1,0 +1,378 @@
+status_runtime_schema:
+  name: status_runtime_schema
+  route: /status/runtime
+  method: GET
+  purpose: >
+    Read-only runtime truth endpoint for Phase 1.
+    This endpoint returns a compact inspection snapshot of Elysia's current
+    runtime state for UI trust surfaces such as the bottom status bar, right
+    drawer, governance/status panels, startup checks, and reconnect checks.
+  envelope_reference: standard_response_envelope
+  phase_scope: phase_1
+  surfaces_expected_to_use_this_endpoint:
+    - bottom_status_bar
+    - right_drawer
+    - governance_status_panels
+    - startup_check
+    - reconnect_check
+
+  governing_rules:
+    - >
+      This endpoint is a read-only inspection surface, not a control surface.
+    - >
+      It must report runtime truth rather than UI assumptions or convenience summaries.
+    - >
+      It must not expose full logs, journal contents, raw conversation history,
+      secrets, or internal config blobs.
+    - >
+      It is distinct from /status/health and /status/capabilities and must not
+      pretend to be either of those.
+
+  request:
+    description: >
+      Phase 1 read-only status request. No request body is required or expected.
+    request_body_allowed: false
+    query_parameters:
+      include_trace_summary:
+        type: boolean
+        required: false
+        live_state: planned
+        description: >
+          Optional future query parameter for requesting compact trace summary inclusion.
+        notes:
+          - Planned only for now.
+          - Must not change runtime truth, only response detail level.
+
+  response:
+    envelope_reference: standard_response_envelope
+    description: >
+      Standard response envelope containing endpoint-specific runtime status data
+      inside the data field.
+
+    data_payload:
+      description: >
+        Compact runtime-state snapshot for trust surfaces and runtime inspection.
+      fields:
+        runtime_state:
+          type: string
+          required: true
+          live_state: live
+          description: >
+            State of the runtime itself, not the envelope request outcome.
+          allowed_values:
+            - idle
+            - active
+            - blocked
+            - degraded
+            - unavailable
+            - starting
+            - unknown
+
+        runtime_available:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Whether the core runtime path is currently available for governed use.
+
+        active_mode:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            Current or most recently relevant runtime mode posture.
+          notes:
+            - Informational only.
+            - Must not be interpreted as a direct control field.
+
+        selected_role:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            Current or most recently selected governed role expression.
+          allowed_examples:
+            - primary_general
+            - primary_code
+            - lighter_backup
+            - optional_fallback
+          notes:
+            - Informational summary only.
+            - Must not be confused with UI role preference.
+
+        selected_runtime:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            Runtime currently in use or most recently used by the governed body path.
+
+        selected_model_runtime_tag:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            Concrete model/runtime tag currently in use or most recently used.
+
+        stayed_local:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Whether the current or most recent governed runtime path stayed local.
+
+        used_fallback:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Whether an allowed fallback path is currently in effect or was most recently used.
+
+        fallback_from:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            Preferred runtime tag that could not be used when fallback occurred.
+
+        fallback_to:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            Runtime tag actually used after fallback when fallback occurred.
+
+        approval_needed:
+          type: boolean
+          required: false
+          live_state: partial
+          description: >
+            Broad trust-surface indicator that current or resumed runtime work
+            is approval-bound.
+
+        last_request_id:
+          type: string
+          required: false
+          live_state: partial
+          description: >
+            Most recent request identifier associated with runtime activity when available.
+          notes:
+            - May be empty until request tracking is fully surfaced.
+
+        last_invocation_status:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            Most recent invocation outcome observed by the runtime.
+          allowed_values:
+            - ok
+            - blocked
+            - error
+            - not_invoked
+            - unknown
+
+        last_error:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            Most recent runtime-relevant error message suitable for compact inspection.
+          notes:
+            - Must stay concise and safe for UI display.
+            - Must not dump raw stack traces here.
+
+        last_updated_utc:
+          type: string
+          format: iso_8601_utc
+          required: true
+          live_state: live
+          description: >
+            UTC timestamp for when this runtime status snapshot was last updated.
+
+  runtime_state_semantics:
+    description: >
+      Canonical meanings for runtime_state values returned inside data.
+    values:
+      idle: >
+        Runtime is available but not currently engaged in active processing.
+      active: >
+        Runtime is actively processing or has very recently been engaged in governed work.
+      blocked: >
+        Runtime is present, but current work is blocked by policy, boundary rules,
+        or approval requirements.
+      degraded: >
+        Runtime is available, but operating with reduced quality or through fallback.
+      unavailable: >
+        Required runtime path or service is not currently reachable.
+      starting: >
+        Runtime is initializing and not yet ready for normal use.
+      unknown: >
+        Runtime state has not yet been confirmed.
+
+  endpoint_status_behavior:
+    description: >
+      How the standard response envelope status field should be used for this endpoint.
+    status_meanings:
+      ok: >
+        The /status/runtime request succeeded and returned a valid runtime snapshot.
+      blocked: >
+        The request to inspect runtime status was itself blocked by policy or boundary rules.
+        This should be rare for Phase 1.
+      degraded: >
+        The status request succeeded, but some parts of the runtime snapshot are partial,
+        stale, or reduced.
+      error: >
+        The status request failed unexpectedly and did not produce a clean snapshot.
+      unavailable: >
+        The status endpoint could not access the required local runtime path or inspection layer.
+
+  capability_state_behavior:
+    description: >
+      How capability_state should be interpreted when returned in the standard envelope.
+    notes:
+      - >
+        capability_state describes the relevant feature/path truth, not the runtime_state itself.
+      - >
+        A response may have envelope status: ok while data.runtime_state is degraded.
+      - >
+        A response may have capability_state: live while data.runtime_state is blocked
+        if the capability exists but current work is policy-bound.
+      - >
+        The UI must not collapse capability_state and runtime_state into the same label.
+
+  semantic_rules:
+    - >
+      Envelope status and data.runtime_state must remain distinct.
+      Envelope status describes whether the /status/runtime request succeeded.
+      data.runtime_state describes the runtime itself.
+    - >
+      selected_role and selected_runtime are descriptive runtime-truth fields,
+      not UI control fields.
+    - >
+      stayed_local and used_fallback must remain visible. Fallback and locality
+      must not be hidden for cosmetic reasons.
+    - >
+      last_error must remain compact and UI-safe.
+      Detailed raw debugging belongs elsewhere.
+    - >
+      This endpoint must remain a trust surface, not an implementation leak surface.
+    - >
+      The UI must not infer runtime truth without asking this endpoint or an equivalent
+      governed status source.
+
+  live_planned_guidance:
+    description: >
+      Honest implementation-readiness guidance for Phase 1.
+    likely_live:
+      - runtime_state
+      - runtime_available
+      - active_mode
+      - selected_role
+      - selected_runtime
+      - selected_model_runtime_tag
+      - stayed_local
+      - used_fallback
+      - fallback_from
+      - fallback_to
+      - last_invocation_status
+      - last_error
+      - last_updated_utc
+    likely_partial:
+      - approval_needed
+      - last_request_id
+    likely_planned:
+      - include_trace_summary
+
+  examples:
+    idle_runtime:
+      envelope_status: ok
+      result_type: runtime_status
+      capability_state: live
+      locality: local
+      approval_state: not_needed
+      data:
+        runtime_state: idle
+        runtime_available: true
+        active_mode: chat
+        selected_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: qwen2.5:7b
+        stayed_local: true
+        used_fallback: false
+        fallback_from: ""
+        fallback_to: ""
+        approval_needed: false
+        last_request_id: req_20260323_000021
+        last_invocation_status: ok
+        last_error: ""
+        last_updated_utc: "2026-03-23T08:10:00Z"
+
+    degraded_runtime_with_fallback:
+      envelope_status: ok
+      result_type: runtime_status
+      capability_state: degraded
+      locality: local
+      approval_state: not_needed
+      data:
+        runtime_state: degraded
+        runtime_available: true
+        active_mode: planning
+        selected_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: qwen2.5:7b
+        stayed_local: true
+        used_fallback: true
+        fallback_from: qwen3:14b
+        fallback_to: qwen2.5:7b
+        approval_needed: false
+        last_request_id: req_20260323_000022
+        last_invocation_status: ok
+        last_error: ""
+        last_updated_utc: "2026-03-23T08:12:00Z"
+
+    blocked_runtime_state:
+      envelope_status: ok
+      result_type: runtime_status
+      capability_state: live
+      locality: local
+      approval_state: needed
+      data:
+        runtime_state: blocked
+        runtime_available: true
+        active_mode: planning
+        selected_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: ""
+        stayed_local: true
+        used_fallback: false
+        fallback_from: ""
+        fallback_to: ""
+        approval_needed: true
+        last_request_id: req_20260323_000023
+        last_invocation_status: blocked
+        last_error: ""
+        last_updated_utc: "2026-03-23T08:15:00Z"
+
+    unavailable_runtime:
+      envelope_status: unavailable
+      result_type: runtime_status
+      capability_state: unavailable
+      locality: unknown
+      approval_state: unknown
+      data:
+        runtime_state: unavailable
+        runtime_available: false
+        active_mode: ""
+        selected_role: ""
+        selected_runtime: ""
+        selected_model_runtime_tag: ""
+        stayed_local: false
+        used_fallback: false
+        fallback_from: ""
+        fallback_to: ""
+        approval_needed: false
+        last_request_id: ""
+        last_invocation_status: unknown
+        last_error: "Local runtime inspection path is unavailable."
+        last_updated_utc: "2026-03-23T08:20:00Z"

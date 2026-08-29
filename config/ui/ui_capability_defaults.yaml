@@ -1,0 +1,345 @@
+version: "1.0"
+name: "Elysia UI Capability Defaults"
+governed_by:
+  - "config/ui/phase1_ui_contract.yaml"
+  - "config/ui/trust_language.yaml"
+
+purpose:
+  summary: "Canonical fallback/default-state policy for frontend capability and surface honesty when live backend truth is missing, partial, or not yet consumed by the shell."
+  this_file_is:
+    - "A fallback rendering law for known Phase 1 surfaces."
+    - "A place to define default absence behavior for capability keys and UI trust surfaces."
+    - "A narrow policy layer for mutability fallback and surface posture when the backend has not yet supplied enough truth."
+  this_file_is_not:
+    - "Not a second capability registry."
+    - "Not a second truth-language file."
+    - "Not a replacement for backend status, capability, governance, or request-trace services."
+    - "Not a license to imply live truth without backend confirmation."
+
+scope:
+  frontend_surfaces:
+    - startup_truth
+    - right_drawer
+    - status_menu
+    - governance_room
+    - bottom_status_bar
+  intended_consumers:
+    - "future frontend capability-default loader"
+    - "future capability/surface merge helper"
+  phase_a_note: "This file may exist before a loader consumes it. Until a loader exists, it functions as governed fallback policy rather than live behavior."
+
+precedence:
+  rule_summary: "Live backend truth always wins. These defaults exist only to prevent frontend hardcoded drift when live truth is missing or incomplete."
+  order_high_to_low:
+    - "body-facing endpoint payloads from runtime, governance, status, request-summary, or request-trace surfaces"
+    - "GET /status/capabilities capability manifest truth"
+    - "config/ui/ui_capability_defaults.yaml"
+    - "component-local last-resort defaults"
+  explicit_rules:
+    backend_capability_manifest_wins: true
+    runtime_status_wins: true
+    governance_state_wins: true
+    request_trace_and_request_summary_win: true
+    trust_language_semantics_win: true
+    ui_defaults_used_only_when_live_truth_missing: true
+    ui_defaults_must_never_override_live_backend_truth: true
+
+semantic_alignment:
+  reference_file: "config/ui/trust_language.yaml"
+  capability_states_used_here:
+    - live
+    - inactive
+    - planned
+    - unknown
+    - unavailable
+    - degraded
+  ui_surface_states_used_here:
+    - checking
+    - partial
+    - planned
+    - inactive
+    - unavailable
+    - degraded
+    - blocked
+    - display_only
+  interpretation_rules:
+    unknown_is_not_live: true
+    unavailable_is_not_inactive: true
+    planned_is_later_phase_only: true
+    inactive_means_defined_but_not_active: true
+    display_only_means_visible_but_not_editable: true
+    partial_means_some_truth_exists_but_is_not_fully surfaced: true
+
+capability_defaults:
+  chat_send:
+    key_missing_capability_state: "inactive"
+    read_only_default: false
+    intended_ui_surfaces:
+      - conversations_room
+      - quick_invoke
+    surface_fallback:
+      conversations_room: "inactive"
+      quick_invoke: "inactive"
+    note: "Defined in structure and expected in Phase 1, but never assume liveness without backend confirmation."
+
+  conversation_metadata:
+    key_missing_capability_state: "inactive"
+    read_only_default: true
+    intended_ui_surfaces:
+      - conversations_room
+    surface_fallback:
+      conversations_room: "partial"
+    note: "Metadata may be structurally expected even when full serving truth is not yet confirmed."
+
+  conversation_history:
+    key_missing_capability_state: "inactive"
+    read_only_default: true
+    intended_ui_surfaces:
+      - conversations_room
+    surface_fallback:
+      conversations_room: "partial"
+    note: "History/thread serving should not be shown as fully live if capability truth is absent."
+
+  status_runtime:
+    key_missing_capability_state: "unavailable"
+    read_only_default: true
+    intended_ui_surfaces:
+      - bottom_status_bar
+      - right_drawer
+      - status_menu
+      - governance_room
+    surface_fallback:
+      bottom_status_bar: "static_posture_only"
+      right_drawer: "partial"
+      status_menu: "partial"
+      governance_room: "partial"
+    note: "Runtime truth is expected to be service-backed. Missing capability truth should not be rendered as live runtime authority."
+
+  status_health:
+    key_missing_capability_state: "unavailable"
+    read_only_default: true
+    intended_ui_surfaces:
+      - startup_truth
+      - governance_room
+      - right_drawer
+    surface_fallback:
+      startup_truth: "unavailable"
+      governance_room: "partial"
+      right_drawer: "partial"
+    note: "Health truth is expected to exist as a real service surface, so absence should read as unavailable rather than live."
+
+  status_capabilities:
+    key_missing_capability_state: "unavailable"
+    read_only_default: true
+    intended_ui_surfaces:
+      - startup_truth
+      - governance_room
+    surface_fallback:
+      startup_truth: "unavailable"
+      governance_room: "partial"
+    note: "This file exists because capability truth may be missing, but the capability manifest itself remains the stronger source when present."
+
+  governance_state:
+    key_missing_capability_state: "unavailable"
+    read_only_default: true
+    intended_ui_surfaces:
+      - governance_room
+      - right_drawer
+    surface_fallback:
+      governance_room: "partial"
+      right_drawer: "partial"
+    note: "Governance visibility may remain mounted when data is missing, but controls must not appear fake-live."
+
+  approval_resolve:
+    key_missing_capability_state: "inactive"
+    read_only_default: false
+    intended_ui_surfaces:
+      - right_drawer
+      - governance_room
+    surface_fallback:
+      right_drawer: "inactive"
+      governance_room: "display_only"
+    note: "Approval resolution is real only when a governed approval path is active; otherwise do not imply interactive approval handling."
+
+  request_summary:
+    key_missing_capability_state: "inactive"
+    read_only_default: true
+    intended_ui_surfaces:
+      - right_drawer
+      - governance_room
+    surface_fallback:
+      right_drawer: "partial"
+      governance_room: "partial"
+    note: "Request-summary visibility may remain modest and partial until real request-trace truth is available."
+
+  identity_account:
+    key_missing_capability_state: "inactive"
+    read_only_default: false
+    intended_ui_surfaces:
+      - account_gate
+      - user_creator
+      - user_profile
+    surface_fallback:
+      account_gate: "live"
+      user_creator: "live"
+      user_profile: "live"
+    note: "Local account setup, login persistence, logout, and session gate are live through sealed account routes."
+
+  identity_private_profile:
+    key_missing_capability_state: "inactive"
+    read_only_default: false
+    intended_ui_surfaces:
+      - user_profile
+      - user_profile_editor
+    surface_fallback:
+      user_profile: "live"
+      user_profile_editor: "live"
+    note: "Authenticated user-editable private profile; private fields are not runtime-readable and not normal Memory."
+
+  elysia_visible_profile_projection:
+    key_missing_capability_state: "inactive"
+    read_only_default: true
+    intended_ui_surfaces:
+      - account_privacy_notice
+      - conversations_room
+    surface_fallback:
+      account_privacy_notice: "live"
+      conversations_room: "live"
+    note: "Tiny safe runtime projection containing username/name, interests, Story, and identity photo reference; private fields remain sealed."
+
+  desktop_installer:
+    key_missing_capability_state: "live"
+    read_only_default: true
+    intended_ui_surfaces:
+      - documentation
+    surface_fallback:
+      documentation: "live"
+    note: "Linux .deb/AppImage packaging path is configured through Tauri bundle targets and local build script."
+
+surface_defaults:
+  startup_truth:
+    initial_startup_state: "checking"
+    initial_message_posture: "wait_for_live_status"
+    before_startup_ready: "checking"
+    bridge_health_missing: "unavailable"
+    runtime_status_missing: "unavailable"
+    capability_manifest_missing: "unavailable"
+    readiness_rule: "The shell must not look ready unless startup truth is actually verified."
+    unknown_must_not_render_as_ready: true
+
+  right_drawer:
+    role: "compact_live_summary_not_deep_explanation"
+    default_absence_state: "partial"
+    hide_sections_when_value_missing: false
+    section_rules:
+      active_context_missing: "partial"
+      memory_classes_missing: "partial"
+      current_project_missing: "partial"
+      files_in_use_missing: "planned"
+      plan_preview_missing: "partial"
+      boundary_flags_missing: "partial"
+      approval_needed_missing: "partial"
+      journal_summary_missing: "partial"
+      request_trace_missing: "partial"
+    special_rules:
+      request_trace_must_not_render_live_causality_without_trace_or_summary_truth: true
+      files_in_use_must_not_imply_attachments_without_real_file_truth: true
+      current_project_no_selection_should_remain_visible: true
+
+  status_menu:
+    role: "expanded_trust_surface"
+    defaults:
+      local_core_default_state: "partial"
+      approval_default_state: "live"
+      blocked_paths_default_state: "live"
+      external_boundary_default_state: "live"
+      active_role_missing: "partial"
+      runtime_tag_missing: "partial"
+      fallback_missing: "partial"
+      memory_missing: "partial"
+      sandbox_missing: "planned"
+      outward_boundary_missing: "live"
+    special_rules:
+      startup_truth_drives_local_core_when_available: true
+      runtime_detail_rows_must_not_claim_live_role_or_runtime_without_backend_truth: true
+      sandbox_should_remain_planned_until_real surface_exists: true
+
+  governance_room:
+    role: "trust_room_not_fake_settings_page"
+    defaults:
+      before_startup_ready_state: "planned"
+      loading_state: "partial"
+      bridge_error_state: "partial"
+      empty_payload_state: "partial"
+      missing_authority_state: "partial"
+      missing_control_mutability_state: "display_only"
+    special_rules:
+      never_render_fake_editable_controls: true
+      missing_authority_source_should_not_be_presented_as_governed_certainty: true
+      display_only_is_the_safe_default_for_missing_mutability_truth: true
+
+  bottom_status_bar:
+    role: "compact_visible_trust_posture"
+    current_phase_a_mode: "static_compact_trust_surface"
+    defaults:
+      posture_when_runtime_truth_missing: "static_compact_trust_surface"
+      dynamic_runtime_field_default: "partial"
+    special_rules:
+      do_not_render_live_role_runtime_or_fallback_as_fact_without_status_runtime_truth: true
+      preserve_compact_posture_until_body_truth_is_actually wired: true
+      visible_trust_posture_is_preferred_over_fake_runtime_detail: true
+
+governance_mutability_defaults:
+  missing_control_mutability: "display_only"
+  missing_control_source_state: "partial"
+  never_assume_live_editable: true
+  safe_rendering_rules:
+    - "If mutability truth is missing, render as display-only."
+    - "If authority/source truth is missing, show the control as partial or display-only rather than fake governed certainty."
+    - "If a control is absent from backend truth, do not invent an editable surface."
+
+missing_data_rules:
+  manifest_absent:
+    use_surface_defaults: true
+    treat_shell_assumptions_as_fallback_only: true
+    do_not_infer_live_capability: true
+
+  manifest_present_but_key_missing:
+    apply_capability_defaults: true
+    note: "A missing key inside a returned manifest should not be silently promoted to live."
+
+  runtime_status_missing_but_capability_manifest_present:
+    right_drawer_runtime_dependent_surfaces: "partial"
+    status_menu_runtime_rows: "partial"
+    bottom_status_bar: "static_compact_trust_surface"
+
+  governance_state_missing:
+    governance_room: "partial"
+    right_drawer_governance_related_surfaces: "partial"
+    mutability_defaults_apply: true
+
+  request_summary_missing:
+    request_trace_related_surfaces: "partial"
+    note: "Absence of summary truth does not justify fake causality."
+
+  live_backend_truth_with_room_specific_gap:
+    preserve_live_capability_but_keep_room_surface_partial: true
+    note: "A capability may be live while one room remains only partially surfaced."
+
+consumer_expectations:
+  future_loader_behavior:
+    - "Load backend truth first."
+    - "Apply ui_capability_defaults only where backend truth is absent, partial, or not yet consumed."
+    - "Never let UI defaults overwrite explicit backend truth."
+  merge_hints:
+    capability_manifest_then_runtime_then_governance_then_request_trace: true
+    defaults_last: true
+  type_alignment_note: "Consumer code should align to the implemented backend capability keys and current frontend surface names, not to stale doctrinal endpoint examples."
+
+maintenance_rules:
+  - "Add or revise keys here only when a real frontend defaulting problem exists."
+  - "Do not duplicate large room-copy blobs in this file."
+  - "Do not restate the entire Phase 1 UI contract here."
+  - "Do not restate the full trust-language vocabulary here."
+  - "When backend capability keys change, update this file to match the implemented keys."
+  - "If a stronger dedicated contract already exists for a surface, reference it rather than duplicating it."

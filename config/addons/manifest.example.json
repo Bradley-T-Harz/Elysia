@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.1",
+  "addon_id": "org.example.my-addon",
+  "name": "Example Governed Add-on",
+  "version": "0.1.0",
+  "publisher": {
+    "name": "Example Publisher",
+    "identity": "replace-with-signing-ready-publisher-id"
+  },
+  "compatibility": {
+    "min_elysia_version": "0.1.0",
+    "max_elysia_version": "1.0.0",
+    "addon_api_version": "1"
+  },
+  "required_profiles": [
+    "developer"
+  ],
+  "entrypoints": {
+    "tool": "files/tool.py"
+  },
+  "bridge": {
+    "protocol": "json_rpc_stdio",
+    "contract_version": "1",
+    "execution_enabled": false
+  },
+  "permissions": [
+    {
+      "key": "filesystem.read_project",
+      "required": false,
+      "reason": "Read only the project files explicitly selected by the user."
+    }
+  ],
+  "network_policy": {
+    "default": "deny",
+    "declared_hosts": []
+  },
+  "filesystem_policy": {
+    "default": "project_scoped",
+    "mounts": []
+  },
+  "memory_policy": {
+    "default": "deny",
+    "classes": []
+  },
+  "model_provider_policy": {
+    "default": "deny",
+    "providers": []
+  },
+  "tool_worker_policy": {
+    "default": "deny",
+    "workers": []
+  },
+  "execution": {
+    "requested": false
+  },
+  "sandbox": {
+    "required": true,
+    "network": "deny_by_default",
+    "filesystem": "temporary_only"
+  },
+  "external_services": [],
+  "license": {
+    "spdx": "Apache-2.0"
+  },
+  "provenance": {
+    "status": "self_declared",
+    "source": "local"
+  },
+  "signing": {
+    "publisher_key_id": null,
+    "signature": null
+  },
+  "dependencies": [],
+  "checksums": {
+    "files": {
+      "files/tool.py": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "binaries": []
+}

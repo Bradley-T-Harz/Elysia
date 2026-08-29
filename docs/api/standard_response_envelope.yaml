@@ -1,0 +1,289 @@
+response_envelope_spec:
+  name: standard_response_envelope
+  purpose: >
+    Shared outer response wrapper for all Phase 1 local API endpoints.
+    This envelope separates request outcome from capability truth and keeps
+    locality, approval state, and trace visibility explicit for the UI.
+
+  status_semantics:
+    description: >
+      Request outcome state for the current API call.
+    allowed_values:
+      - ok
+      - blocked
+      - error
+      - degraded
+      - unavailable
+
+  capability_state_semantics:
+    description: >
+      Capability truth for the relevant feature or path referenced by this response.
+      This is not the same thing as request outcome.
+    allowed_values:
+      - live
+      - inactive
+      - planned
+      - unknown
+      - unavailable
+      - degraded
+
+  locality_semantics:
+    description: >
+      Whether the current request stayed local or crossed an external boundary.
+    allowed_values:
+      - local
+      - crossed_boundary
+      - unknown
+
+  approval_state_semantics:
+    description: >
+      Approval posture for the current request/result.
+    allowed_values:
+      - not_needed
+      - needed
+      - approved
+      - denied
+      - unknown
+
+  required_fields:
+    - status
+    - request_id
+    - api_version
+    - contract_version
+    - timestamp_utc
+    - result_type
+    - capability_state
+    - locality
+    - approval_state
+    - warnings
+    - errors
+    - data
+
+  recommended_fields:
+    - trace_summary
+
+  fields:
+    status:
+      type: string
+      required: true
+      description: >
+        Overall outcome of the current API request.
+      allowed_values:
+        - ok
+        - blocked
+        - error
+        - degraded
+        - unavailable
+
+    request_id:
+      type: string
+      required: true
+      description: >
+        Unique request identifier used to tie UI actions, traces, logs,
+        and later request-summary lookups together.
+
+    api_version:
+      type: string
+      required: true
+      description: >
+        Version of the local API layer.
+
+    contract_version:
+      type: string
+      required: true
+      description: >
+        Version of the governing UI/API contract being honored.
+
+    timestamp_utc:
+      type: string
+      format: iso_8601_utc
+      required: true
+      description: >
+        UTC timestamp for when the response envelope was produced.
+
+    result_type:
+      type: string
+      required: true
+      description: >
+        Declares what kind of payload is inside data.
+      examples:
+        - chat_response
+        - runtime_status
+        - health_status
+        - capability_manifest
+        - governance_state
+        - approval_resolution
+        - request_summary
+
+    capability_state:
+      type: string
+      required: true
+      description: >
+        Capability truth for the relevant feature/path referenced by this response.
+        Keep distinct from status.
+      allowed_values:
+        - live
+        - inactive
+        - planned
+        - unknown
+        - unavailable
+        - degraded
+
+    locality:
+      type: string
+      required: true
+      description: >
+        Whether this request stayed local or crossed an external boundary.
+      allowed_values:
+        - local
+        - crossed_boundary
+        - unknown
+
+    approval_state:
+      type: string
+      required: true
+      description: >
+        Approval posture of the request/result.
+      allowed_values:
+        - not_needed
+        - needed
+        - approved
+        - denied
+        - unknown
+
+    warnings:
+      type: list
+      required: true
+      item_type: string
+      description: >
+        Non-fatal issues, cautions, or degradations.
+      default: []
+
+    errors:
+      type: list
+      required: true
+      item_type: string
+      description: >
+        Fatal or blocking issues associated with the request.
+      default: []
+
+    trace_summary:
+      type: mapping
+      required: false
+      description: >
+        Compact structured trace data safe for UI inspection.
+        This is not raw logging.
+      fields:
+        route_used:
+          type: string
+          required: false
+        selected_role:
+          type: string
+          required: false
+        selected_runtime:
+          type: string
+          required: false
+        selected_model_runtime_tag:
+          type: string
+          required: false
+        used_fallback:
+          type: boolean
+          required: false
+        log_written:
+          type: boolean
+          required: false
+        journal_written:
+          type: boolean
+          required: false
+
+    data:
+      type: mapping
+      required: true
+      description: >
+        Endpoint-specific payload. Always present, even if empty.
+
+  semantic_rules:
+    - >
+      status describes request outcome, not the broader capability truth of the feature.
+    - >
+      capability_state describes whether the relevant capability is live, inactive,
+      planned, unknown, unavailable, or degraded.
+    - >
+      locality must not be inferred by the UI. It should be stated explicitly.
+    - >
+      approval_state must not be inferred by the UI. It should be stated explicitly.
+    - >
+      warnings and errors should be present as lists even when empty.
+    - >
+      data should always exist, even if it is an empty mapping.
+    - >
+      trace_summary should remain compact and safe for UI display.
+
+  examples:
+    ok_chat_response:
+      status: ok
+      request_id: req_20260323_000001
+      api_version: "1.0.0"
+      contract_version: "phase1-ui-contract-1.0"
+      timestamp_utc: "2026-03-23T07:15:00Z"
+      result_type: chat_response
+      capability_state: live
+      locality: local
+      approval_state: not_needed
+      warnings: []
+      errors: []
+      trace_summary:
+        route_used: primary_general
+        selected_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: qwen2.5:7b
+        used_fallback: false
+        log_written: true
+        journal_written: true
+      data: {}
+
+    blocked_chat_response:
+      status: blocked
+      request_id: req_20260323_000002
+      api_version: "1.0.0"
+      contract_version: "phase1-ui-contract-1.0"
+      timestamp_utc: "2026-03-23T07:20:00Z"
+      result_type: chat_response
+      capability_state: live
+      locality: local
+      approval_state: needed
+      warnings: []
+      errors:
+        - "Request was blocked by current boundary policy."
+      trace_summary:
+        route_used: primary_general
+        selected_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: ""
+        used_fallback: false
+        log_written: true
+        journal_written: true
+      data: {}
+
+    degraded_chat_response:
+      status: degraded
+      request_id: req_20260323_000003
+      api_version: "1.0.0"
+      contract_version: "phase1-ui-contract-1.0"
+      timestamp_utc: "2026-03-23T07:25:00Z"
+      result_type: chat_response
+      capability_state: degraded
+      locality: local
+      approval_state: not_needed
+      warnings:
+        - "Preferred runtime tag was unavailable; allowed local fallback was used."
+      errors: []
+      trace_summary:
+        route_used: primary_general
+        selected_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: qwen2.5:7b
+        used_fallback: true
+        log_written: true
+        journal_written: true
+      data: {}

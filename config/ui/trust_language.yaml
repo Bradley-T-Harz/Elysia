@@ -1,0 +1,523 @@
+version: '1.0'
+name: Elysia Phase 1 Trust Language
+governed_by: config/ui/phase1_ui_contract.yaml
+purpose: Canonical vocabulary for Elysia's visible UI truth surfaces in Phase 1.
+scope:
+- desktop shell
+- top bar
+- right drawer
+- bottom status bar
+- governance room
+- memory room
+- projects room
+- startup and readiness surfaces
+- quick invoke
+- local API-facing status text
+intent:
+  primary_jobs:
+  - Serve as the canonical vocabulary source for Elysia's visible UI truth surfaces.
+  - Prevent copy drift, fake-capability language, and architectural dishonesty as the UI grows.
+  - Remain broad enough to support the shell, drawers, bars, governance room, startup states, approval flow, local API-facing status text, and future Quick Invoke without fragmenting into disconnected vocabularies.
+  design_target: A governed language layer for Elysia's Phase 1 interface. This file is not a loose bag of labels.
+  why_layered_language_exists:
+  - Some terms are intentionally broad UI-facing states, while others are narrower workflow, runtime, or event terms.
+  - Layered language lets the interface stay readable for the user while still remaining precise enough for implementation.
+  - The same word should not be reused casually across unrelated surfaces when a more exact term already exists here.
+  architectural_alignment:
+  - Language in this file must remain subordinate to the body-facing contract governed by config/ui/phase1_ui_contract.yaml.
+  - The UI must use this file to express truth already established elsewhere, not to invent new capability claims.
+reading_guidance:
+  how_to_use_this_file:
+  - Use labels and phrases from this file before inventing new UI copy.
+  - Prefer the narrowest accurate term rather than the broadest flashy term.
+  - When a distinction is important to trust, keep the distinction visible in the wording.
+  - If a later feature needs new trust-language terms, add them here before adopting them in the UI.
+  what_this_file_is:
+  - Human-readable first.
+  - Implementation-guiding second.
+  - Machine-readable where practical.
+  what_this_file_is_not:
+  - Not a replacement for runtime truth.
+  - Not a license to imply capabilities that the body does not yet have.
+  - Not a marketing copy bank.
+  - Not a permission to collapse different system states into vague reassurance.
+core_principles:
+- Truthful over pretty.
+- Governed over fast.
+- Inspectable over impressive.
+- Local-first language must remain visible.
+- The UI must never imply capabilities the body does not yet have.
+- One Elysia across roles. Do not fragment identity in the UI.
+voice:
+  tone:
+  - calm
+  - grounded
+  - exact
+  - humane
+  - professional when the context is serious
+  avoid:
+  - theatrical language
+  - fake warmth
+  - obedience theater
+  - mascot energy
+  - overclaiming
+  - cloud-service phrasing that hides locality
+  copy_rules:
+    sentence_case_labels: true
+    plain_language: true
+    no_emojis: true
+    no_fake_certainty: true
+    no_silent_fallback_language: true
+    no_anthropomorphic_capability_claims: true
+rendering_rules:
+  general:
+  - Show the real state, not the desired future state.
+  - If a capability is not live, label it Inactive, Planned, Unknown, Unavailable, or Degraded as appropriate.
+  - Do not render a control as interactive unless the backend marks it live-editable.
+  - Do not hide boundary crossings, fallback, or approval requirements.
+  - Quick Invoke uses the same truth language as the full shell.
+  preference_order:
+  - truthful
+  - governed
+  - inspectable
+  - beautiful
+  - fast
+  label_style:
+    short_badges_preferred: true
+    detail_copy_should_be_sentence_length: true
+    avoid_exclamation_points: true
+semantic_distinctions:
+  approval_terms:
+    approval_needed: Broad visible trust-surface state. Use when the UI needs to calmly show that a user decision is needed.
+    approval_required: Formal workflow/state-machine condition. Use when a request literally cannot proceed until approval is resolved.
+    rule: Do not treat approval_needed and approval_required as interchangeable. They are related, but they serve different levels of explanation.
+  boundary_terms:
+    external: General category badge or high-level surface label for a path that reaches beyond the local system.
+    crossed_boundary: Per-request event/result indicating that the effective path actually crossed outward.
+    external_boundary_states: System or path availability states describing whether outward access is disabled, available, in use, or absent.
+    rule: Do not collapse category, event, and availability language into one vague boundary term.
+  capability_state_terms:
+    live: Implemented and honest to render as active now.
+    inactive: Known in structure, but not active on the current path or build.
+    planned: Intended for a later phase and not available now.
+    unknown: Not yet confirmed or still loading. Unknown is not a synonym for inactive or planned.
+    unavailable: Expected but unreachable or offline.
+    degraded: Working partially or with reduced fidelity, context, or reliability.
+    rule: Use the narrowest true state. Do not blur unresolved, future, offline, and partial-function states.
+surface_mapping:
+  top_bar:
+  - startup_states.*
+  - routing_and_invocation.role_active
+  - routing_and_invocation.runtime_active
+  - external_boundary_states.*
+  right_drawer:
+  - trust_surfaces.*
+  - routing_and_invocation.*
+  - approval_flow.*
+  - memory_scope_terms.*
+  - request_trace_terms.*
+  - section_labels.*
+  bottom_status_bar:
+  - trust_surfaces.local
+  - routing_and_invocation.role_active
+  - routing_and_invocation.runtime_active
+  - routing_and_invocation.fallback_*
+  - external_boundary_states.*
+  - sandbox_states.*
+  - capability_states.*
+  governance_room:
+  - governance_control_states.*
+  - trust_surfaces.read_only
+  - trust_surfaces.blocked
+  - section_labels.trust_zones
+  - section_labels.control_source
+  quick_invoke:
+  - trust_surfaces.*
+  - routing_and_invocation.*
+  - approval_flow.*
+  - capability_states.*
+vocabulary:
+  trust_surfaces:
+    group_purpose: Visible, human-readable truth badges and status phrases for the shell, drawer, status bar, governance surfaces, and other high-salience UI areas.
+    local:
+      label: Local
+      description: The active path remains inside the local Elysia environment.
+      preferred_copy:
+        badge: Local
+        short_status: Local path active
+        detail: Staying on this machine.
+    read_only:
+      label: Read-only
+      description: The UI can inspect this state but cannot change it from here.
+      preferred_copy:
+        badge: Read-only
+        short_status: View only
+        detail: Visible here, not editable here.
+    draft_only:
+      label: Draft only
+      description: Elysia can prepare output, but cannot execute or publish it from this path.
+      preferred_copy:
+        badge: Draft only
+        short_status: Draft path
+        detail: Can draft, cannot act.
+    approval_needed:
+      label: Approval needed
+      description: A user decision is required before the next step can proceed.
+      preferred_copy:
+        badge: Approval needed
+        short_status: Waiting for approval
+        detail: Your approval is required to continue.
+      semantic_role: Broad visible trust-surface state.
+      typical_surfaces:
+      - badge
+      - right drawer
+      - status row
+      - high-level request summary
+      distinction_from: approval_flow.approval_required
+    sandboxed:
+      label: Sandboxed
+      description: This action or worker is isolated and bounded.
+      preferred_copy:
+        badge: Sandboxed
+        short_status: Sandbox active
+        detail: Running in a bounded environment.
+    external:
+      label: External
+      description: This path crosses outside the local Elysia environment.
+      preferred_copy:
+        badge: External
+        short_status: Crossing outward
+        detail: This step reaches beyond the local system.
+      semantic_role: General category badge or surface label for paths that leave the local environment.
+      typical_surfaces:
+      - badge
+      - boundary summary
+      - status bar indicator
+      distinction_from: routing_and_invocation.crossed_boundary and external_boundary_states.*
+    blocked:
+      label: Blocked
+      description: The requested step is not permitted or not available from this path.
+      preferred_copy:
+        badge: Blocked
+        short_status: Action blocked
+        detail: This action cannot proceed from the current path.
+  capability_states:
+    group_purpose: Implementation and rendering truth for whether a capability or surface is available, known but inactive, future-scoped, unresolved, offline, or partially functional.
+    live:
+      label: Live
+      description: Implemented, available, and honest to render as active now.
+      preferred_copy:
+        badge: Live
+        detail: Available now.
+      rendering_note: Use only when the body actually supports the capability on the current path.
+    inactive:
+      label: Inactive
+      description: Known capability or surface, but not active in the current build or path.
+      preferred_copy:
+        badge: Inactive
+        detail: Present in structure, not active here.
+      rendering_note: Use when the capability exists in structure or doctrine but is not active in the present build or path.
+    planned:
+      label: Planned
+      description: Intended for a later phase. Not available now.
+      preferred_copy:
+        badge: Planned
+        detail: Planned for a later phase.
+      rendering_note: Use for later-phase intentions. Do not style as near-live unless the backend says so.
+    unknown:
+      label: Unknown
+      description: State has not yet been determined. Usually a temporary loading or unresolved state.
+      preferred_copy:
+        badge: Unknown
+        detail: State not yet confirmed.
+      rendering_note: Use while status is unresolved or still loading. Unknown must never be styled as live.
+    unavailable:
+      label: Unavailable
+      description: The capability or dependency is expected but currently unreachable or offline.
+      preferred_copy:
+        badge: Unavailable
+        detail: Currently unavailable.
+      rendering_note: Use when something expected is offline, unreachable, or missing right now.
+    degraded:
+      label: Degraded
+      description: The path is working only partially or with reduced fidelity, context, or reliability.
+      preferred_copy:
+        badge: Degraded
+        detail: Running with reduced capability.
+      rendering_note: Use when a path works partially, with reduced capability, reliability, or context.
+  governance_control_states:
+    group_purpose: Truth states for governance controls so the interface does not render fake toggles or imply edit authority where none exists.
+    live_editable:
+      label: Live-editable
+      description: This control is active and can be changed from the current UI.
+      preferred_copy:
+        badge: Live-editable
+        detail: Editable here now.
+    display_only:
+      label: Display-only
+      description: This control is governed elsewhere and shown here for inspection only.
+      preferred_copy:
+        badge: Display-only
+        detail: Shown here, changed elsewhere.
+    inactive:
+      label: Inactive
+      description: This governance surface exists, but it is not active from the current path.
+      preferred_copy:
+        badge: Inactive
+        detail: Not active here.
+    planned:
+      label: Planned
+      description: This governance control is intended for a later phase.
+      preferred_copy:
+        badge: Planned
+        detail: Not yet implemented.
+  startup_states:
+    group_purpose: Readiness language for startup and health-check surfaces. Startup truth should remain calm, explicit, and non-theatrical.
+    starting:
+      label: Starting
+      description: The shell has launched and is beginning readiness checks.
+      preferred_copy:
+        short_status: Starting
+        detail: Beginning local readiness checks.
+    checking:
+      label: Checking
+      description: The UI is actively verifying local services and contract state.
+      preferred_copy:
+        short_status: Checking
+        detail: Verifying local services and state.
+    ready:
+      label: Ready
+      description: The required Phase 1 local path is available and ready for use.
+      preferred_copy:
+        short_status: Ready
+        detail: Local path is ready.
+    not_ready:
+      label: Not ready
+      description: The shell is open, but the required local path is not yet ready.
+      preferred_copy:
+        short_status: Not ready
+        detail: Required local path is not ready.
+    degraded:
+      label: Degraded
+      description: Startup completed, but one or more required surfaces are only partially available.
+      preferred_copy:
+        short_status: Degraded
+        detail: Ready with reduced capability.
+    unavailable:
+      label: Unavailable
+      description: A required dependency for startup is offline or unreachable.
+      preferred_copy:
+        short_status: Unavailable
+        detail: A required local dependency is unavailable.
+  routing_and_invocation:
+    group_purpose: Terms describing which role and runtime handled a request, whether fallback occurred, and whether the effective path stayed local or crossed a boundary.
+    role_active:
+      label: Role active
+      description: The currently selected model role for this request.
+      preferred_copy:
+        short_status: Role active
+        detail: Current role is active.
+    runtime_active:
+      label: Runtime active
+      description: The currently active runtime tag or runtime path.
+      preferred_copy:
+        short_status: Runtime active
+        detail: Current runtime path is active.
+    fallback_used:
+      label: Fallback used
+      description: The preferred route was not used and a defined fallback path handled the request.
+      preferred_copy:
+        badge: Fallback used
+        detail: A fallback path handled this request.
+      semantic_role: Rendered outcome for a handled request whose preferred route was not used.
+    fallback_not_used:
+      label: Primary path used
+      description: The request stayed on the preferred path without fallback.
+      preferred_copy:
+        badge: Primary path used
+        detail: Preferred path remained active.
+      semantic_role: Rendered outcome for a request that stayed on its preferred path.
+    stayed_local:
+      label: Stayed local
+      description: The effective path remained inside the local environment.
+      preferred_copy:
+        badge: Stayed local
+        detail: This request stayed local.
+      semantic_role: Per-request outcome confirming that the effective path remained local.
+    crossed_boundary:
+      label: Boundary crossed
+      description: The effective path crossed beyond the local environment.
+      preferred_copy:
+        badge: Boundary crossed
+        detail: This request crossed outward.
+      semantic_role: Per-request event/result showing that the effective path left the local environment.
+      distinction_from: trust_surfaces.external and external_boundary_states.*
+  approval_flow:
+    group_purpose: Formal workflow and state-machine terms for requests that require explicit approval handling.
+    approval_required:
+      label: Approval required
+      description: Explicit user approval is required before proceeding.
+      preferred_copy:
+        badge: Approval required
+        detail: Approval is required before this step can continue.
+      semantic_role: Formal workflow/state-machine condition.
+      typical_surfaces:
+      - approval prompt
+      - action gate
+      - contract response
+      - governance workflow
+      distinction_from: trust_surfaces.approval_needed
+    awaiting_approval:
+      label: Awaiting approval
+      description: A request is paused pending an approval decision.
+      preferred_copy:
+        badge: Awaiting approval
+        detail: Waiting for your decision.
+    approved:
+      label: Approved
+      description: The user explicitly approved the pending step.
+      preferred_copy:
+        badge: Approved
+        detail: Approved by the user.
+    denied:
+      label: Denied
+      description: The user explicitly denied the pending step.
+      preferred_copy:
+        badge: Denied
+        detail: Denied by the user.
+    expired:
+      label: Expired
+      description: The approval request is no longer active.
+      preferred_copy:
+        badge: Expired
+        detail: Approval window no longer active.
+  external_boundary_states:
+    group_purpose: System or path availability states for outward access, distinct from per-request outcomes.
+    no_external_access:
+      label: No external access
+      description: No outward path is currently available or permitted.
+      preferred_copy:
+        short_status: No external access
+        detail: No outward path is available.
+    external_access_disabled:
+      label: External access disabled
+      description: Outward access exists in principle but is disabled by current governance or settings.
+      preferred_copy:
+        short_status: External access disabled
+        detail: Outward access is disabled.
+    external_access_available:
+      label: External access available
+      description: An outward path exists and may be used if governance permits it.
+      preferred_copy:
+        short_status: External access available
+        detail: Outward path is available if permitted.
+    external_access_in_use:
+      label: External access in use
+      description: An outward path is active now.
+      preferred_copy:
+        short_status: External access in use
+        detail: Outward path is active now.
+  sandbox_states:
+    group_purpose: Operational states for sandbox capability and worker activity.
+    sandbox_idle:
+      label: Sandbox idle
+      description: A sandbox capability exists but no sandbox worker is active.
+      preferred_copy:
+        short_status: Sandbox idle
+        detail: No sandbox worker is active.
+    sandbox_active:
+      label: Sandbox active
+      description: A sandboxed worker is currently running.
+      preferred_copy:
+        short_status: Sandbox active
+        detail: A bounded worker is running.
+    sandbox_unavailable:
+      label: Sandbox unavailable
+      description: Sandbox capability is expected but not currently available.
+      preferred_copy:
+        short_status: Sandbox unavailable
+        detail: Sandbox capability is unavailable.
+  memory_scope_terms:
+    group_purpose: Terms for describing which memory scope is currently loaded or limited in the active working context.
+    session_memory:
+      label: Session memory
+      description: Memory associated with the current or recent session path.
+    project_memory:
+      label: Project memory
+      description: Memory associated with the active project.
+    preference_memory:
+      label: Preference memory
+      description: Stored user preference information relevant across sessions or projects.
+    journal_summary:
+      label: Journal summary
+      description: A visible summary of what may be written to or derived from journaling.
+    memory_loaded:
+      label: Memory loaded
+      description: Relevant memory has been brought into the current working context.
+    memory_limited:
+      label: Memory limited
+      description: Only a constrained or partial memory scope is currently in use.
+  request_trace_terms:
+    group_purpose: Terms for the presence or quality of inspectable request-trace summaries.
+    trace_available:
+      label: Trace available
+      description: A structured request trace summary is available for inspection.
+    trace_limited:
+      label: Trace limited
+      description: Only a partial request trace is available.
+    trace_unavailable:
+      label: Trace unavailable
+      description: No trace summary is currently available.
+  room_labels:
+    group_purpose: Canonical room names for Phase 1 navigation surfaces.
+    conversations: Conversations
+    projects: Projects
+    memory: Memory
+    governance: Governance
+    quick_invoke: Quick Invoke
+  section_labels:
+    group_purpose: Canonical section titles for trust surfaces, drawers, and governance panels.
+    active_context: Active context
+    current_role: Current role
+    current_runtime: Current runtime
+    boundary_state: Boundary state
+    approval_state: Approval state
+    capability_state: Capability state
+    memory_state: Memory state
+    journal_state: Journal state
+    request_trace: Request trace
+    trust_zones: Trust zones
+    control_source: Control source
+prohibited_ui_copy:
+- All systems go
+- Fully autonomous
+- Thinking for you
+- Magic
+- Seamless cloud intelligence
+- Instant omniscience
+- Always knows
+- No limits
+- Just trust me
+preferred_ui_phrases:
+- Staying on this machine.
+- Waiting for approval.
+- Running in a bounded environment.
+- State not yet confirmed.
+- Currently unavailable.
+- Present in structure, not active here.
+- Shown here, changed elsewhere.
+- A fallback path handled this request.
+- This step reaches beyond the local system.
+maintenance_rules:
+- Preserve existing terms unless there is a strong architectural reason to revise them.
+- Do not repurpose an established term for a different meaning without adding an explicit distinction note.
+- If implementation pressure creates ambiguity, update this file before spreading inconsistent copy through the UI.
+- When in doubt, prefer the wording that makes locality, governance, fallback, approval, and capability truth more visible.
+implementation_notes:
+- Frontend labels, badges, drawers, bars, and governance controls should draw from this vocabulary instead of inventing new wording ad hoc.
+- If a later feature needs new trust-language terms, add them here before adopting them in the UI.
+- If there is tension between visual simplicity and truthful wording, keep the truthful wording.
+- This file is Phase 1 scoped, but should be extended rather than replaced in later phases whenever possible.
+- This file intentionally carries both broad human-facing trust language and narrower implementation distinctions so the UI can remain readable without losing precision.
+- Where a term has a nearby cousin, such as approval_needed vs approval_required or external vs crossed_boundary, keep the distinction consistent in code and copy.
+- This file should help the team remember intent without needing to recover it from chat history.

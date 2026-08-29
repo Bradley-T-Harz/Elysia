@@ -1,0 +1,63 @@
+version: 1
+status_vocabulary: [available, lab_only, disabled, blocked, unavailable_by_design]
+
+global_requirements:
+  local_only: true
+  cloud_calls_allowed: false
+  network_model_loading_allowed: false
+  arbitrary_shell_allowed: false
+  heavy_runtime_imports_in_core_allowed: false
+  raw_sensitive_content_in_central_trace_allowed: false
+  exact_approval_for_saved_outputs: true
+  provenance_sidecar_required: true
+  synthetic_media_label_required: true
+  deceptive_media_allowed: false
+  identity_simulation_allowed: false
+  max_concurrent_jobs_per_worker: 1
+
+production_gate:
+  required_passes: [safety, licensing, provenance, resource_stability, consent]
+  unresolved_gate_result: lab_only_or_disabled
+  silent_promotion_allowed: false
+
+features:
+  speech_transcription:
+    status: available
+    safety: passed
+    licensing: passed_whisper_cpp_mit_and_whisper_weights_apache_2_0
+    provenance: verified_official_model_identity_local_legacy_revision_unknown
+    resource_stability: passed_bounded_30_minutes_512_mib_one_job
+    consent: required_processing_rights_and_other_people_consent
+    reason: Local Whisper.cpp transcription is exact-approved and artifact-based; machine transcripts are not source-of-truth.
+  synthetic_reading_voice:
+    status: available
+    safety: passed_non_cloning_catalog_only
+    licensing: passed_kokoro_model_and_voice_assets_apache_2_0
+    provenance: verified_official_distribution_and_local_asset_hashes
+    resource_stability: passed_bounded_4000_characters_16_mib_one_job
+    consent: no_reference_voice_or_identity_input
+    reason: Kokoro is available for local synthetic reading voices only.
+  voice_cloning:
+    status: unavailable_by_design
+    safety: prohibited_identity_bearing_capability
+    licensing: not_applicable
+    provenance: not_applicable
+    resource_stability: not_applicable
+    consent: separate_future_identity_policy_would_be_required
+    reason: Reference-voice input, voice cloning, and deceptive impersonation are deliberately unavailable.
+  imageforge:
+    status: available
+    safety: passed_for_current_prompt_and_output_boundary
+    licensing: flux_schnell_verified_apache_2_0_other_models_remain_blocked
+    provenance: unresolved_by_model
+    resource_stability: bounded_flux_sequential_offload_single_job_with_cancellation
+    consent: real_person_likeness_unavailable
+    reason: One-step FLUX is available through the optional Creator profile; CommonCanvas and Mitsua remain blocked.
+  videoforge:
+    status: lab_only
+    safety: passed_for_text_to_video_only
+    licensing: passed_official_wan_ai_apache_2_0
+    provenance: incomplete_training_data_detail
+    resource_stability: single_bounded_route_and_cancel_proof_passed_sustained_test_pending
+    consent: real_person_likeness_and_identity_bearing_inputs_unavailable
+    reason: Wan text-to-video is lab-only, exact-approved, cancellable, and restricted to one fixed resource profile.

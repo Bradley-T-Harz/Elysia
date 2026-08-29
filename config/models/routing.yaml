@@ -1,0 +1,154 @@
+version: 1
+source_canons:
+  - docs/canon/HER_MIND.md
+  - docs/canon/HER_BODY.md
+
+routing_mode: explicit_local_first_role_governed
+
+defaults:
+  primary_role: primary_general
+  fallback_role: lighter_backup
+  allow_silent_cloud_fallback: false
+  require_explicit_enablement_for_specialists: true
+  require_explicit_approval_for_external_helpers: true
+  sensitive_work_must_remain_local: true
+
+mode_routes:
+  default:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+    mode_profile: default
+
+  tutor:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+    mode_profile: tutor
+
+  researcher:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+    mode_profile: researcher
+
+  writer:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+    mode_profile: writer
+
+  coder:
+    preferred_role: primary_code
+    fallback_role: primary_general
+    local_only: true
+    mode_profile: coder
+
+task_routes:
+  conversation:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+
+  planning:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+
+  explanation:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+
+  tutoring:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+
+  drafting:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+
+  editing:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+
+  coding:
+    preferred_role: primary_code
+    fallback_role: primary_general
+    local_only: true
+
+  debugging:
+    preferred_role: primary_code
+    fallback_role: primary_general
+    local_only: true
+
+  sysadmin_help:
+    preferred_role: primary_code
+    fallback_role: primary_general
+    local_only: true
+
+  research_summary:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+
+  bounded_public_research:
+    preferred_role: primary_general
+    fallback_role: lighter_backup
+    local_only: true
+    requires:
+      - autonomy_level_3_or_higher
+      - approved_tool_path
+      - explicit_public_source_scope
+
+  specialist_task:
+    preferred_role: optional_specialist
+    fallback_role: primary_general
+    local_only: true
+    requires:
+      - explicit_enablement
+      - bounded_task_scope
+      - no_silent_substitution
+
+  external_consultation:
+    preferred_role: optional_cloud_consultant
+    fallback_role: primary_general
+    local_only: false
+    requires:
+      - explicit_approval
+      - explicit_user_request
+      - outbound_use_is_logged
+      - no_private_memory_authority
+
+route_resolution_order:
+  - mode_route
+  - task_route
+  - local_fallback
+  - stop_if_only_external_option_remains_without_explicit_approval
+
+selection_principles:
+  - choose the narrowest adequate role
+  - prefer trust-first local roles before any optional external assistance
+  - use specialist roles only when the task clearly benefits
+  - do not silently swap to cloud-backed help
+  - preserve stable behavior over benchmark-chasing
+  - protect private identity-bearing work from outbound routing
+  - do not let fallback convenience override constitutional boundaries
+
+privacy_and_trust_guards:
+  private_identity_must_remain_local: true
+  long_term_memory_authority_must_remain_local: true
+  sensitive_project_context_must_remain_local: true
+  external_consultation_is_consultant_only: true
+  specialist_roles_must_never_silently_replace_core_roles: true
+
+notes:
+  - This file maps runtime modes and task types to model roles.
+  - Detailed mode posture is declared separately in config/modes/mode_profiles.yaml.
+  - Mode profiles describe weighting, strictness, response style, and preferred posture; they do not replace model routing.
+  - Final role-to-model assignments are defined separately in model_roles.yaml.
+  - External consultation is never default routing.
+  - Sensitive or identity-bearing work must remain local unless the authenticated user explicitly chooses otherwise.

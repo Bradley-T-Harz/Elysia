@@ -1,0 +1,11 @@
+contract_id: coding-autonomy-policy
+contract_version: coding-autonomy-0.1
+autonomous_loop_allowed: false
+background_execution_allowed: false
+mutation_allowed: false
+human_approval_required: true
+notes:
+  - "Autonomous coding loops are not live."
+  - "Tasks may be represented as plans/checklists only."
+  - "ArchiveForge inspection is user-initiated; extraction requires a fresh exact one-time approval and may write selected regular files only into a non-project disposable sandbox."
+  - "Archive installation, execution, import, trust, auto-open, project merge, and autonomous extraction are unavailable by design."

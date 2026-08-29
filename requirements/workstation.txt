@@ -1,0 +1,33 @@
+# Recommended Workstation extends Core with common local adapters. Setup uses
+# config/install/locks/workstation-py312.lock.txt as the exact installer input.
+-r core.txt
+
+pypdf
+pdfplumber
+pymupdf
+python-docx
+openpyxl
+python-pptx
+odfpy
+lxml
+pandas
+pyarrow
+geopandas
+rasterio
+xarray
+netcdf4
+h5netcdf
+h5py
+zarr
+shapely
+pyogrio
+fiona
+piexif
+exifread
+opencv-python
+python-magic
+pyelftools
+pefile
+
+# FFmpeg/FFprobe and Tesseract are system tools tracked in the dependency
+# catalog; a Python requirements file must not pretend to install them.

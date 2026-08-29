@@ -1,0 +1,64 @@
+version: "1.0"
+
+notes: |
+  Cross-cutting privacy, exposure, and access law for memory sensitivity tiers.
+  This file defines what each sensitivity level means operationally across the
+  memory system, regardless of memory class, unless a class-specific or mutation-
+  specific rule is even stricter.
+
+sensitivities:
+  public:
+    allowed_actors:
+      - user
+      - assistant
+      - system
+      - service
+    autonomous_access_allowed: true
+    autonomous_mutation_allowed: true
+    requires_review: false
+    requires_explicit_user_permission: false
+    default_retrieval_allowed: true
+    allow_cross_room_display: true
+    allow_summary_exposure: true
+
+  internal:
+    allowed_actors:
+      - user
+      - assistant
+      - system
+      - service
+    autonomous_access_allowed: true
+    autonomous_mutation_allowed: true
+    requires_review: false
+    requires_explicit_user_permission: false
+    default_retrieval_allowed: true
+    allow_cross_room_display: true
+    allow_summary_exposure: true
+
+  private:
+    allowed_actors:
+      - user
+      - assistant
+      - system
+      - service
+    autonomous_access_allowed: false
+    autonomous_mutation_allowed: false
+    requires_review: true
+    requires_explicit_user_permission: false
+    default_retrieval_allowed: false
+    allow_cross_room_display: false
+    allow_summary_exposure: false
+
+  sealed:
+    allowed_actors:
+      - user
+      - assistant
+      - system
+      - service
+    autonomous_access_allowed: false
+    autonomous_mutation_allowed: false
+    requires_review: true
+    requires_explicit_user_permission: true
+    default_retrieval_allowed: false
+    allow_cross_room_display: false
+    allow_summary_exposure: false

@@ -1,0 +1,153 @@
+{
+  "contract_version": 1,
+  "change_control": "An established Elysia capability or Settings truth surface may be removed, hidden, disconnected, or materially weakened only after the operator explicitly approves that named capability for deprecation.",
+  "settings_surfaces": [
+    { "label": "Appearance", "token": "Chamber behavior", "state": "live_controls_group" },
+    { "label": "Density", "token": "UI density", "state": "live_local_preference" },
+    { "label": "Startup room", "token": "Startup room", "state": "live_local_preference" },
+    { "label": "Left-rail behavior", "token": "Left rail default group behavior", "state": "live_local_preference" },
+    { "label": "Reduced motion", "token": "Motion preference", "state": "live_local_preference" },
+    { "label": "API bridge", "token": "API bridge", "state": "relocated_to_health_status_truth" },
+    { "label": "Runtime", "token": "Runtime", "state": "relocated_to_health_status_truth" },
+    { "label": "Invoker/model", "token": "Provider / model", "state": "relocated_to_capabilities_and_health" },
+    { "label": "Locality", "token": "Locality", "state": "relocated_to_governance_and_status" },
+    { "label": "Install/profile", "token": "Install profile", "state": "relocated_to_capabilities_and_addons" },
+    { "label": "External boundary", "token": "External boundary", "state": "relocated_to_governance" },
+    { "label": "Local-only mode", "token": "Internet master switch", "state": "authoritative_internet_control_plus_governance_truth" },
+    { "label": "External tools", "token": "External tools", "state": "relocated_to_capabilities_and_governance" },
+    { "label": "Autonomy level", "token": "Autonomy level", "state": "live_authoritative_persisted_control" },
+    { "label": "Reasoning effort", "token": "Preferred reasoning gear", "state": "live_authoritative_persisted_control_plus_per_request_override" },
+    { "label": "Domain ceilings", "token": "Memory capture", "state": "live_authoritative_narrowing_controls" },
+    { "label": "Compute preference", "token": "Compute preference", "state": "live_authoritative_governed_compute_control" },
+    { "label": "Resource ceilings", "token": "Resource ceilings", "state": "live_authoritative_bounded_compute_controls" },
+    { "label": "Background cognition", "token": "Background cognition", "state": "live_authoritative_bounded_control" },
+    { "label": "Trust zones", "token": "Trust zones", "state": "relocated_to_governance" },
+    { "label": "Memory write preferences", "token": "Memory, privacy, and authority", "state": "live_authoritative_persisted_controls_group" },
+    { "label": "Journal policy", "token": "Journal policy", "state": "relocated_to_memory_and_governance_truth" },
+    { "label": "Loaded memory classes", "token": "Loaded memory classes", "state": "relocated_to_memory_truth" },
+    { "label": "Sealed private status", "token": "Sealed private status", "state": "relocated_to_memory_and_health_truth" },
+    { "label": "Memory writes", "token": "Memory writes", "state": "relocated_to_memory_truth" },
+    { "label": "Memory recording", "token": "Memory recording", "state": "live_memory_contract" },
+    { "label": "Storage profile", "token": "Storage resource profile", "state": "live_memory_contract" },
+    { "label": "Default privacy", "token": "Default memory privacy", "state": "live_memory_contract" },
+    { "label": "Candidate behavior", "token": "Candidate-memory behavior", "state": "live_memory_contract" },
+    { "label": "Internet master", "token": "Internet master switch", "state": "live_authoritative_persisted_control_and_fail_closed_runtime_enforcement" },
+    { "label": "Capability manifest", "token": "Capability manifest", "state": "relocated_to_capabilities" },
+    { "label": "Request traces", "token": "Request traces", "state": "relocated_to_health_and_status" },
+    { "label": "Diagnostics", "token": "Developer / Diagnostics", "state": "relocated_sanitized_health_truth" },
+    { "label": "Raw diagnostics", "token": "Raw diagnostics", "state": "blocked_private_boundary" }
+  ],
+  "established_capabilities": [
+    {
+      "id": "personal_identity_creation",
+      "surface": "UserCreatorPage",
+      "backend_token": "createAccount",
+      "state": "fully_functional_native_bridge"
+    },
+    {
+      "id": "study_tutor_mode",
+      "surface": "ConversationsPage and ProjectWorkbenchPanel",
+      "backend_token": "createProjectStudyPlan",
+      "state": "fully_functional_grounded_study_workflow"
+    },
+    {
+      "id": "researcher_mode",
+      "surface": "ConversationsPage and ProjectWorkbenchPanel",
+      "backend_token": "runBoundedResearchFetch",
+      "state": "fully_functional_governed_search_and_page_investigation"
+    },
+    {
+      "id": "bounded_research",
+      "surface": "research routes",
+      "backend_token": "runBoundedResearchSearch",
+      "state": "fully_functional_with_persisted_internet_master_and_live_searxng_proof"
+    },
+    {
+      "id": "speech_tts",
+      "surface": "ConversationsPage and ProjectWorkbenchPanel",
+      "backend_token": "speakProjectText",
+      "state": "fully_functional_profile_gated_local_kokoro_tts"
+    },
+    {
+      "id": "imageforge",
+      "surface": "ProjectWorkbenchPanel and governed media routes",
+      "backend_token": "createProjectImage",
+      "state": "fully_functional_profile_gated_flux_with_progress_cancellation_and_provenance"
+    },
+    {
+      "id": "bounded_developer_goal_checkpoint",
+      "surface": "ProjectWorkbenchPanel",
+      "backend_token": "createProjectGoal",
+      "state": "fully_functional_bounded_goal_plans_checkpoints_pause_stop_and_emergency_stop"
+    },
+    {
+      "id": "project_quizzes",
+      "surface": "ProjectWorkbenchPanel",
+      "backend_token": "createProjectQuiz",
+      "state": "fully_functional_grounded_generation_grading_retry_and_review"
+    },
+    {
+      "id": "project_canvas",
+      "surface": "ProjectWorkbenchPanel",
+      "backend_token": "updateProjectCanvas",
+      "state": "fully_functional_internal_local_project_canvas"
+    },
+    {
+      "id": "local_image_editing",
+      "surface": "ProjectWorkbenchPanel",
+      "backend_token": "openProjectImageInGimp",
+      "state": "fully_functional_optional_local_gimp_working_copy_workflow"
+    },
+    {
+      "id": "soundcloud_connector",
+      "surface": "ProjectWorkbenchPanel",
+      "backend_token": "verifyProjectSoundCloudAccount",
+      "state": "fully_functional_optional_oauth_connector_with_refresh_fixed_me_verification_provider_signout_and_local_revocation_blocked_only_by_user_owned_provider_registration"
+    },
+    {
+      "id": "adaptive_cognition_governor",
+      "surface": "ConversationsPage, RequestsPage, HealthPage, RightDrawer",
+      "backend_token": "adaptive-cognition-governor-v1",
+      "state": "fully_functional_deterministic_six_gear_governor"
+    },
+    {
+      "id": "compute_governor",
+      "surface": "HealthPage, CapabilitiesPage, RightDrawer",
+      "backend_token": "compute-governor-v1",
+      "state": "fully_functional_bounded_cpu_gpu_queue_and_lease_governance"
+    },
+    {
+      "id": "emergency_stop",
+      "surface": "TopBar, SettingsPanel, API, CLI, Tauri hard-stop",
+      "backend_token": "activateEmergencyStop",
+      "state": "fully_functional_system_wide_stop_and_explicit_recovery"
+    },
+    {
+      "id": "installation_admin",
+      "surface": "AdminPage",
+      "backend_token": "fetchAdminSummary",
+      "state": "fully_functional_content_blind_installation_governance"
+    },
+    {
+      "id": "neurofabric_profiles",
+      "surface": "CapabilitiesPage and HealthPage",
+      "backend_token": "neurofabric_cuda_runtime",
+      "state": "fully_functional_optional_isolated_cpu_and_cuda_profiles"
+    }
+  ],
+  "historical_ui_prototypes": [
+    {
+      "labels": ["Create image", "Deep research", "Web search", "Study and learn", "Agent mode", "Add project source", "Canvas", "Canva", "Quizzes", "SoundCloud"],
+      "first_known_commit": "2b2e1cce25e5f89da923a20b4f814e3167c5cfd4",
+      "historical_behavior": "active-looking menu items whose handlers only cleared a notice; they did not call a backend",
+      "classification": "prototype_controls_forward_ported_to_real_capabilities",
+      "preservation_rule": "The corresponding capabilities are now real Project workbench workflows. The historical Canva vendor label was replaced by a governed local GIMP capability; SoundCloud is optional and user-configured."
+    }
+  ],
+  "forbidden_final_states": [
+    "removed_because_unfinished",
+    "hidden_because_unfinished",
+    "disabled_because_unfinished",
+    "fake_live"
+  ]
+}

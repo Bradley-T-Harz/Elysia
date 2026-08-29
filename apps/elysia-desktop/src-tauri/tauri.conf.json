@@ -1,0 +1,101 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Elysia",
+  "version": "1.0.0",
+  "identifier": "llc.ecosyneva.elysia",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Elysia",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 1080,
+        "minHeight": 720,
+        "resizable": true,
+        "maximized": false,
+        "fullscreen": false,
+        "visible": true,
+        "focus": true,
+        "center": true,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:8000 https://*.supabase.co; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+      "dangerousDisableAssetCspModification": [
+        "script-src",
+        "style-src"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "publisher": "EcoSyneva Commons LLC",
+    "homepage": "https://elysiaecobotics.com",
+    "copyright": "Copyright 2026 EcoSyneva Commons LLC",
+    "license": "Apache-2.0",
+    "licenseFile": "../../../LICENSE",
+    "category": "Productivity",
+    "shortDescription": "Local-first governed AI desktop application.",
+    "longDescription": "Elysia is a local-first governed AI desktop application with a private loopback Core runtime.",
+    "resources": {
+      "../../../LICENSE": "LICENSE",
+      "../../../LICENSES": "LICENSES",
+      "../../../LICENSING.md": "LICENSING.md",
+      "../../../NOTICE": "NOTICE",
+      "../../../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md",
+      "../../../MODEL_ASSET_NOTICES.md": "MODEL_ASSET_NOTICES.md",
+      "../../../TRADEMARKS.md": "TRADEMARKS.md",
+      "../THIRD_PARTY_NOTICES.txt": "THIRD_PARTY_NOTICES.desktop.txt",
+      "../THIRD_PARTY_NOTICES.native.txt": "THIRD_PARTY_NOTICES.native.txt",
+      "../../../scripts/manage_qdrant.sh": "scripts/manage_qdrant.sh",
+      "../../../scripts/manage_searxng.sh": "scripts/manage_searxng.sh",
+      "../../../scripts/manage_neurofabric.sh": "scripts/manage_neurofabric.sh",
+      "../../../scripts/prove_neurofabric_runtime.py": "scripts/prove_neurofabric_runtime.py",
+      "../../../requirements/neurofabric-cpu.txt": "requirements/neurofabric-cpu.txt",
+      "../../../requirements/neurofabric-cuda.txt": "requirements/neurofabric-cuda.txt",
+      "../../../requirements/THIRD_PARTY_NOTICES.txt": "requirements/THIRD_PARTY_NOTICES.txt",
+      "../../../config/install": "config/install",
+      "../../../docs/release/DEPENDENCY_ACQUISITION_AND_MANUAL_ACTIONS.md": "docs/DEPENDENCY_ACQUISITION_AND_MANUAL_ACTIONS.md",
+      "../../../docs/release/INSTALL_PROFILES.md": "docs/INSTALL_PROFILES.md",
+      "../../../docs/release/INSTALLER_DOCTOR_RUNTIME.md": "docs/INSTALLER_DOCTOR_RUNTIME.md",
+      "../../../docs/release/SYSTEM_REQUIREMENTS_v1.0.0.md": "docs/SYSTEM_REQUIREMENTS_v1.0.0.md",
+      "../../../docs/release/CODEV_DEVELOPER_PROFILE_INSTALL.md": "docs/CODEV_DEVELOPER_PROFILE_INSTALL.md"
+    },
+    "externalBin": [
+      "binaries/elysia"
+    ],
+    "linux": {
+      "appimage": {
+        "files": {
+          "/elysia-desktop.png": "icons/128x128@2x.png",
+          "/usr/share/metainfo/llc.ecosyneva.elysia.metainfo.xml": "linux/llc.ecosyneva.elysia.metainfo.xml"
+        }
+      },
+      "deb": {
+        "files": {
+          "/usr/share/metainfo/llc.ecosyneva.elysia.metainfo.xml": "linux/llc.ecosyneva.elysia.metainfo.xml"
+        }
+      }
+    },
+    "targets": [
+      "deb",
+      "appimage"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {}
+}

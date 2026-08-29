@@ -1,0 +1,101 @@
+contract_id: coding-command-allowlist
+contract_version: coding-command-allowlist-0.1
+execution_enabled: true
+local_only: true
+approval_required: true
+shell_allowed: false
+package_manager_mutation_allowed: false
+
+allowed_commands:
+  - id: frontend_typecheck
+    label: Elysia Desktop type check
+    purpose: Compile TypeScript types without emitting files; remains isolated-worker gated because npm scripts are repository-controlled code.
+    command:
+      - npm
+      - --prefix
+      - apps/elysia-desktop
+      - run
+      - typecheck
+    cwd_policy: approved_repo
+    timeout_seconds: 120
+    output_limit_bytes: 20000
+    execution_enabled: false
+    disabled_reason: workspace-controlled npm scripts require an isolated worker and state-bound input manifest
+  - id: frontend_build
+    label: Elysia Desktop production build
+    purpose: Build the Desktop bundle; remains isolated-worker gated because build hooks execute repository code.
+    command:
+      - npm
+      - --prefix
+      - apps/elysia-desktop
+      - run
+      - build
+    cwd_policy: approved_repo
+    timeout_seconds: 180
+    output_limit_bytes: 30000
+    execution_enabled: false
+    disabled_reason: Vite and npm build hooks carry ambient workspace code-execution authority
+  - id: codev_compile
+    label: Codev compile
+    purpose: Compile Codev extension and webview sources; remains isolated-worker gated because npm scripts execute repository code.
+    command:
+      - npm
+      - run
+      - compile
+    cwd_policy: approved_repo
+    timeout_seconds: 120
+    output_limit_bytes: 30000
+    execution_enabled: false
+    disabled_reason: workspace-controlled npm scripts require an isolated worker and state-bound input manifest
+  - id: codev_check
+    label: Codev check
+    purpose: Run the Codev compile gate; remains isolated-worker gated because npm scripts execute repository code.
+    command:
+      - npm
+      - run
+      - check
+    cwd_policy: approved_repo
+    timeout_seconds: 120
+    output_limit_bytes: 30000
+    execution_enabled: false
+    disabled_reason: workspace-controlled npm scripts require an isolated worker and state-bound input manifest
+  - id: git_diff_check
+    label: Git diff whitespace check
+    purpose: Inspect the approved repository diff for whitespace errors without changing Git state.
+    command:
+      - git
+      - --no-optional-locks
+      - -c
+      - core.fsmonitor=false
+      - -c
+      - credential.helper=
+      - diff
+      - --no-ext-diff
+      - --no-textconv
+      - --check
+    cwd_policy: approved_repo
+    timeout_seconds: 60
+    output_limit_bytes: 12000
+    execution_enabled: true
+  - id: cargo_check
+    label: Cargo check
+    purpose: Compile Rust metadata; remains isolated-worker gated because build scripts and procedural macros execute repository code.
+    command:
+      - cargo
+      - check
+    cwd_policy: approved_repo
+    timeout_seconds: 180
+    output_limit_bytes: 30000
+    execution_enabled: false
+    disabled_reason: Cargo build scripts and procedural macros require an isolated worker and state-bound input manifest
+
+blocked_terms:
+  - install
+  - uninstall
+  - rm
+  - sudo
+  - pkexec
+  - git push
+  - git reset
+  - git clean
+  - docker compose

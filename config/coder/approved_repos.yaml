@@ -1,0 +1,32 @@
+version: 1
+default_repo_key: elysia
+
+inspection_defaults:
+  max_depth: 3
+  max_entries: 240
+  max_file_size_bytes: 250000
+  changed_files_live: false
+  shell_allowed: false
+  network_allowed: false
+  file_mutation_allowed: false
+
+repos:
+  elysia:
+    label: Elysia local repository
+    root: .
+    trust_zone: project_local
+    allowed: true
+    coding_workspace_allowed: true
+    notes:
+      - Approved local repo for read-only Coder context gathering.
+      - Relative root resolves from the Elysia repo root.
+      - No shell commands, network access, file mutation, or git status/diff inspection is live in v0.
+  elysia_codev:
+    label: Elysia Codev local repository
+    root: ../Add-ons/Official_Addons/elysia-codev
+    trust_zone: project_local
+    allowed: true
+    coding_workspace_allowed: true
+    notes:
+      - Approved local workspace for the governed Codev bridge.
+      - Relative root resolves from the Elysia repo root.

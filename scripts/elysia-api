@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RUNTIME_ROOT="$(cd "$BIN_DIR/.." && pwd)"
+PAYLOAD_ROOT="$RUNTIME_ROOT/current"
+VENV_PYTHON="$RUNTIME_ROOT/venv/bin/python"
+INTERPRETER_RECORD="$RUNTIME_ROOT/python-interpreter"
+
+if [[ ! -d "$PAYLOAD_ROOT/app" ]] || [[ ! -d "$PAYLOAD_ROOT/core" ]]; then
+  echo "Elysia Core payload is missing. Run the user-local Core installer first." >&2
+  exit 1
+fi
+
+if [[ -x "$VENV_PYTHON" ]]; then
+  PYTHON_BIN="$VENV_PYTHON"
+elif [[ -f "$INTERPRETER_RECORD" ]]; then
+  IFS= read -r PYTHON_BIN <"$INTERPRETER_RECORD"
+  [[ "$PYTHON_BIN" = /* && -x "$PYTHON_BIN" ]] || {
+    echo "The recorded Elysia Python interpreter is unavailable. Rerun the Core installer with --python." >&2
+    exit 1
+  }
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="$(command -v python3)"
+else
+  echo "Python 3 is required to start the local Elysia API." >&2
+  exit 1
+fi
+
+export PYTHONPATH="$PAYLOAD_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+cd "$PAYLOAD_ROOT"
+exec "$PYTHON_BIN" -m app.cli.runtime "$@"

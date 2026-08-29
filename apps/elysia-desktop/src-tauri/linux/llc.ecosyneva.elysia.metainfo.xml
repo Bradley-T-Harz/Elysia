@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>llc.ecosyneva.elysia</id>
+  <name>Elysia</name>
+  <summary>Local-first governed AI desktop application</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <developer id="llc.ecosyneva">
+    <name>EcoSyneva Commons LLC</name>
+  </developer>
+  <description>
+    <p>
+      Elysia is a local-first governed AI desktop application with a private,
+      authenticated loopback Core runtime and explicit user-control boundaries.
+    </p>
+  </description>
+  <launchable type="desktop-id">Elysia.desktop</launchable>
+  <url type="homepage">https://elysiaecobotics.com</url>
+  <provides>
+    <binary>elysia-desktop</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.0.0" date="2026-08-26" type="development"/>
+  </releases>
+</component>

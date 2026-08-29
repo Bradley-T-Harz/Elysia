@@ -1,0 +1,510 @@
+status_capabilities_schema:
+  name: status_capabilities_schema
+  route: /status/capabilities
+  method: GET
+  purpose: >
+    Read-only capability-truth endpoint for the qualified stable v1.0 codebase.
+    This endpoint returns a compact capability catalog describing what Elysia
+    currently exposes as usable features, and in what truth state, for UI trust
+    surfaces such as governance/status panels, right-drawer capability views,
+    startup truth surfaces, room gating, disabled-button explanations, and
+    future Quick Invoke filtering.
+  envelope_reference: standard_response_envelope
+  phase_scope: v1_finalization
+  surfaces_expected_to_use_this_endpoint:
+    - governance_status_panels
+    - right_drawer_capability_view
+    - startup_truth_surface
+    - room_gating
+    - disabled_button_explanations
+    - quick_invoke_capability_filtering
+
+  governing_rules:
+    - >
+      This endpoint is a read-only inspection surface, not a control surface.
+    - >
+      It must report capability truth rather than design aspiration or UI optimism.
+    - >
+      It must not imply that a capability is live merely because it has a schema,
+      a design, or a placeholder UI surface.
+    - >
+      It must not expose secrets, raw config blobs, or internal implementation dumps.
+    - >
+      It is distinct from /status/runtime and /status/health and must not pretend
+      to be either of those.
+
+  request:
+    description: >
+      Read-only capability request. No request body is required or expected.
+    request_body_allowed: false
+    query_parameters:
+      group:
+        type: string
+        required: false
+        live_state: planned
+        description: >
+          Optional future query parameter for narrowing the returned catalog by group.
+        allowed_examples:
+          - files
+          - core_chat
+          - status_surfaces
+          - governance
+      surface:
+        type: string
+        required: false
+        live_state: planned
+        description: >
+          Optional future query parameter for narrowing the returned catalog
+          to capabilities relevant to a given UI surface.
+        allowed_examples:
+          - conversations_room
+          - quick_invoke
+          - governance_room
+      include_planned:
+        type: boolean
+        required: false
+        live_state: planned
+        description: >
+          Optional future query parameter for explicitly including planned-only entries.
+
+  response:
+    envelope_reference: standard_response_envelope
+    description: >
+      Standard response envelope containing endpoint-specific capability catalog
+      data inside the data field.
+
+    data_payload:
+      description: >
+        Compact capability catalog snapshot for current trust surfaces.
+      fields:
+        capability_catalog_state:
+          type: string
+          required: true
+          live_state: live
+          description: >
+            State of the capability catalog snapshot as a whole, not the state
+            of any one capability entry.
+          allowed_values:
+            - live
+            - partial
+            - planned
+            - degraded
+            - unavailable
+            - unknown
+
+        capability_count:
+          type: integer
+          required: true
+          live_state: live
+          minimum: 0
+          description: >
+            Number of capability entries present in the returned catalog.
+
+        last_updated_utc:
+          type: string
+          format: iso_8601_utc
+          required: true
+          live_state: live
+          description: >
+            UTC timestamp for when this capability catalog snapshot was produced.
+
+        capability_groups:
+          type: list
+          item_type: string
+          required: true
+          live_state: live
+          description: >
+            Compact grouping labels used to organize the catalog.
+          allowed_examples:
+            - core_chat
+            - status_surfaces
+            - governance
+            - memory
+            - projects
+            - approvals
+            - requests
+            - quick_invoke
+
+        capabilities:
+          type: list
+          required: true
+          live_state: live
+          description: >
+            List of compact capability-truth entries safe for UI inspection.
+          entry_schema:
+            capability_key:
+              type: string
+              required: true
+              description: >
+                Stable machine-readable capability identifier.
+            display_name:
+              type: string
+              required: true
+              description: >
+                Human-facing capability name for UI display.
+            group:
+              type: string
+              required: false
+              description: >
+                Group label used for UI organization.
+            state:
+              type: string
+              required: true
+              description: >
+                Truth state of the individual capability.
+              allowed_values:
+                - live
+                - inactive
+                - planned
+                - unknown
+                - unavailable
+                - degraded
+            summary:
+              type: string
+              required: false
+              description: >
+                Compact human-readable description of what the capability currently means.
+            locality:
+              type: string
+              required: true
+              description: >
+                Whether the capability is local, crosses a boundary, or is unknown.
+              allowed_values:
+                - local
+                - crossed_boundary
+                - unknown
+            approval_state:
+              type: string
+              required: true
+              description: >
+                Broad approval posture associated with using this capability.
+              allowed_values:
+                - not_needed
+                - needed
+                - approved
+                - denied
+                - unknown
+            read_only:
+              type: boolean
+              required: true
+              description: >
+                Whether the capability is read-only rather than action-capable.
+            ui_surfaces:
+              type: list
+              item_type: string
+              required: false
+              description: >
+                UI surfaces where this capability is relevant or surfaced.
+            supporting_endpoint:
+              type: string
+              required: false
+              description: >
+                Primary API endpoint associated with this capability when applicable.
+            notes:
+              type: list
+              item_type: string
+              required: true
+              description: >
+                Compact capability notes safe for UI display.
+
+  capability_catalog_state_semantics:
+    description: >
+      Canonical meanings for capability_catalog_state values returned inside data.
+    values:
+      live: >
+        The catalog snapshot is current and available for normal governed use.
+      partial: >
+        The catalog snapshot is present but incomplete in some known way.
+      planned: >
+        The catalog itself is not yet fully live and is serving mostly planned truth.
+      degraded: >
+        The catalog snapshot is available, but some entries or supporting paths are reduced.
+      unavailable: >
+        The capability catalog path is not currently reachable.
+      unknown: >
+        The catalog state has not yet been confirmed.
+
+  capability_entry_state_semantics:
+    description: >
+      Canonical meanings for each individual capability entry state.
+    values:
+      live: >
+        The capability is genuinely available for current governed use.
+      inactive: >
+        The capability exists conceptually but is intentionally not active right now.
+      planned: >
+        The capability is designed or intended but not yet available for real use.
+      unknown: >
+        The capability truth state is not yet confirmed.
+      unavailable: >
+        The capability should exist, but its required path or dependency is currently unreachable.
+      degraded: >
+        The capability is available, but only partially or with a reduced-quality path.
+
+  endpoint_status_behavior:
+    description: >
+      How the standard response envelope status field should be used for this endpoint.
+    status_meanings:
+      ok: >
+        The /status/capabilities request succeeded and returned a valid catalog snapshot.
+      blocked: >
+        The capability-inspection request itself was blocked by policy or boundary rules.
+        This should be rare for this read-only local endpoint.
+      degraded: >
+        The capability-inspection request succeeded, but parts of the catalog snapshot
+        are partial, stale, or reduced.
+      error: >
+        The capability-inspection request failed unexpectedly and did not produce
+        a clean catalog snapshot.
+      unavailable: >
+        The capability endpoint could not access the required local inspection path.
+
+  semantic_rules:
+    - >
+      Envelope status, data.capability_catalog_state, and each capability entry state
+      must remain distinct.
+    - >
+      planned and unavailable are not the same thing.
+      planned means not built or not live yet.
+      unavailable means it should be live but a required path is currently unreachable.
+    - >
+      inactive and unknown are not the same thing.
+      inactive means intentionally not active.
+      unknown means not yet confirmed.
+    - >
+      This endpoint must not imply runtime activity.
+      That belongs to /status/runtime.
+    - >
+      This endpoint must not imply system/service health.
+      That belongs to /status/health.
+    - >
+      The UI must not hide degraded, unavailable, inactive, or planned states behind vague
+      language such as "coming soon" or "temporarily unavailable" when a more truthful
+      canonical state is known.
+    - >
+      This endpoint must remain a trust surface, not a design-marketing surface.
+    - >
+      The UI must not infer capability truth without asking this endpoint or an equivalent
+      governed source.
+
+  live_planned_guidance:
+    description: >
+      Honest implementation-readiness guidance for the qualified stable v1.0 catalog.
+    likely_live:
+      - capability_catalog_state
+      - capability_count
+      - last_updated_utc
+      - capabilities
+      - capability_groups
+      - per_entry_state
+      - per_entry_locality
+      - per_entry_read_only
+    likely_partial:
+      - per_entry_summary
+      - per_entry_approval_state
+      - per_entry_supporting_endpoint
+      - per_entry_ui_surfaces
+      - per_entry_notes
+    likely_planned:
+      - group
+      - surface
+      - include_planned
+
+  examples:
+    current_catalog_snapshot:
+      envelope_status: ok
+      result_type: capability_manifest
+      capability_state: live
+      locality: local
+      approval_state: not_needed
+      data:
+        capability_catalog_state: live
+        capability_count: 8
+        last_updated_utc: "2026-03-23T09:00:00Z"
+        capability_groups:
+          - core_chat
+          - status_surfaces
+          - governance
+          - approvals
+          - requests
+        capabilities:
+          - capability_key: chat_send
+            display_name: Chat send
+            group: core_chat
+            state: live
+            summary: "Main governed body-facing chat submission path."
+            locality: local
+            approval_state: not_needed
+            read_only: false
+            ui_surfaces:
+              - conversations_room
+              - quick_invoke
+            supporting_endpoint: /chat/send
+            notes: []
+
+          - capability_key: conversation_metadata
+            display_name: Conversation metadata
+            group: core_chat
+            state: live
+            summary: "Compact conversation container metadata for list and header surfaces."
+            locality: local
+            approval_state: not_needed
+            read_only: true
+            ui_surfaces:
+              - conversations_room
+            supporting_endpoint: ""
+            notes: []
+
+          - capability_key: status_runtime
+            display_name: Runtime status
+            group: status_surfaces
+            state: live
+            summary: "Runtime truth surface for active role, runtime, locality, and fallback state."
+            locality: local
+            approval_state: not_needed
+            read_only: true
+            ui_surfaces:
+              - bottom_status_bar
+              - right_drawer
+            supporting_endpoint: /status/runtime
+            notes: []
+
+          - capability_key: status_health
+            display_name: Health status
+            group: status_surfaces
+            state: live
+            summary: "Service and subsystem health inspection surface."
+            locality: local
+            approval_state: not_needed
+            read_only: true
+            ui_surfaces:
+              - governance_room
+              - right_drawer
+            supporting_endpoint: /status/health
+            notes: []
+
+          - capability_key: status_capabilities
+            display_name: Capability catalog
+            group: status_surfaces
+            state: live
+            summary: "Capability truth surface for what Elysia actually exposes right now."
+            locality: local
+            approval_state: not_needed
+            read_only: true
+            ui_surfaces:
+              - governance_room
+              - right_drawer
+            supporting_endpoint: /status/capabilities
+            notes: []
+
+          - capability_key: governance_state
+            display_name: Governance state
+            group: governance
+            state: live
+            summary: "Governance-room state inspection with exact Pass 3 mutability classification."
+            locality: local
+            approval_state: not_needed
+            read_only: true
+            ui_surfaces:
+              - governance_room
+            supporting_endpoint: /governance/state
+            notes:
+              - "No production control is safe-live-editable in Pass 3."
+
+          - capability_key: governance_mutation_contract
+            display_name: Governance mutation contract
+            group: governance
+            state: live
+            summary: "Fail-closed exact plan, approval, apply, and restore framework; current writable control count is zero."
+            locality: local
+            approval_state: needed
+            read_only: true
+            ui_surfaces:
+              - governance_room
+            supporting_endpoint: /governance/changes/plan
+            notes:
+              - "Current production requests are classified and blocked unless a reviewed low-risk registry target is promoted later."
+
+          - capability_key: approval_resolve
+            display_name: Approval resolve
+            group: approvals
+            state: live
+            summary: "Exact expiring one-time approval resolution for server-held Governance change requests."
+            locality: local
+            approval_state: needed
+            read_only: false
+            ui_surfaces:
+              - right_drawer
+              - governance_room
+            supporting_endpoint: /approval/resolve
+            notes:
+              - "Approval does not execute a change and grants no broader authority."
+
+          - capability_key: request_summary
+            display_name: Request summary
+            group: requests
+            state: planned
+            summary: "Future request-summary inspection surface."
+            locality: local
+            approval_state: not_needed
+            read_only: true
+            ui_surfaces:
+              - right_drawer
+            supporting_endpoint: /requests/{id}/summary
+            notes:
+              - "Not implemented; no current summary route exists."
+
+    degraded_catalog_snapshot:
+      envelope_status: ok
+      result_type: capability_manifest
+      capability_state: degraded
+      locality: local
+      approval_state: not_needed
+      data:
+        capability_catalog_state: degraded
+        capability_count: 5
+        last_updated_utc: "2026-03-23T09:05:00Z"
+        capability_groups:
+          - core_chat
+          - status_surfaces
+        capabilities:
+          - capability_key: chat_send
+            display_name: Chat send
+            group: core_chat
+            state: degraded
+            summary: "Chat path is available, but fallback or reduced-quality behavior is active."
+            locality: local
+            approval_state: not_needed
+            read_only: false
+            ui_surfaces:
+              - conversations_room
+              - quick_invoke
+            supporting_endpoint: /chat/send
+            notes:
+              - "Allowed fallback path is currently in use."
+
+          - capability_key: status_runtime
+            display_name: Runtime status
+            group: status_surfaces
+            state: live
+            summary: "Runtime truth surface remains available."
+            locality: local
+            approval_state: not_needed
+            read_only: true
+            ui_surfaces:
+              - bottom_status_bar
+            supporting_endpoint: /status/runtime
+            notes: []
+
+    unavailable_capability_catalog:
+      envelope_status: unavailable
+      result_type: capability_manifest
+      capability_state: unavailable
+      locality: unknown
+      approval_state: unknown
+      data:
+        capability_catalog_state: unavailable
+        capability_count: 0
+        last_updated_utc: "2026-03-23T09:10:00Z"
+        capability_groups: []
+        capabilities: []

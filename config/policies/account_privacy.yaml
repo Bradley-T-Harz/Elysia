@@ -1,0 +1,113 @@
+version: 1
+account_privacy_version: "0.1"
+policy_key: sealed_local_identity_account_privacy
+
+purpose:
+  summary: "Define the sealed local account/profile privacy wall before account services or UI gates are made live."
+  this_file_is:
+    - "A privacy contract for the future local identity/account store."
+    - "A declaration of what Elysia may see through a tiny profile projection."
+    - "A guard against profile data entering normal Memory, request traces, tools, workers, or logs."
+  this_file_is_not:
+    - "Not a live account service."
+    - "Not a memory policy."
+    - "Not permission for tools, workers, cloud services, or normal runtime context to read private profile data."
+
+identity_store:
+  location: data/identity
+  gitignored: true
+  local_only: true
+  trust_zone: sealed_local_identity
+  normal_memory_store: false
+
+elysia_visible_fields:
+  - name_or_username
+  - interests
+  - bio
+  - profile_photo_asset_id
+  - profile_photo_available
+
+sealed_fields:
+  - password
+  - password_hash
+  - birthdate
+  - emails
+  - phone_number
+  - social_media
+  - github
+  - city_state
+  - session_token
+  - session_token_hash
+  - original_profile_photo_path
+
+profile_projection:
+  allowed_for_runtime_context: true
+  allowed_for_tools: false
+  allowed_for_workers: false
+  allowed_for_memory_import: false
+  may_be_used_as_current_context_only: true
+  may_be_persisted_to_memory_by_default: false
+  projected_fields:
+    name_or_username: "Username/name only; no email, phone, city, social handles, or GitHub."
+    interests: "User-authored interests; warn users not to place secrets here."
+    bio: "User-authored bio; warn users not to place secrets here."
+    profile_photo_asset_id: "Internal asset reference only, never original filesystem path."
+    profile_photo_available: "Boolean availability flag."
+
+runtime_access:
+  private_profile_allowed: false
+  visible_projection_allowed: true
+
+tools_access:
+  private_profile_allowed: false
+  visible_projection_allowed: false
+
+workers_access:
+  private_profile_allowed: false
+  visible_projection_allowed: false
+
+memory_import:
+  private_profile_allowed: false
+  visible_projection_allowed: false
+  visible_projection_may_be_used_as_context: true
+  automatic_memory_promotion_allowed: false
+
+logging:
+  private_profile_values_allowed: false
+  session_values_allowed: false
+  original_photo_paths_allowed: false
+
+request_trace:
+  private_profile_values_allowed: false
+  session_values_allowed: false
+  original_photo_paths_allowed: false
+  visible_projection_values_allowed_by_default: false
+  visible_projection_summary_allowed: true
+
+profile_photo:
+  allowed_extensions:
+    - jpg
+    - jpeg
+    - png
+    - webp
+  pdf_as_profile_photo_allowed: false
+  max_image_bytes: 10485760
+  store_original_path: false
+  expose_original_path_to_runtime: false
+  expose_original_path_to_logs: false
+  expose_original_path_to_request_trace: false
+
+passwords:
+  plaintext_storage_allowed: false
+  required_hashing_algorithm: Argon2id
+  preferred_python_library: "pwdlib[argon2]"
+
+session:
+  persistent_local_session_allowed: true
+  logout_must_revoke_session: true
+  session_token_visible_to_runtime: false
+  session_token_visible_to_tools: false
+  session_token_visible_to_workers: false
+
+prudence_note:
+  text: "Elysia may see only username/name, interests, Story (stored internally as bio), and identity photo reference. Do not put secrets or sensitive details in those visible fields unless you truly want them used as context."

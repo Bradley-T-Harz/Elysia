@@ -1,0 +1,79 @@
+contract_id: coding-document-types-policy
+contract_version: coding-documents-0.1
+local_only: true
+cloud_upload_allowed: false
+macro_execution_allowed: false
+formula_execution_allowed: false
+embedded_content_execution_allowed: false
+store_full_extracted_text_in_audit: false
+
+supported_formats:
+  - extension: .pdf
+    adapter: pdf
+    extraction: true
+    export: true
+    stable_edit: false
+    notes:
+      - PDF inline editing is refused because fidelity is unreliable.
+  - extension: .docx
+    adapter: docx
+    extraction: true
+    export: true
+    stable_edit: true
+    stable_operations:
+      - append_paragraph
+      - replace_paragraph
+  - extension: .xlsx
+    adapter: xlsx
+    extraction: true
+    export: true
+    stable_edit: true
+    stable_operations:
+      - set_cell
+      - append_row
+      - create_sheet
+      - rename_sheet
+  - extension: .pptx
+    adapter: pptx
+    extraction: true
+    export: true
+    stable_edit: true
+    stable_operations:
+      - replace_text
+      - append_slide
+  - extension: .odt
+    adapter: odf
+    extraction: true
+    export: true
+    stable_edit: false
+  - extension: .ods
+    adapter: odf
+    extraction: true
+    export: true
+    stable_edit: false
+  - extension: .odp
+    adapter: odf
+    extraction: true
+    export: true
+    stable_edit: false
+
+blocked_formats:
+  macro_enabled:
+    - .docm
+    - .xlsm
+    - .pptm
+    - .dotm
+    - .xltm
+    - .potm
+  legacy:
+    - .doc
+    - .xls
+    - .ppt
+
+limits:
+  max_document_bytes: 26214400
+  max_container_entries: 4000
+  max_uncompressed_bytes: 157286400
+  max_extracted_preview_chars: 12000
+  max_table_previews: 8
+  max_table_rows: 20

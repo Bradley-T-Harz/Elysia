@@ -1,0 +1,632 @@
+version: 1
+contract_version: elysia-dependency-catalog-1.0
+status: declarative_only_installs_nothing
+
+dependency_groups:
+  core_python_runtime:
+    dependencies:
+      - fastapi
+      - uvicorn
+      - pydantic
+      - pyyaml
+      - pwdlib_argon2
+      - cryptography
+      - zstandard
+      - pillow
+      - numpy
+      - defusedxml
+      - cairosvg
+      - imageio
+      - pytesseract_python
+  core_desktop_runtime:
+    dependencies:
+      - elysia_tauri_desktop
+      - ollama_local_provider
+  workstation_python_adapters:
+    dependencies:
+      - pypdf
+      - pdfplumber
+      - pymupdf
+      - python_docx
+      - openpyxl
+      - python_pptx
+      - odfpy
+      - lxml
+      - pandas
+      - pyarrow
+      - geopandas
+      - rasterio
+      - xarray
+      - netcdf4
+      - h5netcdf
+      - h5py
+      - zarr
+      - shapely
+      - pyogrio
+      - fiona
+      - piexif
+      - exifread
+      - opencv_python
+      - python_magic
+  workstation_system_tools:
+    dependencies:
+      - ffmpeg
+      - tesseract
+  creator_python_runtime:
+    dependencies:
+      - torch
+      - diffusers
+      - safetensors
+      - kokoro_onnx
+  creator_model_assets:
+    dependencies:
+      - speechforge_model_assets
+      - imageforge_model_assets
+      - videoforge_model_assets
+  creator_optional_local_sandbox:
+    dependencies:
+      - bubblewrap
+      - rootless_container_engine
+  developer_runtime:
+    dependencies:
+      - vscode
+      - git
+      - codev_vsix
+  developer_python_test:
+    dependencies:
+      - pytest
+      - httpx
+  developer_optional_build_tools:
+    dependencies:
+      - nodejs_npm
+      - rust_cargo
+  semantic_local_runtime:
+    dependencies:
+      - qdrant_loopback_service
+      - qwen3_embedding_0_6b
+      - semantic_container_engine
+  research_local_runtime:
+    dependencies:
+      - searxng_loopback_service
+  neurofabric_cpu_runtime:
+    dependencies:
+      - neurofabric_torch_cpu
+      - neurofabric_ncps_cpu
+  neurofabric_cuda_runtime:
+    dependencies:
+      - neurofabric_torch_cuda
+      - neurofabric_ncps_cuda
+
+dependencies:
+  neurofabric_torch_cpu:
+    package_name: torch==2.13.0+cpu
+    profile: neurofabric_cpu
+    purpose: Official CPU PyTorch variant for the isolated Neurofabric fallback runtime.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: neurofabric_cpu_runtime
+    license_provenance_note: Apache-2.0-family official PyTorch wheel; exact index and runtime lock are tracked separately.
+  neurofabric_torch_cuda:
+    package_name: torch==2.13.0+cu130
+    profile: neurofabric_cuda
+    purpose: Official CUDA 13.0 PyTorch variant for the isolated, doctor-proven Neurofabric MEGA runtime.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: neurofabric_cuda_runtime
+    license_provenance_note: Apache-2.0-family official PyTorch CUDA wheel; never bundled into Core and never forced onto unsupported machines.
+  neurofabric_ncps_cpu:
+    package_name: ncps==1.0.1
+    profile: neurofabric_cpu
+    purpose: Preserved CfC/LTC reference dependency in Neurofabric; not promoted as cognition authority in Part 2D.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: neurofabric_cpu_runtime
+    license_provenance_note: Apache-2.0; production controller promotion remains outside this deterministic Part 2D authority path.
+  neurofabric_ncps_cuda:
+    package_name: ncps==1.0.1
+    profile: neurofabric_cuda
+    purpose: Preserved CfC/LTC reference dependency in CUDA Neurofabric; not promoted as cognition authority in Part 2D.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: neurofabric_cuda_runtime
+    license_provenance_note: Apache-2.0; production controller promotion remains outside this deterministic Part 2D authority path.
+  qdrant_loopback_service:
+    package_name: qdrant-1.19.0-unprivileged
+    profile: semantic_local
+    purpose: Rebuildable normal-memory vector projection through an authenticated REST-only 127.0.0.1 service.
+    required: true
+    kind: application
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: qdrant_loopback_authenticated
+    pinned_image: docker.io/qdrant/qdrant@sha256:a0e04fe623cb064502cd869cefc1dc7ce359d8edd481063b5bd351c0a0a2c91e
+    license_provenance_note: Official unprivileged image; explicit profile install only. Qdrant is derived and never canonical Memory.
+  searxng_loopback_service:
+    package_name: searxng-rootless-loopback
+    profile: workstation
+    purpose: Digest-pinned rootless loopback service for governed public-web research.
+    required: true
+    kind: tool
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: searxng_reachability
+    license_provenance_note: Exact OCI digest, AGPL-3.0-or-later notice, loopback confinement, and public-query boundary were resolved in Pass 10D III.
+  qwen3_embedding_0_6b:
+    package_name: qwen3-embedding:0.6b
+    profile: semantic_local
+    purpose: Local 1024-dimensional semantic embeddings through the existing loopback Ollama provider.
+    required: true
+    kind: model
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: qwen3_embedding_model_and_dimension
+    model_digest: sha256-06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439
+    license_provenance_note: Explicit local model acquisition; no cloud inference or silent download.
+  semantic_container_engine:
+    package_name: rootless-podman-or-bounded-docker
+    profile: semantic_local
+    purpose: Elysia-owned lifecycle for the unprivileged read-only Qdrant container without wildcard ports or auto-start.
+    required: true
+    kind: system
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: qdrant_container_confinement
+    license_provenance_note: Podman is preferred; Docker must use the pinned unprivileged image with all capabilities dropped and no-new-privileges.
+  fastapi:
+    package_name: fastapi
+    profile: core
+    purpose: Local structured API bridge.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: fastapi
+    license_provenance_note: Exact PyPI version, license metadata, artifact hashes, profile relationship, and SBOM disposition were resolved in Pass 10D III; not vendored here.
+  uvicorn:
+    package_name: uvicorn
+    profile: core
+    purpose: Loopback ASGI server for the local API.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: uvicorn
+    license_provenance_note: Exact PyPI version, license metadata, artifact hashes, profile relationship, and SBOM disposition were resolved in Pass 10D III; not vendored here.
+  pydantic:
+    package_name: pydantic
+    profile: core
+    purpose: API and runtime contract validation.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: pydantic
+    license_provenance_note: Exact PyPI version, license metadata, artifact hashes, profile relationship, and SBOM disposition were resolved in Pass 10D III; not vendored here.
+  pyyaml:
+    package_name: PyYAML
+    profile: core
+    purpose: Declarative configuration loading.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: yaml
+    license_provenance_note: Exact PyPI version, license metadata, artifact hashes, profile relationship, and SBOM disposition were resolved in Pass 10D III; not vendored here.
+  pwdlib_argon2:
+    package_name: pwdlib[argon2]
+    profile: core
+    purpose: Local identity password hashing.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: pwdlib
+    license_provenance_note: Exact pwdlib and Argon2 backend versions, licenses, hashes, profile relationship, and SBOM disposition were resolved in Pass 10D III.
+  cryptography:
+    package_name: cryptography>=46,<49
+    profile: core
+    purpose: Audited AEAD encryption and key wrapping for private and sealed canonical memory.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: cryptography
+    license_provenance_note: Exact wheel hashes and the dual Apache-2.0/BSD licensing disposition were resolved in the Pass 10D III Python profile evidence.
+  zstandard:
+    package_name: zstandard>=0.25,<0.26
+    profile: core
+    purpose: Benchmark-promoted Zstandard compression for packed cold Memory and portable Memory Archives.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: zstandard
+    license_provenance_note: Exact BSD-licensed wheel metadata and hashes were resolved in the Pass 10D III Python profile evidence.
+  pillow:
+    package_name: Pillow
+    profile: core
+    purpose: Import-time and bounded visual adapter support.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: PIL
+    license_provenance_note: Exact PyPI version, license metadata, artifact hashes, profile relationship, and SBOM disposition were resolved in Pass 10D III.
+  numpy:
+    package_name: numpy>=1.26,<2.0
+    profile: core
+    purpose: Import-time bounded image/data helper support.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: numpy
+    license_provenance_note: Version range preserves current runtime compatibility; verify locked artifact provenance.
+  defusedxml:
+    package_name: defusedxml
+    profile: core
+    purpose: Safer XML handling for bounded document/visual paths.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: defusedxml
+    license_provenance_note: Exact PyPI version, license metadata, artifact hashes, profile relationship, and SBOM disposition were resolved in Pass 10D III.
+  cairosvg:
+    package_name: cairosvg
+    profile: core
+    purpose: Existing bounded SVG preview/export import-time support.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: cairosvg
+    license_provenance_note: Python CairoSVG/Cairo dependency licensing was resolved for the profile; native libraries remain externally supplied by the target operating system and are not bundled by Core.
+  imageio:
+    package_name: imageio
+    profile: core
+    purpose: Existing bounded visual/media helper import-time support.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: imageio
+    license_provenance_note: Exact imageio distribution and installed plugin licensing were resolved in the Pass 10D III profile matrix; optional codec tools remain externally supplied.
+  pytesseract_python:
+    package_name: pytesseract
+    profile: core
+    purpose: Current API imports the OCR wrapper; the Tesseract engine remains optional Workstation tooling.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: pytesseract
+    license_provenance_note: Wrapper presence does not bundle or prove the Tesseract system engine.
+  elysia_tauri_desktop:
+    package_name: elysia-desktop-bundle
+    profile: core
+    purpose: Native Desktop chamber artifact built from the canonical source.
+    required: true
+    kind: application
+    external_download_required: false
+    allowed_in_core: true
+    doctor_check: desktop_api_contract_compatibility
+    license_provenance_note: First-party Apache-2.0 target; third-party bundle notices remain required.
+  ollama_local_provider:
+    package_name: ollama
+    profile: core
+    purpose: Optional local model provider for conversational inference.
+    required: false
+    kind: tool
+    external_download_required: true
+    allowed_in_core: true
+    command_check: [ollama, --version]
+    license_provenance_note: Not bundled by Core in Pass 1; verify provider and model licenses separately.
+
+  pypdf: &workstation_python
+    package_name: pypdf
+    profile: workstation
+    purpose: Common document/data/visual adapter support; exact purpose is package-specific in release notes.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: false
+    import_check: pypdf
+    license_provenance_note: Exact PyPI version, license metadata, artifact hashes, profile relationship, and SBOM disposition were resolved in Pass 10D III.
+  pdfplumber:
+    <<: *workstation_python
+    package_name: pdfplumber
+    import_check: pdfplumber
+  pymupdf:
+    <<: *workstation_python
+    package_name: pymupdf
+    import_check: fitz
+  python_docx:
+    <<: *workstation_python
+    package_name: python-docx
+    import_check: docx
+  openpyxl:
+    <<: *workstation_python
+    package_name: openpyxl
+    import_check: openpyxl
+  python_pptx:
+    <<: *workstation_python
+    package_name: python-pptx
+    import_check: pptx
+  odfpy:
+    <<: *workstation_python
+    package_name: odfpy
+    import_check: odf
+  lxml:
+    <<: *workstation_python
+    package_name: lxml
+    import_check: lxml
+  pandas:
+    <<: *workstation_python
+    package_name: pandas
+    import_check: pandas
+  pyarrow:
+    <<: *workstation_python
+    package_name: pyarrow
+    import_check: pyarrow
+  geopandas:
+    <<: *workstation_python
+    package_name: geopandas
+    import_check: geopandas
+  rasterio:
+    <<: *workstation_python
+    package_name: rasterio
+    import_check: rasterio
+  xarray:
+    <<: *workstation_python
+    package_name: xarray
+    import_check: xarray
+  netcdf4:
+    <<: *workstation_python
+    package_name: netcdf4
+    import_check: netCDF4
+  h5netcdf:
+    <<: *workstation_python
+    package_name: h5netcdf
+    import_check: h5netcdf
+  h5py:
+    <<: *workstation_python
+    package_name: h5py
+    import_check: h5py
+  zarr:
+    <<: *workstation_python
+    package_name: zarr
+    import_check: zarr
+  shapely:
+    <<: *workstation_python
+    package_name: shapely
+    import_check: shapely
+  pyogrio:
+    <<: *workstation_python
+    package_name: pyogrio
+    import_check: pyogrio
+  fiona:
+    <<: *workstation_python
+    package_name: fiona
+    import_check: fiona
+  piexif:
+    <<: *workstation_python
+    package_name: piexif
+    import_check: piexif
+  exifread:
+    <<: *workstation_python
+    package_name: exifread
+    import_check: exifread
+  opencv_python:
+    <<: *workstation_python
+    package_name: opencv-python
+    import_check: cv2
+  python_magic:
+    <<: *workstation_python
+    package_name: python-magic
+    import_check: magic
+
+  ffmpeg:
+    package_name: ffmpeg
+    profile: workstation
+    purpose: Fixed-argument FFmpeg/FFprobe metadata, thumbnails, and speech preprocessing.
+    required: true
+    kind: system
+    external_download_required: true
+    allowed_in_core: false
+    command_check: [ffmpeg, -version]
+    companion_command_check: [ffprobe, -version]
+    license_provenance_note: Distribution/build licensing varies; do not silently redistribute a binary.
+  tesseract:
+    package_name: tesseract-ocr
+    profile: workstation
+    purpose: Optional local OCR engine.
+    required: false
+    kind: system
+    external_download_required: true
+    allowed_in_core: false
+    command_check: [tesseract, --version]
+    license_provenance_note: Apache-2.0 Tesseract is an externally supplied Workstation tool; separately acquired language data retains its own upstream terms and is never silently bundled.
+
+  torch: &creator_python
+    package_name: torch
+    profile: creator
+    purpose: Local Creator/Lab model runtime.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: false
+    import_check: torch
+    license_provenance_note: Platform/CUDA wheels, redistribution, and locked versions require clean-install review.
+  diffusers:
+    <<: *creator_python
+    package_name: diffusers
+    import_check: diffusers
+  safetensors:
+    <<: *creator_python
+    package_name: safetensors
+    import_check: safetensors
+  kokoro_onnx:
+    <<: *creator_python
+    package_name: kokoro-onnx
+    import_check: kokoro_onnx
+
+  speechforge_model_assets: &creator_assets
+    package_name: speechforge-local-assets
+    profile: creator
+    purpose: User-selected local model assets with checksums and provenance.
+    required: false
+    kind: model
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: speechforge_model_manifest
+    license_provenance_note: No asset is bundled or production-approved by this catalog.
+  imageforge_model_assets:
+    <<: *creator_assets
+    package_name: imageforge-local-assets
+    doctor_check: imageforge_model_manifest
+  videoforge_model_assets:
+    <<: *creator_assets
+    package_name: videoforge-local-assets
+    doctor_check: videoforge_model_manifest
+
+  bubblewrap:
+    package_name: bubblewrap
+    profile: creator
+    purpose: Optional local namespace confinement where the host permits it.
+    required: false
+    kind: system
+    external_download_required: true
+    allowed_in_core: false
+    command_check: [bwrap, --version]
+    license_provenance_note: Availability does not prove the required user namespaces; doctor must run a safe self-test.
+  rootless_container_engine:
+    package_name: rootless-podman-or-docker
+    profile: creator
+    purpose: Future optional local sandbox mechanism without a host Docker socket.
+    required: false
+    kind: system
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: rootless_container_without_host_socket
+    license_provenance_note: Optional future mechanism; no engine is installed or selected by Pass 1.
+
+  vscode:
+    package_name: vscode-compatible-editor
+    profile: developer
+    purpose: Host for the official Codev extension.
+    required: true
+    kind: application
+    external_download_required: true
+    allowed_in_core: false
+    doctor_check: vscode_engine_compatibility
+    license_provenance_note: User supplies a compatible editor; redistribution terms require separate review.
+  git:
+    package_name: git
+    profile: developer
+    purpose: Specifically governed read-only status and exact check lanes.
+    required: true
+    kind: system
+    external_download_required: true
+    allowed_in_core: false
+    command_check: [git, --version]
+    license_provenance_note: Presence grants no Git mutation authority.
+  codev_vsix:
+    package_name: elysia-codev-vsix
+    profile: developer
+    purpose: First-party official Developer profile extension.
+    required: true
+    kind: application
+    external_download_required: false
+    allowed_in_core: false
+    doctor_check: codev_api_contract_compatibility
+    license_provenance_note: First-party Apache-2.0 target; inspect the packaged VSIX contents.
+  pytest:
+    package_name: pytest
+    profile: developer
+    purpose: Backend contract and regression tests.
+    required: false
+    kind: python
+    external_download_required: true
+    allowed_in_core: false
+    import_check: pytest
+    license_provenance_note: Development/test dependency only.
+  httpx:
+    package_name: httpx
+    profile: developer
+    purpose: Direct API/ASGI transport tests.
+    required: false
+    kind: python
+    external_download_required: true
+    allowed_in_core: false
+    import_check: httpx
+    license_provenance_note: Development/test dependency only.
+  nodejs_npm:
+    package_name: nodejs-and-npm
+    profile: developer
+    purpose: Desktop and Codev source build tooling.
+    required: false
+    kind: node_rust
+    external_download_required: true
+    allowed_in_core: false
+    command_check: [node, --version]
+    companion_command_check: [npm, --version]
+    license_provenance_note: Build-time tooling; end-user package must not require an arbitrary NVM layout.
+  rust_cargo:
+    package_name: rust-and-cargo
+    profile: developer
+    purpose: Tauri source build tooling.
+    required: false
+    kind: node_rust
+    external_download_required: true
+    allowed_in_core: false
+    command_check: [cargo, --version]
+    license_provenance_note: Build-time tooling; verify the supported toolchain from lock/config metadata.
+
+planned_not_wired_dependencies:
+  mediainfo:
+    reason: No current adapter or doctor contract; do not advertise as functional yet.
+  espeak_ng:
+    reason: No current Elysia TTS adapter or receipt contract; do not advertise as functional yet.
+
+evaluated_cognition_dependencies:
+  psutil:
+    classification: optional_source_runtime_telemetry_enhancement
+    decision: not_promoted_or_bundled_in_packaged_core
+    reason: Linux procfs and stdlib provide bounded CPU/RAM/process fallback truth without a new Core dependency; source environments may use psutil when already present.
+  nvidia_management:
+    classification: existing_driver_tool_telemetry_path
+    decision: use_bounded_nvidia_smi_queries_without_python_binding_promotion
+    reason: NVIDIA documents NVML as the authority beneath nvidia-smi; Part 2D needs only bounded content-free snapshots and preserves CPU fallback when the driver tool is absent.
+  qdrant_client:
+    classification: specialized_neurofabric_server_benchmark_client_only
+    decision: not_core_required
+    reason: Core uses a standard-library authenticated REST client. qdrant-client remains only in the specialized benchmark environment; the promoted server is an optional local profile.
+  qwen3_embedding_0_6b:
+    classification: promoted_optional_local_semantic_model
+    decision: required_for_semantic_local_profile_not_core
+    reason: A 28.14% relative semantic-task MRR gain and acceptable warm CPU/GPU latency earned production use without making the model a Core or cloud dependency.
+  zstandard:
+    classification: promoted_part2e_core_cold_storage_compression
+    decision: required_core_runtime
+    reason: Part 2E synthetic 10k/100k/1M qualification showed materially faster packed-store writes and rehydration with equal 1M disk under the production compress-only-when-useful policy; canonical SQLite remains authoritative.
+  duckdb:
+    classification: existing_optional_workstation_database_adapter
+    decision: not_memory_authority
+    reason: DatabaseForge may inspect selected DuckDB files under its existing contract; DuckDB is not cognition or canonical Memory.
+  torch:
+    classification: promoted_optional_isolated_neurofabric_runtime
+    decision: exact_cpu_and_cuda_variants_profile_gated_not_core
+    reason: Part 2D proved official PyTorch CPU and CUDA 13.0 builds in the isolated Neurofabric environment; deterministic governance and canonical Memory remain outside Torch.
+  ncps:
+    classification: installed_neurofabric_reference_dependency
+    decision: preserved_not_promoted_as_cognition_authority
+    reason: NCPS 1.0.1 remains reproducible in both Neurofabric profiles, while Elysia-specific controller promotion lacks representative labels, calibration, and rollback evidence.

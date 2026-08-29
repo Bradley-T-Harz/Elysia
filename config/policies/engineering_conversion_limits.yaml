@@ -1,0 +1,14 @@
+version: engineering-conversion-limits-0.1
+state: plan_only
+limits:
+  max_input_bytes: 268435456
+  max_output_bytes: 536870912
+  timeout_seconds: 60
+posture:
+  exact_approval_required_for_future_apply: true
+  neutral_derivatives_only: true
+  overwrite_source_allowed: false
+  project_root_write_allowed: false
+  cloud_translation_allowed: false
+  macros_or_scripts_allowed: false
+  current_apply_routes_live: false

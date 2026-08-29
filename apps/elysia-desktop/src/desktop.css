@@ -1,0 +1,261 @@
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: #0b0e12;
+}
+
+/*
+ * Identity setup is rendered before the chamber shell. The document itself is
+ * intentionally locked to the desktop window, so this region must own its
+ * vertical scroll rather than relying on body scrolling. Keep both vh and dvh:
+ * older WebViews get the former and current WebViews account for dynamic UI.
+ */
+.elysia-account-setup-scroll {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.elysia-account-setup-form {
+  box-sizing: border-box;
+  min-width: 0;
+  padding-top: 2rem;
+  padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+}
+
+@media (max-height: 760px) {
+  .elysia-account-setup-form {
+    padding-top: 1rem;
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  }
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid rgba(126, 215, 209, 0.82);
+  outline-offset: 2px;
+}
+
+.elysia-workspace-viewport {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+.elysia-workspace-viewport > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Working rooms can grow beyond the native window at every supported desktop
+ * width. Part 2E's Memory stewardship controls exposed a long-standing gap:
+ * vertical scrolling was enabled only by the narrow-window media query, which
+ * clipped lower controls at the standard 1440px qualification size. */
+.elysia-room-scroll-at-narrow {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding-right: 0.12rem;
+}
+
+.elysia-app-shell.elysia-density-compact .elysia-top-bar {
+  padding-inline: 0.68rem !important;
+}
+
+.elysia-app-shell.elysia-density-compact .elysia-shell-main {
+  gap: 0.58rem !important;
+  padding: 0.58rem !important;
+}
+
+.elysia-app-shell.elysia-density-compact .elysia-workspace-surface {
+  padding: 0.66rem !important;
+  border-radius: 20px !important;
+}
+
+.elysia-app-shell.elysia-density-compact .elysia-left-rail {
+  gap: 0.56rem !important;
+  padding: 0.58rem !important;
+}
+
+.elysia-app-shell.elysia-density-compact .elysia-left-rail nav > button,
+.elysia-app-shell.elysia-density-compact
+  .elysia-left-rail
+  [role="group"]
+  > button {
+  padding-block: 0.5rem !important;
+}
+
+.elysia-app-shell.elysia-density-compact .elysia-right-drawer {
+  gap: 0.62rem !important;
+  padding: 0.68rem !important;
+}
+
+.elysia-app-shell.elysia-motion-reduced *,
+.elysia-app-shell.elysia-motion-reduced *::before,
+.elysia-app-shell.elysia-motion-reduced *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .elysia-app-shell *,
+  .elysia-app-shell *::before,
+  .elysia-app-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.elysia-preview-clamp {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.elysia-composer-file-tools[open] {
+  grid-column: 1 / -1 !important;
+}
+
+@container (max-width: 470px) {
+  .elysia-composer-file-tools,
+  .elysia-composer-footer {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+@media (max-width: 1450px) {
+  .elysia-summary-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .elysia-toolbar-grid-4 {
+    grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(150px, 180px)) !important;
+  }
+
+  .elysia-toolbar-grid-2 {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  .elysia-toolbar-grid-4 > :last-child {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 1180px) {
+  .elysia-shell-main {
+    gap: 0.65rem !important;
+    padding: 0.65rem !important;
+  }
+
+  .elysia-workspace-surface {
+    padding: 0.72rem !important;
+    border-radius: 20px !important;
+  }
+
+  .elysia-room-scroll-at-narrow {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-gutter: stable;
+    padding-right: 0.12rem;
+  }
+
+  .elysia-room-scroll-at-narrow h1 {
+    font-size: 1.65rem !important;
+  }
+
+  .elysia-responsive-split,
+  .elysia-toolbar-grid-2,
+  .elysia-toolbar-grid-4 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .elysia-responsive-split {
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .elysia-stacked-pane {
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .elysia-profile-header {
+    grid-template-columns: minmax(7rem, 8.5rem) minmax(0, 1fr) !important;
+    align-items: start !important;
+  }
+
+  .elysia-profile-avatar {
+    width: 100% !important;
+    max-width: 8.5rem;
+    height: 10.5rem !important;
+  }
+
+  .elysia-profile-actions {
+    grid-column: 1 / -1;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+  }
+
+  .elysia-profile-actions > button {
+    flex: 1 1 9rem;
+  }
+
+  .elysia-summary-grid-3 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .elysia-summary-grid-2,
+  .elysia-summary-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .elysia-toolbar-grid-4 > :last-child {
+    grid-column: auto;
+  }
+}
+
+@media (max-height: 760px) {
+  .elysia-left-rail,
+  .elysia-right-drawer {
+    border-radius: 16px !important;
+  }
+}

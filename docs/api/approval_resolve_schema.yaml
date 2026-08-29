@@ -1,0 +1,109 @@
+approval_resolve_schema:
+  name: approval_resolve_schema
+  route: /approval/resolve
+  method: POST
+  contract_version: governance-mutation-contract-1.0
+  purpose: >
+    Resolve a real pending exact Governance mutation approval request. Pass 3 does
+    not treat this as generic UI authority and does not execute the planned change.
+  envelope_reference: standard_response_envelope
+  locality: local
+
+  governing_rules:
+    - request_id must refer to a server-held pending approval request.
+    - Unknown, expired, denied, cancelled, or already resolved requests fail closed.
+    - Approval does not apply or restore a change.
+    - An approved response issues one exact, expiring, one-time token.
+    - The token is bound to the server-held action, subject ID, and subject hash.
+    - Tokens must remain in process memory only; never log, persist, diagnose, or display them after handoff.
+    - Resolver identity, free-text reason, and resolution context grant no authority.
+    - The Pass 3 service does not echo or audit resolver identity or free-text reason.
+
+  request_body:
+    required:
+      request_id:
+        type: string
+      decision:
+        type: string
+        allowed:
+          - approved
+          - denied
+          - cancelled
+    optional:
+      resolver_identity:
+        type: string
+        authority: none
+      reason:
+        type: string
+        authority: none
+      ui_surface:
+        type: string
+        authority: none
+      resolution_context:
+        type: mapping
+        authority: none
+
+  response_data:
+    wrapper_key: approval_resolution
+    fields:
+      request_id:
+        type: string
+      resolution_status:
+        type: string
+        allowed:
+          - accepted
+          - rejected
+          - ignored
+          - error
+      decision:
+        type: string
+      resolved_at_utc:
+        type: string
+        format: ISO-8601 UTC
+      request_state:
+        type: string
+        allowed:
+          - pending
+          - approved
+          - denied
+          - cancelled
+          - expired
+          - unknown
+      approval_required:
+        type: boolean
+        current: true
+      can_proceed:
+        type: boolean
+      next_action:
+        type: string
+      notes:
+        type: list
+      approval_id:
+        type: string
+        returned_when: accepted approved decision
+      approval_token:
+        type: string
+        returned_when: accepted approved decision
+        secret_handling: one-time in-memory handoff; excluded from receipts and diagnostics
+      expires_at_utc:
+        type: string
+        returned_when: accepted approved decision
+
+  outcome_rules:
+    approved: >
+      Creates a one-time token that may authorize only the exact server-held apply or restore request.
+    denied: No token is created and the exact request cannot proceed.
+    cancelled: No token is created and the exact request cannot proceed.
+    expired: A fresh change plan and approval request are required.
+    repeated_resolution: No second token is issued.
+
+  current_scope:
+    live:
+      - Governance change apply approvals
+      - Governance change restore approvals
+    not_claimed:
+      - generic autonomy approval
+      - outbound or cloud approval
+      - hardware approval
+      - worker or shell approval
+      - add-on execution approval

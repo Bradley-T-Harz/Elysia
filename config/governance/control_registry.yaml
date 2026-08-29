@@ -1,0 +1,170 @@
+version: 1
+contract_version: governance-mutation-contract-1.0
+
+# Pass 3 intentionally promotes no production control to safe-live-editable.
+# Rules are evaluated in order. Unknown controls fail closed under default_rule.
+default_rule:
+  classification: read-only-constitutional
+  risk: critical
+  reason: Unknown governance controls fail closed and cannot be planned or applied.
+  later_gate: A reviewed registry entry, authoritative adapter, approval flow, recovery path, and focused tests are required.
+
+rules:
+  - rule_id: bridge_locality_floor
+    exact:
+      - bridge_local_only_default
+      - bridge_loopback_hosts
+    classification: read-only-constitutional
+    risk: critical
+    reason: The local bridge boundary is constitutional law, not a casual runtime preference.
+
+  - rule_id: bridge_route_inventory
+    exact:
+      - bridge_registered_route_modules
+    classification: read-only-constitutional
+    risk: high
+    reason: Registered routes are derived runtime truth and cannot be edited through Governance.
+
+  - rule_id: model_role_summary
+    exact:
+      - model_role_runtime_status
+      - model_role_default_role
+      - model_role_defined_role_count
+      - routing_mode
+      - routing_default_preferred_role
+    prefix:
+      - role_
+    classification: plan-only
+    risk: high
+    reason: Model-role and routing changes require a governed model contract, provider proof, and rollback validation before promotion.
+    later_gate: Pass 5 profile resolution and a reviewed model-routing mutation adapter.
+
+  - rule_id: external_helpers
+    prefix:
+      - external_helper_
+    classification: profile-gated-later
+    risk: critical
+    reason: External helpers may cross the local boundary and require an explicit profile, provider contract, approval, and audit receipt.
+    later_gate: An optional external-provider profile with network and data-boundary proof.
+
+  - rule_id: routing_constitution
+    exact:
+      - model_role_routing_principle_local_first
+      - model_role_routing_principle_explicit_role_selection
+      - model_role_routing_principle_specialist_models_require_explicit_enablement
+      - model_role_routing_principle_reasoning_before_action
+      - model_role_routing_principle_trust_first_core_over_experimental_capability
+      - model_role_routing_principle_private_identity_must_remain_local
+      - routing_sensitive_work_local_only
+    classification: read-only-constitutional
+    risk: critical
+    reason: These controls define the immutable privacy and trust floor for Core.
+
+  - rule_id: explicit_cloud_approval_law
+    exact:
+      - model_role_routing_principle_cloud_consultation_requires_explicit_approval
+    classification: read-only-constitutional
+    risk: critical
+    reason: Cloud consultation must remain explicit and approval-bound wherever a future profile permits it.
+
+  - rule_id: silent_cloud_fallback_floor
+    exact:
+      - model_role_routing_principle_no_silent_cloud_fallback
+      - routing_silent_cloud_fallback
+    classification: hard-prohibited-by-default
+    risk: critical
+    reason: Silent cloud fallback is prohibited by the Elysia safety floor and cannot be enabled through Governance.
+
+  - rule_id: privacy_locality_floor
+    exact:
+      - model_role_privacy_default_default_outbound_model_use_forbidden
+      - model_role_privacy_default_default_external_memory_sync_forbidden
+      - model_role_privacy_default_default_sensitive_project_routing_local_only
+    classification: read-only-constitutional
+    risk: critical
+    reason: Outbound model use, external memory sync, and sensitive routing remain locally protective defaults.
+
+  - rule_id: provider_preference_truth
+    exact:
+      - model_role_privacy_default_preferred_runtime
+      - model_role_privacy_default_preferred_interface
+      - model_role_privacy_default_model_downloads_should_prefer_open_local_sources
+    classification: plan-only
+    risk: moderate
+    reason: Provider and source preferences need profile-aware validation and cannot be changed by frontend state alone.
+    later_gate: Pass 5 profile resolution and provider doctor checks.
+
+  - rule_id: memory_autonomy
+    exact:
+      - memory_autonomous_updates
+    classification: lab-gated-later
+    risk: critical
+    reason: Autonomous memory mutation requires exact scope, review, stop, receipt, and recovery contracts.
+    later_gate: A reviewed Memory Lab contract with explicit approval and bounded mutation classes.
+
+  - rule_id: memory_constitution
+    exact:
+      - memory_sensitive_mutation_review
+      - memory_known_class_count
+      - memory_retention_posture
+    classification: read-only-constitutional
+    risk: critical
+    reason: Sensitive-review, class, and retention posture are governance truth and are not mutable in Core.
+
+  - rule_id: approval_floor
+    exact:
+      - approval_risky_actions
+      - approval_destructive_actions
+    classification: read-only-constitutional
+    risk: critical
+    reason: Governance cannot casually reduce approval requirements for risky or destructive actions.
+
+  - rule_id: outbound_approval
+    exact:
+      - approval_outbound_actions_allowed
+    classification: profile-gated-later
+    risk: critical
+    reason: Outbound action authority requires destination binding, exact final approval, and a receipt.
+    later_gate: The optional outbound profile and governed publish-queue contract.
+
+  - rule_id: autonomy_levels
+    exact:
+      - approval_autonomy_levels_defined
+    classification: lab-gated-later
+    risk: critical
+    reason: Autonomous task authority remains a Developer Lab capability, not a casual slider.
+    later_gate: Bounded task loops with stop, revoke, sandbox, and doctor proof.
+
+  - rule_id: journal_and_audit_floor
+    exact:
+      - journaling_enabled
+      - journaling_mode
+      - journaling_request_trace
+      - journaling_audit_posture
+    classification: read-only-constitutional
+    risk: critical
+    reason: Audit and request-trace posture cannot be weakened through the Governance UI.
+
+  - rule_id: ordinary_trust_zones
+    exact:
+      - trust_zone_workspace
+      - trust_zone_commons
+      - trust_zone_audit
+    classification: read-only-constitutional
+    risk: critical
+    reason: Trust-zone access posture is authoritative boundary truth, not a frontend preference.
+
+  - rule_id: publish_queue_zone
+    exact:
+      - trust_zone_publish_queue
+    classification: profile-gated-later
+    risk: critical
+    reason: Publishing requires Draft, Preview, Destination bind, Final approval, and Receipt stages.
+    later_gate: The optional outbound profile and publish-queue implementation pass.
+
+  - rule_id: sealed_private_zone
+    exact:
+      - trust_zone_sealed_private
+    classification: hard-prohibited-by-default
+    risk: critical
+    reason: Governance mutation never grants ordinary access to sealed private or vault material.

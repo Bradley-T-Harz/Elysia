@@ -1,0 +1,538 @@
+version: 1
+source_canons:
+  - docs/canon/HER_MIND.md
+  - docs/canon/HER_BODY.md
+  - docs/canon/HER_SOUL.md
+
+purpose: shared_capability_plane_across_modes
+
+status: declarative_contract_only
+
+doctrine:
+  modes_share_capabilities: true
+  modes_change_weighting_not_authority: true
+  modes_change_posture_not_available_organs: true
+  policy_gate_remains_authoritative: true
+  autonomy_levels_remain_authoritative: true
+  capability_manifest_remains_authoritative: true
+  model_routing_remains_authoritative_for_model_selection: true
+  no_mode_grants_unapproved_tools: true
+  no_mode_bypasses_approval: true
+  no_mode_bypasses_locality_truth: true
+  no_mode_silently_uses_cloud: true
+  no_mode_exports_private_context_by_default: true
+  no_mode_grants_file_mutation_by_default: true
+  no_mode_grants_shell_execution_by_default: true
+  no_mode_grants_patch_application_by_default: true
+  no_mode_grants_external_posting_by_default: true
+  mode_profiles_are_not_execution_authority: true
+
+shared_capability_graph:
+  local_model_reasoning:
+    label: Local model reasoning
+    status: runtime_dependent
+    boundary: local
+    authority_note: Model routing chooses the role and runtime. Mode profiles may prefer roles but do not create model authority.
+
+  memory_context:
+    label: Memory context
+    status: governed
+    boundary: local_private
+    authority_note: Memory use remains governed by memory policy, retrieval policy, and boundary checks.
+
+  bounded_math_execution:
+    label: Bounded math execution
+    status: live_v0
+    boundary: local
+    authority_note: Local math execution remains bounded and non-side-effecting.
+
+  bounded_data_execution:
+    label: Bounded data execution
+    status: live_v0
+    boundary: local_user_selected
+    authority_note: Data execution remains limited to bounded local inspection of user-selected supported files.
+
+  file_ingestion:
+    label: File ingestion
+    status: live_v0
+    boundary: local_user_selected
+    authority_note: File ingestion accepts user-selected local files only and does not imply memory promotion.
+
+  file_context_retrieval:
+    label: File context retrieval
+    status: partial_or_planned
+    boundary: local_user_selected
+    authority_note: Attached-file context must remain distinct from long-term memory unless separately approved.
+
+  bounded_public_web_research:
+    label: Bounded public web research
+    status: configured_worker_path
+    boundary: external_public_web_for_query_terms
+    authority_note: Public web research must go through the bounded SearXNG worker path. Query terms may cross the external public web boundary.
+
+  evidence_packets:
+    label: Evidence packets
+    status: live_contract_and_verifier
+    boundary: depends_on_source
+    authority_note: Evidence packets structure and verify source claims, but do not automatically prove truth.
+
+  contradiction_scan:
+    label: Contradiction scan
+    status: live_contract_and_verifier
+    boundary: local
+    authority_note: Contradiction scanning is deterministic warning support, not a final truth oracle.
+
+  repo_context:
+    label: Repo context
+    status: live_or_partial_v0
+    boundary: local_selected_repo
+    authority_note: Repo context remains read-only and selected-repo scoped.
+
+  code_patch_plan:
+    label: Code patch plan
+    status: proposal_only
+    boundary: local_selected_repo
+    authority_note: Patch planning proposes changes only and does not apply them.
+
+  aider_worker:
+    label: Aider worker
+    status: skeleton_dry_run_or_worker_bound
+    boundary: selected_repo_only
+    authority_note: Aider worker use remains approval-gated and must not imply mutation unless a later approved path grants it.
+
+  patch_application:
+    label: Patch application
+    status: live_exact_approval_required
+    boundary: file_mutation
+    authority_note: Exact selected-file mutation is live only with an approved workspace root, matching source and plan hashes, an expiring one-time approval token, backup/rollback truth, and audit persistence. Mode alone never grants authority.
+
+  shell_execution:
+    label: Shell execution
+    status: not_live_or_approval_required
+    boundary: host_or_sandbox
+    authority_note: Shell execution is not granted by mode and remains approval-gated.
+
+  command_gate:
+    label: Command gate
+    status: live_exact_allowlist_guarded
+    boundary: host_or_sandbox
+    authority_note: Exact configured checks are live with shell=False, bounded output/time, approved workspace root, exact plan hash, and one-time approval; free-form shell remains disabled.
+
+  artifact_outputs:
+    label: Artifact outputs
+    status: planned_or_partial
+    boundary: local
+    authority_note: Artifacts must carry provenance and producing-tool truth.
+
+  file_stewardship_chunks_1_4:
+    label: Text, document, data, and visual stewardship
+    status: live_per_adapter_hardening_complete_live_proof_pending
+    boundary: local_user_selected_approved_workspace
+    authority_note: Registry recognition is not capability authority. Each adapter reports inspect, preview, extract, export, edit, dependency, safety, and refusal truth independently; mutation always uses the exact approval plane.
+
+  file_stewardship_chunk_5_metadata:
+    label: Audio/video metadata stewardship
+    status: live_read_only_live_proof_pending
+    boundary: local_user_selected_approved_workspace
+    authority_note: WAV, MP3, FLAC, OGG, M4A, MP4, MOV, MKV, and WebM use bounded ffprobe metadata inspection; video may use one fixed local ffmpeg thumbnail operation. Transcription and non-cloning TTS require their own exact-approved local worker operations and are not granted merely by selecting a mode. Voice cloning, transcoding, media mutation, production image generation, and video generation remain unavailable.
+
+profile_fields:
+  preferred_model_role:
+    type: string
+    meaning: Preferred model role for the mode. Does not override model routing policy.
+  fallback_model_role:
+    type: string
+    meaning: Preferred fallback role for the mode when local routing permits fallback.
+  preferred_tools:
+    type: list
+    meaning: Capabilities the mode tends to use when already allowed.
+  citation_strictness:
+    allowed_values:
+      - low
+      - medium
+      - high
+      - mandatory_for_web
+  explanation_depth:
+    allowed_values:
+      - low
+      - medium
+      - high
+  math_execution_preference:
+    allowed_values:
+      - off
+      - light
+      - normal
+      - high
+  file_retrieval_preference:
+    allowed_values:
+      - off
+      - light
+      - normal
+      - high
+  repo_context_preference:
+    allowed_values:
+      - off
+      - light
+      - normal
+      - high
+  web_research_preference:
+    allowed_values:
+      - off
+      - explicit_only
+      - cautious
+      - evidence_required
+  response_style:
+    type: mapping
+    meaning: Mode-specific tone, length, and answer-shape preference.
+  approval_sensitivity:
+    allowed_values:
+      - normal
+      - elevated
+      - strict
+  output_format:
+    allowed_values:
+      - conversational
+      - teaching
+      - research_brief
+      - prose
+      - patch_plan
+
+global_safety_defaults:
+  private_context_outward_allowed: false
+  cloud_search_allowed_by_default: false
+  cloud_model_allowed_by_default: false
+  page_fetch_allowed_by_default: false
+  patch_application_allowed_by_default: false
+  shell_execution_allowed_by_default: false
+  external_posting_allowed_by_default: false
+  destructive_actions_allowed_by_default: false
+  mode_can_reduce_required_approval: false
+  mode_can_raise_approval_sensitivity: true
+  mode_can_request_evidence_packets: true
+  mode_can_request_local_math: true
+  mode_can_request_local_data: true
+  mode_can_request_repo_context: true
+  mode_can_request_public_research: true
+  final_authority: policy_gate_and_capability_manifest
+
+mode_order:
+  - default
+  - tutor
+  - researcher
+  - writer
+  - coder
+
+modes:
+  default:
+    label: Default
+    summary: Practical general use with concise, grounded support.
+    preferred_model_role: primary_general
+    fallback_model_role: lighter_backup
+    preferred_tools:
+      - local_model_reasoning
+      - memory_context
+      - bounded_math_execution
+      - file_ingestion
+      - bounded_data_execution
+    citation_strictness: medium
+    explanation_depth: medium
+    math_execution_preference: light
+    file_retrieval_preference: light
+    repo_context_preference: off
+    web_research_preference: explicit_only
+    approval_sensitivity: normal
+    output_format: conversational
+    response_style:
+      summary: practical_general_use
+      tone: concise_clear_grounded
+      default_length: concise
+      structure: answer_first_then_needed_context
+      uncertainty_style: state_uncertainty_plainly_when_relevant
+    posture:
+      use_math_when: calculation_or_numeric_check_is_clearly_helpful
+      use_files_when: user_attaches_or_selects_files
+      use_web_when: user_explicitly_requests_public_research
+      avoid: turning_general_questions_into_specialist_workflows
+    boundaries:
+      may_request_public_research: true
+      public_research_requires_evidence_packets: true
+      private_context_outward_allowed: false
+      shell_execution_allowed: false
+      patch_application_allowed: false
+      cloud_use_allowed: false
+
+  tutor:
+    label: Tutor
+    summary: Teaching-first mode with higher explanation depth and stronger math support.
+    preferred_model_role: primary_general
+    fallback_model_role: lighter_backup
+    preferred_tools:
+      - local_model_reasoning
+      - memory_context
+      - bounded_math_execution
+      - file_ingestion
+      - bounded_data_execution
+    citation_strictness: medium
+    explanation_depth: high
+    math_execution_preference: high
+    file_retrieval_preference: normal
+    repo_context_preference: light
+    web_research_preference: explicit_only
+    approval_sensitivity: normal
+    output_format: teaching
+    response_style:
+      summary: teaching_first
+      tone: patient_step_by_step_precise
+      default_length: detailed_when_needed
+      structure: concept_then_steps_then_check
+      uncertainty_style: separate_known_facts_from_assumptions
+    posture:
+      use_math_when: checking_or_teaching_math_science_or_engineering_reasoning
+      use_files_when: attached_coursework_or_data_needs_explanation
+      use_web_when: user_explicitly_requests_public_source_support
+      avoid: giving_only_final_answers_when_user_is_learning
+    boundaries:
+      may_request_public_research: true
+      public_research_requires_evidence_packets: true
+      private_context_outward_allowed: false
+      shell_execution_allowed: false
+      patch_application_allowed: false
+      cloud_use_allowed: false
+
+  researcher:
+    label: Researcher
+    summary: Evidence-first research posture with strict source handling and careful uncertainty.
+    preferred_model_role: primary_general
+    fallback_model_role: lighter_backup
+    preferred_tools:
+      - local_model_reasoning
+      - memory_context
+      - file_ingestion
+      - bounded_data_execution
+      - bounded_public_web_research
+      - evidence_packets
+      - contradiction_scan
+    citation_strictness: mandatory_for_web
+    explanation_depth: high
+    math_execution_preference: normal
+    file_retrieval_preference: high
+    repo_context_preference: light
+    web_research_preference: evidence_required
+    approval_sensitivity: elevated
+    output_format: research_brief
+    response_style:
+      summary: evidence_first_research
+      tone: careful_neutral_source_grounded
+      default_length: structured
+      structure: question_evidence_findings_limits_next_checks
+      uncertainty_style: distinguish_evidence_logic_inference_and_unknowns
+    posture:
+      use_math_when: quantitative_claims_need_checking
+      use_files_when: sources_data_or_project_materials_are_attached
+      use_web_when: public_research_is_explicitly_requested_and_policy_allows
+      avoid: unsupported_claims_source_laundering_and_false_certainty
+    boundaries:
+      may_request_public_research: true
+      public_research_requires_evidence_packets: true
+      contradiction_scan_expected_for_multiple_sources: true
+      private_context_outward_allowed: false
+      shell_execution_allowed: false
+      patch_application_allowed: false
+      cloud_use_allowed: false
+      page_fetch_allowed_by_default: false
+
+  writer:
+    label: Writer
+    summary: Creative and editorial mode that stays grounded without becoming sterile.
+    preferred_model_role: primary_general
+    fallback_model_role: lighter_backup
+    preferred_tools:
+      - local_model_reasoning
+      - memory_context
+      - bounded_math_execution
+      - file_ingestion
+      - bounded_data_execution
+    citation_strictness: low
+    explanation_depth: medium
+    math_execution_preference: light
+    file_retrieval_preference: normal
+    repo_context_preference: off
+    web_research_preference: explicit_only
+    approval_sensitivity: normal
+    output_format: prose
+    response_style:
+      summary: creative_grounded
+      tone: human_evocative_precise
+      default_length: adaptive
+      structure: preserve_voice_then_refine
+      uncertainty_style: preserve_creativity_while_flagging_real_world_limits
+    posture:
+      use_math_when: plausibility_scale_or_realism_needs_checking
+      use_files_when: drafting_from_user_selected_material
+      use_web_when: user_explicitly_requests_fact_checking_or_public_research
+      avoid: overexplaining_when_the_user_wants_voice_or_prose
+    boundaries:
+      may_request_public_research: true
+      public_research_requires_evidence_packets: true
+      private_context_outward_allowed: false
+      shell_execution_allowed: false
+      patch_application_allowed: false
+      cloud_use_allowed: false
+
+  coder:
+    label: Coder
+    summary: Repo-aware coding posture for explanation, debugging, patch planning, and review.
+    preferred_model_role: primary_code
+    fallback_model_role: primary_general
+    preferred_tools:
+      - local_model_reasoning
+      - memory_context
+      - repo_context
+      - code_patch_plan
+      - aider_worker
+    citation_strictness: medium
+    explanation_depth: medium
+    math_execution_preference: light
+    file_retrieval_preference: light
+    repo_context_preference: high
+    web_research_preference: explicit_only
+    approval_sensitivity: strict
+    output_format: patch_plan
+    response_style:
+      summary: patch_oriented_test_aware
+      tone: precise_practical_careful
+      default_length: structured
+      structure: inspect_plan_patch_tests_risks_approval_boundary
+      uncertainty_style: separate_observed_repo_truth_from_assumptions
+    posture:
+      use_math_when: code_or_test_question_contains_calculation
+      use_files_when: user_selected_files_or_repo_context_are_needed
+      use_web_when: user_explicitly_requests_public_docs_and_policy_allows
+      avoid: claiming_file_changes_tests_shell_git_or_workers_ran_when_they_did_not
+    boundaries:
+      may_request_repo_context: true
+      may_request_code_patch_plan: true
+      may_request_aider_worker_dry_run: true
+      patch_application_allowed: false
+      shell_execution_allowed: false
+      git_mutation_allowed: false
+      dependency_install_allowed: false
+      external_code_worker_allowed_without_approval: false
+      private_context_outward_allowed: false
+      cloud_use_allowed: false
+      public_research_requires_evidence_packets: true
+
+mode_interaction_rules:
+  default_to_tutor:
+    rule: Increase explanation depth and teaching structure, not tool authority.
+  default_to_researcher:
+    rule: Increase evidence strictness and source discipline, not private-context export.
+  default_to_writer:
+    rule: Increase voice and prose sensitivity, not factual looseness for real-world claims.
+  default_to_coder:
+    rule: Increase repo and patch-plan preference, not mutation authority.
+  researcher_to_coder:
+    rule: Preserve evidence discipline while using coder mutation boundaries.
+  writer_to_researcher:
+    rule: Preserve voice only where compatible with evidence truth.
+
+tool_posture_by_mode:
+  bounded_math_execution:
+    default: light
+    tutor: high
+    researcher: normal
+    writer: light
+    coder: light
+
+  bounded_data_execution:
+    default: light
+    tutor: normal
+    researcher: high
+    writer: light
+    coder: light
+
+  file_ingestion:
+    default: light
+    tutor: normal
+    researcher: high
+    writer: normal
+    coder: light
+
+  bounded_public_web_research:
+    default: explicit_only
+    tutor: explicit_only
+    researcher: evidence_required
+    writer: explicit_only
+    coder: explicit_only
+
+  repo_context:
+    default: off
+    tutor: light
+    researcher: light
+    writer: off
+    coder: high
+
+  code_patch_plan:
+    default: off
+    tutor: off
+    researcher: off
+    writer: off
+    coder: high
+
+  aider_worker:
+    default: off
+    tutor: off
+    researcher: off
+    writer: off
+    coder: strict_dry_run_or_approved_only
+
+  patch_application:
+    default: approval_required_not_granted_by_mode
+    tutor: approval_required_not_granted_by_mode
+    researcher: approval_required_not_granted_by_mode
+    writer: approval_required_not_granted_by_mode
+    coder: approval_required_not_granted_by_mode
+
+  shell_execution:
+    default: approval_required_not_granted_by_mode
+    tutor: approval_required_not_granted_by_mode
+    researcher: approval_required_not_granted_by_mode
+    writer: approval_required_not_granted_by_mode
+    coder: approval_required_not_granted_by_mode
+
+citation_rules:
+  low:
+    description: Citations optional unless claims are factual, current, disputed, or source-dependent.
+  medium:
+    description: Cite factual source-dependent claims when sources are used or when accuracy requires provenance.
+  high:
+    description: Prefer citations and evidence notes for factual or research-like claims.
+  mandatory_for_web:
+    description: Web-derived claims require evidence packets and source provenance.
+
+approval_sensitivity_rules:
+  normal:
+    description: Follow baseline approval policy.
+  elevated:
+    description: Ask or block earlier when public research, private context, sensitive topics, or outward boundaries are involved.
+  strict:
+    description: Treat mutation, shell, repo, worker, dependency, git, external, and private-context boundaries as high-friction and explicit.
+
+non_authority_notice:
+  - This file defines mode posture only.
+  - This file does not make any tool live.
+  - This file does not authorize public web research.
+  - This file does not authorize shell execution.
+  - This file does not authorize file mutation.
+  - This file does not authorize patch application.
+  - This file does not authorize cloud model use.
+  - This file does not override model routing, policy gates, autonomy levels, or capability truth.
+
+notes:
+  - Modes share one capability graph and differ by weighting, strictness, response style, and preferred posture.
+  - Policy gates, autonomy levels, model routing, and capability service remain the authority for what may actually happen.
+  - Researcher mode should require evidence packets for web-derived claims.
+  - Coder mode should remain repo-aware, patch-plan oriented, and command-gate strict.
+  - Tutor mode should teach reasoning rather than merely output final answers.
+  - Writer mode may use math and data as realism support without drowning creative work in calculation.
+  - Default mode should remain practical, concise, and conservative.

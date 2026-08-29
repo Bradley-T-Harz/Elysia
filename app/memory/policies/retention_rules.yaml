@@ -1,0 +1,88 @@
+version: "1.0"
+
+notes: |
+  Time and lifecycle law for memory classes.
+  This file governs how memory ages, cools, archives, persists, and resists
+  casual erasure over time. Archive is preferred over forget, and superseded
+  history is preserved across the system.
+
+retention_rules:
+  working:
+    archive_before_forget: true
+    hard_delete_allowed: true
+    hard_delete_requires_user: true
+    stale_after_days: 7
+    auto_archive_after_days: 21
+    auto_forget_after_days: 90
+    retain_superseded_history: true
+    sealed_retention_override: false
+
+  conversation:
+    archive_before_forget: true
+    hard_delete_allowed: true
+    hard_delete_requires_user: true
+    stale_after_days: 30
+    auto_archive_after_days: 90
+    auto_forget_after_days: 365
+    retain_superseded_history: true
+    sealed_retention_override: false
+
+  project:
+    archive_before_forget: true
+    hard_delete_allowed: false
+    hard_delete_requires_user: true
+    stale_after_days: 180
+    auto_archive_after_days: 365
+    auto_forget_after_days:
+    retain_superseded_history: true
+    sealed_retention_override: false
+
+  research:
+    archive_before_forget: true
+    hard_delete_allowed: false
+    hard_delete_requires_user: true
+    stale_after_days: 180
+    auto_archive_after_days: 540
+    auto_forget_after_days:
+    retain_superseded_history: true
+    sealed_retention_override: false
+
+  operational:
+    archive_before_forget: true
+    hard_delete_allowed: false
+    hard_delete_requires_user: true
+    stale_after_days: 120
+    auto_archive_after_days: 365
+    auto_forget_after_days:
+    retain_superseded_history: true
+    sealed_retention_override: false
+
+  preference:
+    archive_before_forget: true
+    hard_delete_allowed: true
+    hard_delete_requires_user: true
+    stale_after_days: 365
+    auto_archive_after_days:
+    auto_forget_after_days:
+    retain_superseded_history: true
+    sealed_retention_override: false
+
+  sealed_private:
+    archive_before_forget: true
+    hard_delete_allowed: true
+    hard_delete_requires_user: true
+    stale_after_days:
+    auto_archive_after_days:
+    auto_forget_after_days:
+    retain_superseded_history: true
+    sealed_retention_override: true
+
+  audit:
+    archive_before_forget: true
+    hard_delete_allowed: false
+    hard_delete_requires_user: true
+    stale_after_days:
+    auto_archive_after_days:
+    auto_forget_after_days:
+    retain_superseded_history: true
+    sealed_retention_override: false

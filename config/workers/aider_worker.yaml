@@ -1,0 +1,115 @@
+version: 1
+worker_key: aider_worker
+worker_kind: governed_coding_worker
+state: skeleton
+default_repo_key: elysia
+contract_doc: docs/coder/aider_worker_contract.md
+
+posture:
+  dry_run_only: true
+  mutation_allowed: false
+  shell_allowed: false
+  test_execution_allowed: false
+  network_allowed: false
+  git_mutation_allowed: false
+  package_install_allowed: false
+  credentials_allowed: false
+  vault_allowed: false
+  home_access_allowed: false
+  cloud_model_allowed: false
+  external_worker_invocation_allowed: false
+  approval_required_before_mutation: true
+  human_review_required: true
+
+filesystem:
+  selected_repo_mounts_only: true
+  repo_key_required: true
+  allow_absolute_paths: false
+  allow_path_traversal: false
+  max_selected_files: 24
+  max_file_size_bytes: 250000
+  max_path_length: 512
+
+denied_path_fragments:
+  - vault
+  - secrets
+  - credentials
+  - private
+  - browser_profiles
+  - browser profile
+  - browser profiles
+  - .git
+  - node_modules
+  - dist
+  - build
+  - target
+  - .venv
+  - venv
+  - env
+  - __pycache__
+  - .pytest_cache
+  - memory/chroma
+  - data/conversations
+  - data/artifacts
+  - data/file_ingest/raw
+  - data/file_ingest/extracted
+
+denied_file_names:
+  - .env
+  - .env.local
+  - .env.production
+  - .env.development
+  - id_rsa
+  - id_dsa
+  - id_ecdsa
+  - id_ed25519
+  - known_hosts
+  - authorized_keys
+
+denied_file_suffixes:
+  - .pem
+  - .key
+  - .p12
+  - .pfx
+  - .crt
+  - .cer
+  - .der
+  - .sqlite
+  - .db
+  - .pyc
+  - .pyo
+  - .so
+  - .dll
+  - .dylib
+  - .exe
+  - .bin
+
+secret_name_fragments:
+  - token
+  - secret
+  - credential
+  - password
+  - passwd
+  - apikey
+  - api_key
+  - private_key
+
+trace:
+  log_worker_request: true
+  log_worker_result: true
+  include_files_considered: true
+  include_boundary_flags: true
+  include_refusal_reasons: true
+  never_log_raw_secrets: true
+  never_log_vault_contents: true
+
+ui_truth:
+  state_label: skeleton
+  locality: Local
+  read_only: true
+  draft_only: true
+  sandboxed: true
+  mutation_label: not_live
+  shell_label: blocked
+  network_label: blocked
+  cloud_model_label: not_used

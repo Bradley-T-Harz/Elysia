@@ -1,0 +1,309 @@
+version: "1.0"
+
+notes: |
+  Law for movement between memory classes.
+  This file governs class-to-class memory transitions so that memory remains
+  layered, plastic, auditable, and conservative rather than collapsing into
+  one undifferentiated blob.
+
+promotion_rules:
+  - from_class: working
+    to_class: conversation
+    allowed: true
+    review_required: false
+    minimum_confidence: 0.40
+    minimum_repetition_count: 2
+    required_source_kinds:
+      - user_message
+      - manual_entry
+      - project_update
+      - assistant_inference
+    autonomous_allowed: true
+    provisional_first: false
+    reason_required: true
+
+  - from_class: working
+    to_class: project
+    allowed: true
+    review_required: false
+    minimum_confidence: 0.55
+    minimum_repetition_count: 2
+    required_source_kinds:
+      - user_message
+      - manual_entry
+      - project_update
+      - imported_file
+    autonomous_allowed: true
+    provisional_first: true
+    reason_required: true
+
+  - from_class: conversation
+    to_class: project
+    allowed: true
+    review_required: false
+    minimum_confidence: 0.60
+    minimum_repetition_count: 2
+    required_source_kinds:
+      - user_message
+      - manual_entry
+      - project_update
+      - imported_file
+    autonomous_allowed: true
+    provisional_first: true
+    reason_required: true
+
+  - from_class: working
+    to_class: operational
+    allowed: true
+    review_required: false
+    minimum_confidence: 0.55
+    minimum_repetition_count: 2
+    required_source_kinds:
+      - manual_entry
+      - runtime_trace
+      - system_event
+      - imported_file
+    autonomous_allowed: true
+    provisional_first: false
+    reason_required: true
+
+  - from_class: research
+    to_class: project
+    allowed: true
+    review_required: true
+    minimum_confidence: 0.75
+    minimum_repetition_count: 2
+    required_source_kinds:
+      - research_source
+      - imported_file
+    autonomous_allowed: false
+    provisional_first: true
+    reason_required: true
+
+  - from_class: operational
+    to_class: project
+    allowed: true
+    review_required: true
+    minimum_confidence: 0.65
+    minimum_repetition_count: 2
+    required_source_kinds:
+      - runtime_trace
+      - system_event
+      - project_update
+      - manual_entry
+    autonomous_allowed: false
+    provisional_first: true
+    reason_required: true
+
+  - from_class: working
+    to_class: preference
+    allowed: true
+    review_required: true
+    minimum_confidence: 0.80
+    minimum_repetition_count: 3
+    required_source_kinds:
+      - user_message
+      - manual_entry
+    autonomous_allowed: false
+    provisional_first: true
+    reason_required: true
+
+  - from_class: conversation
+    to_class: preference
+    allowed: true
+    review_required: true
+    minimum_confidence: 0.80
+    minimum_repetition_count: 2
+    required_source_kinds:
+      - user_message
+      - manual_entry
+    autonomous_allowed: false
+    provisional_first: true
+    reason_required: true
+
+  - from_class: sealed_private
+    to_class: working
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: sealed_private
+    to_class: conversation
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: sealed_private
+    to_class: project
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: sealed_private
+    to_class: research
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: sealed_private
+    to_class: operational
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: sealed_private
+    to_class: preference
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: audit
+    to_class: working
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: audit
+    to_class: conversation
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: audit
+    to_class: project
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: audit
+    to_class: research
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: audit
+    to_class: operational
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: audit
+    to_class: preference
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: audit
+    to_class: sealed_private
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: preference
+    to_class: project
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: preference
+    to_class: conversation
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: project
+    to_class: working
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true
+
+  - from_class: project
+    to_class: conversation
+    allowed: false
+    review_required: true
+    minimum_confidence:
+    minimum_repetition_count: 1
+    required_source_kinds: []
+    autonomous_allowed: false
+    provisional_first: false
+    reason_required: true

@@ -1,0 +1,34 @@
+version: 1
+contract: elysia-neurofabric-runtime-lock-v1
+environment_name: elysia_neurofabric
+python: "3.12"
+authority:
+  packaged_core_includes_torch: false
+  environment_is_specialized: true
+  runtime_network_default: disabled
+  cuda_activation_requires_doctor_proof: true
+  learned_controller_has_execution_authority: false
+variants:
+  cpu:
+    torch: 2.13.0+cpu
+    index_url: https://download.pytorch.org/whl/cpu
+    fallback_required: true
+    minimum_cpu_features: [sse4_1]
+  cuda_mega:
+    torch: 2.13.0+cu130
+    torch_cuda_runtime: "13.0"
+    minimum_nvidia_driver_branch: 580
+    minimum_vram_mb: 8192
+    index_url: https://download.pytorch.org/whl/cu130
+    supported_gpu_family_proved: NVIDIA Ada
+preserved_packages:
+  ncps: 1.0.1
+  numpy: 2.4.6
+  scipy: 1.17.1
+promotion:
+  deterministic_governor_remains_authoritative: true
+  ncps_status: installed_reference_not_promoted
+provenance:
+  pytorch_installation: https://pytorch.org/get-started/locally/
+  pytorch_versions: https://pytorch.org/get-started/previous-versions/
+  nvidia_cuda_compatibility: https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html

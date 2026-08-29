@@ -1,0 +1,365 @@
+version: "1.0"
+
+notes: |
+  Law for each mutation verb in the memory system.
+  This file defines the default posture of each mutation type across memory classes.
+  Class-specific defaults, sensitivity behavior, retention timing, and promotion
+  transitions are governed in their own policy files.
+
+mutation_rules:
+  create:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+      - audit
+    blocked_classes: []
+    autonomous_allowed: true
+    review_required: false
+    requires_reason: true
+    requires_target: false
+    requires_expected_revision: false
+    requires_provenance: false
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true
+
+  revise:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+    blocked_classes:
+      - audit
+    autonomous_allowed: false
+    review_required: true
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: true
+    requires_provenance: false
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true
+
+  append_note:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+      - audit
+    blocked_classes: []
+    autonomous_allowed: true
+    review_required: false
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: false
+    requires_provenance: false
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true
+
+  supersede:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+    blocked_classes:
+      - sealed_private
+      - audit
+    autonomous_allowed: false
+    review_required: true
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: true
+    requires_provenance: true
+    allow_multi_target: false
+    allow_sealed_private: false
+    allow_direct_apply: true
+
+  archive:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+      - audit
+    blocked_classes: []
+    autonomous_allowed: true
+    review_required: false
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: false
+    requires_provenance: false
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true
+
+  restore:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+      - audit
+    blocked_classes: []
+    autonomous_allowed: false
+    review_required: false
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: true
+    requires_provenance: false
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true
+
+  pin:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+    blocked_classes:
+      - audit
+    autonomous_allowed: true
+    review_required: false
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: false
+    requires_provenance: false
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true
+
+  unpin:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+    blocked_classes:
+      - audit
+    autonomous_allowed: true
+    review_required: false
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: false
+    requires_provenance: false
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true
+
+  reclassify:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+    blocked_classes:
+      - preference
+      - sealed_private
+      - audit
+    autonomous_allowed: false
+    review_required: true
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: true
+    requires_provenance: true
+    allow_multi_target: false
+    allow_sealed_private: false
+    allow_direct_apply: true
+
+  change_sensitivity:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+      - audit
+    blocked_classes: []
+    autonomous_allowed: false
+    review_required: true
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: true
+    requires_provenance: true
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true
+
+  change_mutability:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+      - audit
+    blocked_classes: []
+    autonomous_allowed: false
+    review_required: true
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: true
+    requires_provenance: false
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true
+
+  promote:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+    blocked_classes:
+      - sealed_private
+      - audit
+    autonomous_allowed: false
+    review_required: true
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: true
+    requires_provenance: true
+    allow_multi_target: false
+    allow_sealed_private: false
+    allow_direct_apply: true
+
+  demote:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+    blocked_classes:
+      - sealed_private
+      - audit
+    autonomous_allowed: false
+    review_required: true
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: true
+    requires_provenance: true
+    allow_multi_target: false
+    allow_sealed_private: false
+    allow_direct_apply: true
+
+  merge:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+    blocked_classes:
+      - preference
+      - sealed_private
+      - audit
+    autonomous_allowed: false
+    review_required: true
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: false
+    requires_provenance: true
+    allow_multi_target: true
+    allow_sealed_private: false
+    allow_direct_apply: false
+
+  forget_request:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+      - audit
+    blocked_classes: []
+    autonomous_allowed: false
+    review_required: true
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: false
+    requires_provenance: false
+    allow_multi_target: true
+    allow_sealed_private: true
+    allow_direct_apply: false
+
+  block:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+      - audit
+    blocked_classes: []
+    autonomous_allowed: false
+    review_required: false
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: true
+    requires_provenance: false
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true
+
+  unblock:
+    allowed_classes:
+      - working
+      - conversation
+      - project
+      - research
+      - operational
+      - preference
+      - sealed_private
+      - audit
+    blocked_classes: []
+    autonomous_allowed: false
+    review_required: true
+    requires_reason: true
+    requires_target: true
+    requires_expected_revision: true
+    requires_provenance: false
+    allow_multi_target: false
+    allow_sealed_private: true
+    allow_direct_apply: true

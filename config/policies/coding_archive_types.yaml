@@ -1,0 +1,83 @@
+version: archive-types-0.1
+local_first: true
+authority_model: policy_bound_tools
+capability_states:
+  - available
+  - list_only
+  - extract_sandbox_only
+  - lab_only
+  - blocked
+  - unsupported
+  - unavailable_by_design
+formats:
+  zip:
+    extensions: [.zip]
+    inspection: available
+    extraction: extract_sandbox_only
+    package_container: false
+  tar:
+    extensions: [.tar]
+    inspection: available
+    extraction: extract_sandbox_only
+    package_container: false
+  tar_gz:
+    extensions: [.tar.gz, .tgz]
+    inspection: available
+    extraction: extract_sandbox_only
+    package_container: false
+  7z:
+    extensions: [.7z]
+    inspection: available
+    extraction: list_only
+    package_container: false
+  rar:
+    extensions: [.rar]
+    inspection: available
+    extraction: lab_only
+    package_container: false
+    tool_license_status: mixed_multiverse_nonfree_sensitive
+    creation: unavailable_by_design
+  whl:
+    extensions: [.whl]
+    inspection: available
+    extraction: unavailable_by_design
+    package_container: true
+    install: unavailable_by_design
+    execute: unavailable_by_design
+  jar:
+    extensions: [.jar]
+    inspection: available
+    extraction: unavailable_by_design
+    package_container: true
+    install: unavailable_by_design
+    execute: unavailable_by_design
+  vsix:
+    extensions: [.vsix]
+    inspection: available
+    extraction: unavailable_by_design
+    package_container: true
+    install: unavailable_by_design
+    execute: unavailable_by_design
+  appimage:
+    extensions: [.appimage]
+    inspection: list_only
+    extraction: unavailable_by_design
+    list_supported: false
+    package_container: true
+    install: unavailable_by_design
+    execute: unavailable_by_design
+  deb:
+    extensions: [.deb]
+    inspection: available
+    extraction: unavailable_by_design
+    package_container: true
+    install: unavailable_by_design
+    execute: unavailable_by_design
+autonomy:
+  default_level: 1
+  autonomous_inspection: false
+  autonomous_extraction: false
+  autonomous_package_install: false
+  autonomous_execution: false
+  extraction_requires_fresh_human_approval: true
+  install_execute_unavailable_by_design: true

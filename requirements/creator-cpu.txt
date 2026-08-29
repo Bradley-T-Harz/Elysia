@@ -1,0 +1,5 @@
+# Hardware-selected CPU Creator / Perception environment.
+--extra-index-url https://download.pytorch.org/whl/cpu
+-r creator.txt
+
+torch==2.13.0+cpu

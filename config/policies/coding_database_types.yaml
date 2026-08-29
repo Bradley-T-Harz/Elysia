@@ -1,0 +1,37 @@
+version: database-types-0.1
+local_first: true
+authority_model: fixed_introspection_only
+capability_states: [available, approval_required, metadata_only, lab_only, blocked, unavailable_by_design, future_sandbox_required]
+formats:
+  sqlite:
+    extensions: [.sqlite, .sqlite3, .db]
+    identification: available
+    metadata: available
+    schema_preview: approval_required
+    row_preview: unavailable_by_design
+    arbitrary_sql: unavailable_by_design
+    mutation: unavailable_by_design
+  duckdb:
+    extensions: [.duckdb, .db]
+    identification: available
+    metadata: available
+    schema_preview: approval_required
+    row_preview: unavailable_by_design
+    arbitrary_sql: unavailable_by_design
+    extension_install_load: unavailable_by_design
+    external_access: unavailable_by_design
+    mutation: unavailable_by_design
+  db_unknown:
+    extensions: [.db]
+    identification: available
+    metadata: metadata_only
+    schema_preview: blocked
+    row_preview: unavailable_by_design
+    arbitrary_sql: unavailable_by_design
+    mutation: unavailable_by_design
+autonomy:
+  autonomous_identification: false
+  autonomous_schema_preview: false
+  schema_preview_requires_exact_one_time_approval: true
+  future_read_only_sql_requires_separate_gate: true
+  future_mutation_requires_migration_workflow: true

@@ -1,0 +1,21 @@
+# Elysia Core Python runtime contract for v1 finalization.
+#
+# Human-maintained direct requirements. The authoritative reproducible CPython
+# 3.12 installer input is config/install/locks/core-py312.lock.txt; Setup and
+# package builds must use that hash-locked file rather than resolving this file.
+
+fastapi
+uvicorn
+pydantic
+PyYAML
+pwdlib[argon2]
+cryptography>=50,<51
+zstandard>=0.25,<0.26
+
+# Current API route imports require these bounded visual/XML helpers at startup.
+Pillow
+numpy>=1.26,<2.0
+defusedxml
+cairosvg
+imageio
+pytesseract

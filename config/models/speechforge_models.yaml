@@ -1,0 +1,58 @@
+version: 1
+models:
+  - id: whisper-cpp-base-en
+    display_name: Whisper.cpp base.en
+    capability: speech_to_text
+    relative_path: tools/whisper.cpp/models/ggml-base.en.bin
+    engine: whisper_cpp
+    state: available_local
+    gate_status: available
+    license: MIT
+    license_review_status: whisper_cpp_mit_and_openai_whisper_weights_apache_2_0_verified_2026_08_24
+    provenance_review_status: official_openai_whisper_base_en_identity_verified_local_revision_unknown
+    model_sha256: a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002
+    model_source: local_whisper_cpp_model_asset
+    revision: base_en_unknown_snapshot_revision
+    language: en
+    cloud_used: false
+    gates:
+      safety: passed_local_exact_approved_artifact_lane
+      licensing: passed_runtime_mit_and_weights_apache_2_0
+      provenance: passed_identity_and_hash_revision_not_recorded_in_legacy_snapshot
+      resource_stability: passed_bounded_profile
+      consent: required
+  - id: faster-whisper-local
+    display_name: Faster Whisper local model
+    capability: speech_to_text
+    engine: faster_whisper
+    state: disabled_model_missing
+    gate_status: disabled
+    license: pending
+    license_review_status: pending
+    provenance_review_status: pending
+    cloud_used: false
+    blocker: approved_local_ctranslate2_model_missing
+  - id: kokoro-onnx-v1
+    display_name: Kokoro ONNX v1
+    capability: text_to_speech
+    relative_path: speech/kokoro-onnx-v1/kokoro-v1.0.onnx
+    voices_relative_path: speech/kokoro-onnx-v1/voices-v1.0.bin
+    engine: kokoro_onnx
+    state: lab_local_reading_voice
+    gate_status: available
+    license: Apache-2.0
+    license_review_status: official_kokoro_82m_model_and_voice_distribution_verified_2026_08_24
+    provenance_review_status: official_model_card_repository_and_local_hashes_recorded
+    model_sha256: 7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5
+    voices_sha256: bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d
+    model_source: local_kokoro_onnx_assets
+    revision: official_v1_filename_local_snapshot_revision_unknown
+    identity_bearing: false
+    voice_cloning_allowed: false
+    cloud_used: false
+    gates:
+      safety: passed_catalog_only_non_cloning
+      licensing: passed_apache_2_0
+      provenance: passed_official_distribution_identity_local_revision_legacy_unknown
+      resource_stability: passed_bounded_profile
+      consent: no_identity_input_accepted

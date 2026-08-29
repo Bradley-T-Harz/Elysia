@@ -1,0 +1,66 @@
+version: 1
+worker_key: videoforge_worker
+worker_kind: governed_local_video_generation_worker
+state: lab_only
+enabled: false
+contract_doc: docs/video/videoforge_worker_contract.md
+environment: elysia_creator
+python_path: null
+worker_script: sandbox/videoforge_worker/worker_cli.py
+model_registry: config/models/videoforge_models.yaml
+network_allowed: false
+cloud_allowed: false
+shell_allowed: false
+routes_live: true
+environment_override: ELYSIA_VIDEOFORGE_LAB_ENABLED
+limits:
+  max_concurrent_jobs: 1
+  process_timeout_seconds: 300
+  max_stdout_bytes: 65536
+  max_stderr_bytes: 131072
+  allowed_width: 416
+  allowed_height: 256
+  allowed_frames: 9
+  allowed_fps: 8
+  allowed_steps: 4
+  max_output_bytes: 67108864
+  cancellation_supported: true
+posture:
+  exact_one_time_approval_required: true
+  synthetic_label_required: true
+  real_person_likeness_allowed: false
+  identity_bearing_generation_allowed: false
+  image_to_video_allowed: false
+  video_to_video_allowed: false
+  voice_driven_avatar_allowed: false
+  face_replacement_allowed: false
+  deepfake_workflows_allowed: false
+  political_persuasion_allowed: false
+  public_posting_automation_allowed: false
+  prompt_in_central_ledger: false
+  output_bytes_in_central_ledger: false
+  production_enabled: false
+smoke_truth:
+  status: passed
+  model_id: wan21-t2v-1.3b
+  width: 416
+  height: 256
+  frames: 9
+  fps: 8
+  runtime_seconds: 11.273
+  peak_gpu_memory_mib: 10872.6
+  output_sha256: 96253738d2dee3023b361b1dd451e0ea0d35e8c26185200b2088e3d5ea5e1a4f
+  output_retention: discarded_after_hash_and_bounded_receipt
+  provenance_retention: compact_receipt_only
+  final_power_profile: balanced
+governed_route_truth:
+  status: passed
+  runtime_seconds: 13.416
+  peak_gpu_memory_mib: 10872.6
+  output_sha256: fad9f8523dc94eb3366df5591193dbed3f2bf5b6ce82b13b05e8ef1e62adf65b
+  output_retention: discarded_after_hash_and_bounded_receipt
+  provenance_retention: compact_receipt_only
+  cancellation_status: passed_no_partial_output
+  cancellation_proof: compact_receipt_only
+  production_enabled: false
+  final_power_profile: balanced

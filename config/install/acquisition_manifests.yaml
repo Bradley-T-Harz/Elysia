@@ -1,0 +1,192 @@
+version: 1
+contract_version: elysia-acquisition-manifests-1.0
+authority: authoritative_component_acquisition_projection
+rules:
+  silent_downloads: false
+  exact_identity_before_transfer: true
+  exact_size_before_transfer: true
+  receipt_required: true
+  private_data_egress: false
+  profile_selection_grants_acquisition_approval: false
+  unlisted_source_allowed: false
+
+components:
+  core_python_runtime:
+    method: package_bound
+    source: exact Elysia v1.0.0 release package
+    publisher: EcoSyneva Commons LLC
+    identity: config/install/locks/core-py312.lock.txt
+    digest: sha256:d009afa72031c7377b04114218f364d4bae3319d6f3f320e41ca4acd0a787214
+    size_state: exact_release_receipt_bound
+    estimated_download_bytes: 0
+    estimated_installed_bytes: 0
+    license: Elysia first-party license plus THIRD_PARTY_NOTICES
+    redistribution: bundled_in_exact_release_payload
+    network: none_during_setup
+    privilege: package_form_specific
+    removal: remove_package_owned_runtime_preserve_xdg_data
+
+  desktop_shell:
+    method: package_bound
+    source: exact Elysia v1.0.0 release package
+    publisher: EcoSyneva Commons LLC
+    identity: Tauri desktop bound to package receipt
+    digest: exact_release_artifact_bound
+    size_state: exact_release_receipt_bound
+    estimated_download_bytes: 0
+    estimated_installed_bytes: 0
+    license: Elysia first-party license plus native notices
+    redistribution: bundled_in_exact_release_payload
+    network: none_during_setup
+    privilege: package_form_specific
+    removal: package_manager_or_user_local_runtime_removal_preserves_xdg_data
+
+  identity_memory_fabric:
+    method: package_bound
+    source: exact Elysia v1.0.0 release package
+    publisher: EcoSyneva Commons LLC
+    identity: canonical-memory-schema-v4 + identity-schema-v1
+    digest: exact_release_artifact_bound
+    size_state: exact_release_receipt_bound
+    estimated_download_bytes: 0
+    estimated_installed_bytes: 0
+    license: Elysia first-party license
+    redistribution: bundled_source_and_runtime
+    network: prohibited
+    privilege: user_local
+    removal: user_owned_data_preserved_unless_separate_governed_purge
+
+  personal_onboarding:
+    method: package_bound
+    source: exact Elysia v1.0.0 release package
+    publisher: EcoSyneva Commons LLC
+    identity: elysia-personal-onboarding-1.0
+    digest: exact_release_artifact_bound
+    size_state: exact_release_receipt_bound
+    estimated_download_bytes: 0
+    estimated_installed_bytes: 0
+    license: Elysia first-party license
+    redistribution: bundled_source_and_runtime
+    network: prohibited
+    privilege: user_local
+    removal: encrypted_account_owned_drafts_follow_governed_account_data_choice
+
+  local_model_provider:
+    method: external_local_provider
+    source: user-selected local Ollama installation and separately approved model manifest
+    publisher: upstream provider/model publisher
+    identity: no_default_model_selected
+    digest: exact_selected_model_digest_required
+    size_state: exact_selected_model_receipt_required
+    estimated_download_bytes: 0
+    estimated_installed_bytes: 0
+    license: model_specific_disclosure_required
+    redistribution: not_bundled
+    network: acquisition_only_after_separate_exact_approval; runtime_loopback_only
+    privilege: external_provider_install_is_separate
+    removal: remove_only_elysia_selected_model_after_exact_preview
+
+  workstation_adapters:
+    method: isolated_python_lock
+    source: https://pypi.org/simple
+    publisher: respective upstream Python projects
+    identity: config/install/locks/workstation-py312.lock.txt
+    digest: sha256:ceae506d23ac7d4c2536c3a856153a6c7f86121e8949cbf808b020a09c0c9c2f
+    size_state: exact_wheel_set_resolved_in_staging_before_install
+    estimated_download_bytes: 700000000
+    estimated_installed_bytes: 2200000000
+    license: Pass-III Python component matrix and THIRD_PARTY_NOTICES
+    redistribution: separately_acquired_hash_verified_wheels
+    network: pypi_only_after_exact_profile_acquisition_approval
+    privilege: user_local_isolated_environment
+    removal: remove_owned_environment_preserve_user_documents_and_projects
+
+  governed_research:
+    method: managed_container
+    source: docker.io/searxng/searxng
+    publisher: SearXNG project
+    identity: docker.io/searxng/searxng@sha256:bbd44b09b83e4ea8b8ab80953e5eed24837ff02d00fc752bd1762b9fc244eaa9
+    digest: sha256:bbd44b09b83e4ea8b8ab80953e5eed24837ff02d00fc752bd1762b9fc244eaa9
+    size_state: audited_uncompressed_size; registry_transfer_size_reconfirmed_before_pull
+    estimated_download_bytes: 160000000
+    estimated_installed_bytes: 264194048
+    license: AGPL-3.0-or-later
+    redistribution: not_bundled; acquired_from_official_registry
+    network: registry_pull_after_approval; explicit_public_research_at_runtime
+    privilege: rootless_container_runtime
+    removal: stop_and_remove_owned_container_preserve_or_offer_remove_cache
+
+  semantic_retrieval:
+    method: managed_container_and_model
+    source: docker.io/qdrant/qdrant plus approved Qwen Ollama manifest
+    publisher: Qdrant and Qwen upstream projects
+    identity: docker.io/qdrant/qdrant@sha256:a0e04fe623cb064502cd869cefc1dc7ce359d8edd481063b5bd351c0a0a2c91e
+    digest: sha256:a0e04fe623cb064502cd869cefc1dc7ce359d8edd481063b5bd351c0a0a2c91e
+    size_state: audited_uncompressed_container_size; exact_model_receipt_required
+    estimated_download_bytes: 700000000
+    estimated_installed_bytes: 900000000
+    license: Apache-2.0 components; model notice retained
+    redistribution: not_bundled; separately_acquired
+    network: registry_and_model_acquisition_only_after_exact_approval
+    privilege: rootless_container_runtime_and_user_local_model
+    removal: remove_owned_container_and_rebuildable_projection_preserve_canonical_memory
+
+  creator_perception:
+    method: isolated_python_lock_and_separate_models
+    source: https://pypi.org/simple plus individually approved model sources
+    publisher: respective upstream Python and model projects
+    identity: hardware-selected exact hash lock
+    digest: cpu=sha256:564fcbcb26d02fa0026d9335f725cc46161c15d346a4339b47d03fa325ba7c3d;cuda=sha256:1dc3afd76f80af0155d3aca2546eef4e4580b670dd17fa8045c68f59be195efd
+    size_state: exact_wheel_and_each_selected_model_set_resolved_before_transfer
+    estimated_download_bytes: 38000000000
+    estimated_installed_bytes: 50000000000
+    license: Pass-III model/voice/asset matrix; per-model disclosure required
+    redistribution: runtime_wheels_separately_acquired; model_assets_not_bundled
+    network: hardware-selected exact Python/runtime acquisition plus model acquisition only after exact asset/license/resource approval
+    privilege: user_local_isolated_workers
+    removal: remove_owned_worker_environment; preserve_user_media_and_unowned_model_vault
+
+  codev_companion:
+    method: exact_public_release_vsix_or_verified_local_copy
+    source: https://github.com/Bradley-T-Harz/elysia-codev/releases/download/v1.0.0/elysia-codev-1.0.0.vsix
+    publisher: EcoSyneva Commons LLC
+    identity: ecosyneva-commons.elysia-codev@1.0.0 from https://github.com/Bradley-T-Harz/elysia-codev; live availability is authoritative at canonical external release surfaces
+    digest: sha256:5cbb9298e0d9f56797b95854e4cf07db84fe2d7fc00deb7bc3364d503451f6ff
+    size_state: exact_release_artifact_size_162207_bytes
+    estimated_download_bytes: 162207
+    estimated_installed_bytes: 30000000
+    license: Codev first-party license plus VSIX THIRD_PARTY_NOTICES
+    redistribution: separately_installed_exact_first_party_release_payload
+    network: exact_canonical_github_release_download_only_after_approval_or_verified_local_copy_with_no_network
+    privilege: current_user_vscode_profile
+    removal: editor_extension_uninstall_preserves_workspace_and_repository_data
+
+  scientific_engineering:
+    method: isolated_neurofabric_lock
+    source: https://pypi.org/simple plus approved PyTorch CPU/CUDA index
+    publisher: respective upstream Python projects and PyTorch
+    identity: hardware-selected exact hash lock
+    digest: cpu=sha256:fffeb73ba3e990d060c0b9d377941e8c55f1a88f5504e94b56ec664a8dfdeaea;cuda=sha256:67528f22346a0dc7effe300a92b00b111461934124f56f05c8326e024945957a
+    size_state: exact_wheel_set_resolved_in_staging_before_install
+    estimated_download_bytes: 6500000000
+    estimated_installed_bytes: 12000000000
+    license: Pass-III Python component matrix and PyTorch notices
+    redistribution: separately_acquired_hash_verified_wheels
+    network: approved_python_indexes_only_after_variant_approval
+    privilege: user_local_isolated_environment
+    removal: remove_only_exact_elysia_owned_environment_receipt
+
+  local_connectors:
+    method: package_bound
+    source: exact Elysia v1.0.0 release package
+    publisher: EcoSyneva Commons LLC
+    identity: source-contract-v1 connectors
+    digest: exact_release_artifact_bound
+    size_state: exact_release_receipt_bound
+    estimated_download_bytes: 0
+    estimated_installed_bytes: 0
+    license: Elysia first-party license
+    redistribution: bundled_source_and_runtime
+    network: disabled_until_account_scoped_consent
+    privilege: user_local
+    removal: revoke_connector_receipts_and_preserve_user_owned_local_data

@@ -1,0 +1,77 @@
+id: tutoring.tutoring_helper
+name: Tutoring Helper
+version: 0.1.0
+status: draft
+
+purpose: >
+  Teach, explain, guide, and review learning tasks in a step-by-step or conceptual way
+  while adapting to user preferences and preserving accuracy, clarity, and patience.
+
+triggers:
+  - teach me this
+  - explain this step by step
+  - help me understand
+  - check my work
+  - quiz me on this
+  - what am I missing
+
+inputs:
+  required:
+    - learning_task
+  optional:
+    - user_profile
+    - prior_attempt
+    - course_context
+    - preferred_teaching_style
+
+permissions:
+  network_access: none
+  file_read: false
+  file_write: false
+  shell_access: false
+  external_posting: false
+
+memory_access:
+  read:
+    - preference_memory
+    - conversation_memory
+  write:
+    - conversation_memory
+
+risk_level: low
+
+approval_required_when:
+  - tutoring shifts into external action
+  - tutoring shifts into system change
+  - sensitive private material is being persisted
+  - confidence is too low for strong instructional guidance
+
+steps:
+  - interpret the learning goal
+  - identify whether the task is conceptual, procedural, corrective, or review-based
+  - adapt explanation depth to the user's needs and preferences
+  - explain clearly with step-by-step guidance when appropriate
+  - preserve uncertainty and avoid bluffing when confidence is limited
+  - return explanation, guidance, and next learning step
+
+verification:
+  - consistency with personality policy
+  - no unsupported certainty
+  - no lazy answer-dumping when teaching is the goal
+  - reasoning is clearer than the final answer alone
+
+output_schema:
+  summary: string
+  explanation: string
+  next_step: string
+  caveats: list
+
+failure_modes:
+  - unclear learning goal
+  - insufficient context
+  - policy boundary hit
+  - confidence too low for reliable instruction
+
+notes: >
+  This skill should optimize for clarity, patience, correctness, and genuine learning.
+  It should teach, not merely perform.

@@ -1,0 +1,56 @@
+contract: coding-media-types-0.1
+local_first: true
+state: metadata_plus_governed_workers
+supported_formats:
+  audio:
+    - .wav
+    - .mp3
+    - .flac
+    - .ogg
+    - .m4a
+  video:
+    - .mp4
+    - .mov
+    - .mkv
+    - .webm
+tools:
+  metadata: ffprobe
+  video_thumbnail: ffmpeg
+  shell_allowed: false
+  arbitrary_arguments_allowed: false
+  network_protocols_allowed: false
+limits:
+  max_media_bytes: 536870912
+  max_thumbnail_source_bytes: 268435456
+  max_duration_seconds: 21600
+  max_streams: 24
+  max_video_pixels: 33177600
+  max_probe_output_bytes: 524288
+  max_diagnostic_bytes: 65536
+  max_thumbnail_bytes: 2097152
+  process_timeout_seconds: 12
+privacy:
+  raw_media_audit_allowed: false
+  raw_ffprobe_json_audit_allowed: false
+  embedded_tag_values_exposed: false
+  title_artist_comment_date_device_location_presence_only: true
+  external_upload_allowed: false
+approval_required_for:
+  - inspect
+  - video_thumbnail
+  - speech_transcription_artifact
+  - synthetic_reading_voice_artifact
+  - imageforge_lab_artifact
+  - videoforge_lab_artifact
+mutation_model:
+  source_mutation_allowed: false
+  transcoding_allowed: false
+  transcription_live: true
+  tts_live: true
+  voice_generation_live: false
+  image_generation_route_live: true
+  image_generation_production_live: false
+  video_generation_live: false
+  video_generation_lab_route_live: true
+  voice_cloning_state: unavailable_by_design
+  audit_required: true

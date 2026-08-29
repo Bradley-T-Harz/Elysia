@@ -1,0 +1,1 @@
+"""Fixed-operation BinaryForge worker."""

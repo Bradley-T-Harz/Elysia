@@ -1,0 +1,94 @@
+version: 1
+worker_key: searxng_research_worker
+worker_kind: governed_public_web_research_worker
+state: configured
+contract_doc: docs/research/searxng_worker_contract.md
+
+service:
+  enabled: false
+  base_url: http://127.0.0.1:8888
+  search_endpoint: /search
+  default_format: json
+  timeout_seconds: 10
+  safe_search: strict
+  language: en
+  categories:
+    - general
+
+posture:
+  public_query_only: true
+  private_context_allowed: false
+  private_context_sent: false
+  cloud_search_allowed: false
+  cloud_model_allowed: false
+  page_fetch_allowed: false
+  network_access_allowed: true
+  network_access_scope: worker_public_search_only
+  core_network_access_allowed: false
+  search_results_first: true
+  approval_required_for_sensitive_queries: true
+  approval_required_for_first_enable: true
+
+limits:
+  max_queries_per_ticket: 3
+  max_results_per_query: 5
+  max_query_length: 300
+  max_total_query_length: 900
+  max_result_snippet_length: 1000
+
+allowed_schemes:
+  - http
+  - https
+
+blocked_schemes:
+  - file
+  - ftp
+  - data
+  - javascript
+  - mailto
+
+blocked_query_fragments:
+  - .env
+  - id_rsa
+  - id_ed25519
+  - BEGIN PRIVATE KEY
+  - api_key
+  - token
+  - password
+  - credential
+  - vault/
+  - memory/journal/
+  - memory/chroma/
+  - data/conversations/
+  - data/file_ingest/
+  - ~/.ssh
+  - /home/
+
+sensitive_query_categories:
+  - legal_strategy
+  - medical_personal
+  - financial_personal
+  - activism_or_organizing_strategy
+  - private_person_investigation
+  - security_vulnerability
+  - business_strategy
+
+trace:
+  log_research_ticket: true
+  log_queries_requested: true
+  log_queries_sent: true
+  log_query_hashes: true
+  log_blocked_query_preview: true
+  include_boundary_flags: true
+  include_refusal_reasons: true
+  never_log_raw_private_context: true
+  never_log_raw_secrets: true
+  never_log_vault_contents: true
+
+ui_truth:
+  service_label: local_loopback_searxng
+  boundary_label: external_public_web_for_query_terms
+  private_context_sent: false
+  cloud_search_used: false
+  cloud_model_used: false
+  page_fetch_used: false

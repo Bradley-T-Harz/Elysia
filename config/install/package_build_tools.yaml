@@ -1,0 +1,36 @@
+version: 1
+contract_version: elysia-package-build-tools-1.0
+authority: pass_iii_sample_inputs_reverified_and_pass_iv_build_freeze
+rules:
+  unverified_cached_tool_allowed: false
+  mutable_remote_without_expected_hash_allowed: false
+  private_source_egress: false
+
+tauri_cache_files:
+  AppRun-x86_64:
+    sha256: f30140a43a0a59e46db21bdefdf749b9e9f2c6946e92afabbacf98b8ae73fb4f
+  linuxdeploy-x86_64.AppImage:
+    sha256: 20eebde3c18ae2e44279bd624fc72482503aece216d5d77f10932235342f71c1
+  linuxdeploy-plugin-appimage.AppImage:
+    sha256: a45d3e227bc7f397e9cf6bfa4c9507494efa2293357b6e86690a3de2ca992e79
+  linuxdeploy-plugin-gtk.sh:
+    sha256: cb379f9b0733e9ad9f8bd78f8c2fa038aef2478523bb7d4c8e64ff6a1ea3501a
+  linuxdeploy-plugin-gstreamer.sh:
+    sha256: c107b49d84edbffc6ab226ed1007e0626a4f7aa2c3a36b7782bef62351d49e94
+
+appimagetool:
+  plugin_file: linuxdeploy-plugin-appimage.AppImage
+  extracted_relative_path: appimagetool-prefix/usr/bin/appimagetool
+  sha256: 58d3047a420e1dfa365ef0ad495b728b56627803cb6b75ed816b7a4fa9713720
+  version: git-8c8c91f-build-295-2025-12-04
+
+type2_runtime:
+  architecture: x86_64
+  source: https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
+  source_channel_mutable: true
+  exact_hash_mismatch_fails_closed: true
+  identified_at_utc: 2026-08-24T14:55:28Z
+  size_bytes: 944632
+  sha256: 1cc49bcf1e2ccd593c379adb17c9f85a36d619088296504de95b1d06215aebbf
+  license: MIT
+  relationship: embedded_executable_prefix_not_first_party_source

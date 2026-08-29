@@ -1,0 +1,77 @@
+id: writing.drafting_helper
+name: Drafting Helper
+version: 0.1.0
+status: draft
+
+purpose: >
+  Draft, revise, restructure, and polish written material while preserving user intent,
+  tone goals, clarity, and policy alignment.
+
+triggers:
+  - draft this
+  - rewrite this
+  - improve this writing
+  - help me word this
+  - make this clearer
+  - revise this message
+
+inputs:
+  required:
+    - writing_task
+  optional:
+    - source_text
+    - tone_goal
+    - audience
+    - format_constraints
+
+permissions:
+  network_access: none
+  file_read: false
+  file_write: false
+  shell_access: false
+  external_posting: false
+
+memory_access:
+  read:
+    - preference_memory
+    - conversation_memory
+  write:
+    - conversation_memory
+
+risk_level: low
+
+approval_required_when:
+  - drafting shifts into external action
+  - sensitive private material is being persisted
+  - the requested output appears deceptive or manipulative
+  - confidence is too low for a reliable draft
+
+steps:
+  - interpret the writing goal
+  - identify audience, tone, and format constraints
+  - preserve the user's core meaning and intent
+  - produce or revise the draft with clarity and coherence
+  - flag uncertainty or ethical concern if present
+  - return the draft and suggested refinement path
+
+verification:
+  - consistency with personality policy
+  - preserves meaning without unwanted distortion
+  - avoids unsupported claims
+  - avoids manipulative or deceptive framing
+
+output_schema:
+  summary: string
+  draft: string
+  refinement_suggestion: string
+  caveats: list
+
+failure_modes:
+  - unclear writing goal
+  - insufficient source context
+  - policy boundary hit
+  - confidence too low for reliable drafting
+
+notes: >
+  This skill should help the user express meaning more clearly without flattening voice,
+  inventing facts, or smuggling in manipulation.

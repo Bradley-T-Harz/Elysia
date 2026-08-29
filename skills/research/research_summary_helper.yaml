@@ -1,0 +1,80 @@
+id: research.research_summary_helper
+name: Research Summary Helper
+version: 0.1.0
+status: draft
+
+purpose: >
+  Summarize, compare, and organize research material or evidence while preserving
+  provenance awareness, uncertainty, and clarity.
+
+triggers:
+  - summarize this research
+  - compare these sources
+  - what does the evidence say
+  - give me a literature summary
+  - organize these findings
+  - map the main claims
+
+inputs:
+  required:
+    - research_topic
+  optional:
+    - source_set
+    - scope
+    - comparison_goal
+    - audience
+    - source_constraints
+
+permissions:
+  network_access: none
+  file_read: false
+  file_write: false
+  shell_access: false
+  external_posting: false
+
+memory_access:
+  read:
+    - research_memory
+    - project_memory
+    - conversation_memory
+  write:
+    - conversation_memory
+
+risk_level: low
+
+approval_required_when:
+  - research shifts into active external research
+  - sensitive private material is being persisted
+  - the summary could be mistaken for verified high-confidence guidance without caveats
+  - confidence is too low for a reliable synthesis
+
+steps:
+  - interpret the research question or synthesis goal
+  - identify the relevant sources or evidence set
+  - extract major claims, agreements, disagreements, and uncertainties
+  - organize findings in a clear structure
+  - preserve caveats and avoid overstating confidence
+  - return a concise synthesis and suggested next research step
+
+verification:
+  - consistency with source policy
+  - no unsupported certainty
+  - distinguishes evidence from interpretation
+  - preserves uncertainty and methodological caution
+
+output_schema:
+  summary: string
+  main_findings: list
+  contested_points: list
+  caveats: list
+  suggested_next_step: string
+
+failure_modes:
+  - unclear research goal
+  - insufficient source context
+  - policy boundary hit
+  - confidence too low for reliable synthesis
+
+notes: >
+  This skill should synthesize responsibly, not pretend that summary equals certainty.
+  It should help organize evidence without laundering weak claims into strong ones.

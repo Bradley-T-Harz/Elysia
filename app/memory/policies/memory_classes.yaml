@@ -1,0 +1,324 @@
+version: "1.0"
+
+notes: |
+  Default constitutional posture for each memory class.
+  This file defines class temperament and baseline permissions.
+  Cross-cutting privacy, retention, mutation-verb, and promotion law belong in the other policy files.
+
+classes:
+  working:
+    default_sensitivity: internal
+    default_mutability: live_editable
+    default_status: active
+    allowed_mutations:
+      - create
+      - revise
+      - append_note
+      - supersede
+      - archive
+      - restore
+      - pin
+      - unpin
+      - reclassify
+      - change_sensitivity
+      - change_mutability
+      - promote
+      - demote
+      - merge
+      - forget_request
+      - block
+      - unblock
+    blocked_mutations: []
+    review_required_mutations:
+      - change_sensitivity
+      - change_mutability
+      - reclassify
+      - merge
+      - forget_request
+    autonomous_create_allowed: true
+    autonomous_update_allowed: true
+    autonomous_archive_allowed: true
+    autonomous_forget_allowed: false
+    append_only_default: false
+    immutable_default: false
+    durable_by_default: false
+    allow_direct_user_edit: true
+
+  conversation:
+    default_sensitivity: internal
+    default_mutability: live_editable
+    default_status: active
+    allowed_mutations:
+      - create
+      - revise
+      - append_note
+      - supersede
+      - archive
+      - restore
+      - pin
+      - unpin
+      - reclassify
+      - change_sensitivity
+      - change_mutability
+      - promote
+      - demote
+      - merge
+      - forget_request
+      - block
+      - unblock
+    blocked_mutations: []
+    review_required_mutations:
+      - change_sensitivity
+      - change_mutability
+      - reclassify
+      - merge
+      - forget_request
+    autonomous_create_allowed: true
+    autonomous_update_allowed: true
+    autonomous_archive_allowed: true
+    autonomous_forget_allowed: false
+    append_only_default: false
+    immutable_default: false
+    durable_by_default: true
+    allow_direct_user_edit: true
+
+  project:
+    default_sensitivity: internal
+    default_mutability: live_editable
+    default_status: active
+    allowed_mutations:
+      - create
+      - revise
+      - append_note
+      - supersede
+      - archive
+      - restore
+      - pin
+      - unpin
+      - reclassify
+      - change_sensitivity
+      - change_mutability
+      - promote
+      - demote
+      - merge
+      - forget_request
+      - block
+      - unblock
+    blocked_mutations: []
+    review_required_mutations:
+      - change_sensitivity
+      - change_mutability
+      - reclassify
+      - demote
+      - merge
+      - forget_request
+    autonomous_create_allowed: true
+    autonomous_update_allowed: true
+    autonomous_archive_allowed: true
+    autonomous_forget_allowed: false
+    append_only_default: false
+    immutable_default: false
+    durable_by_default: true
+    allow_direct_user_edit: true
+
+  research:
+    default_sensitivity: internal
+    default_mutability: append_only
+    default_status: active
+    allowed_mutations:
+      - create
+      - revise
+      - append_note
+      - supersede
+      - archive
+      - restore
+      - pin
+      - unpin
+      - reclassify
+      - change_sensitivity
+      - change_mutability
+      - promote
+      - demote
+      - merge
+      - forget_request
+      - block
+      - unblock
+    blocked_mutations: []
+    review_required_mutations:
+      - revise
+      - supersede
+      - reclassify
+      - change_sensitivity
+      - change_mutability
+      - promote
+      - demote
+      - merge
+      - forget_request
+    autonomous_create_allowed: true
+    autonomous_update_allowed: false
+    autonomous_archive_allowed: true
+    autonomous_forget_allowed: false
+    append_only_default: true
+    immutable_default: false
+    durable_by_default: true
+    allow_direct_user_edit: true
+
+  operational:
+    default_sensitivity: internal
+    default_mutability: live_editable
+    default_status: active
+    allowed_mutations:
+      - create
+      - revise
+      - append_note
+      - supersede
+      - archive
+      - restore
+      - pin
+      - unpin
+      - reclassify
+      - change_sensitivity
+      - change_mutability
+      - promote
+      - demote
+      - merge
+      - forget_request
+      - block
+      - unblock
+    blocked_mutations: []
+    review_required_mutations:
+      - change_sensitivity
+      - change_mutability
+      - reclassify
+      - merge
+      - forget_request
+    autonomous_create_allowed: true
+    autonomous_update_allowed: true
+    autonomous_archive_allowed: true
+    autonomous_forget_allowed: false
+    append_only_default: false
+    immutable_default: false
+    durable_by_default: true
+    allow_direct_user_edit: true
+
+  preference:
+    default_sensitivity: internal
+    default_mutability: review_required
+    default_status: active
+    allowed_mutations:
+      - create
+      - revise
+      - append_note
+      - supersede
+      - archive
+      - restore
+      - pin
+      - unpin
+      - change_sensitivity
+      - change_mutability
+      - promote
+      - demote
+      - forget_request
+      - block
+      - unblock
+    blocked_mutations:
+      - merge
+      - reclassify
+    review_required_mutations:
+      - create
+      - revise
+      - supersede
+      - change_sensitivity
+      - change_mutability
+      - promote
+      - demote
+      - forget_request
+    autonomous_create_allowed: true
+    autonomous_update_allowed: false
+    autonomous_archive_allowed: false
+    autonomous_forget_allowed: false
+    append_only_default: false
+    immutable_default: false
+    durable_by_default: true
+    allow_direct_user_edit: true
+
+  sealed_private:
+    default_sensitivity: sealed
+    default_mutability: review_required
+    default_status: active
+    allowed_mutations:
+      - create
+      - revise
+      - append_note
+      - archive
+      - restore
+      - pin
+      - unpin
+      - change_sensitivity
+      - change_mutability
+      - forget_request
+      - block
+      - unblock
+    blocked_mutations:
+      - supersede
+      - reclassify
+      - promote
+      - demote
+      - merge
+    review_required_mutations:
+      - create
+      - revise
+      - append_note
+      - archive
+      - restore
+      - change_sensitivity
+      - change_mutability
+      - forget_request
+      - block
+      - unblock
+    autonomous_create_allowed: false
+    autonomous_update_allowed: false
+    autonomous_archive_allowed: false
+    autonomous_forget_allowed: false
+    append_only_default: false
+    immutable_default: false
+    durable_by_default: true
+    allow_direct_user_edit: true
+
+  audit:
+    default_sensitivity: internal
+    default_mutability: append_only
+    default_status: active
+    allowed_mutations:
+      - create
+      - append_note
+      - archive
+      - restore
+      - change_sensitivity
+      - block
+      - unblock
+    blocked_mutations:
+      - revise
+      - supersede
+      - pin
+      - unpin
+      - reclassify
+      - change_mutability
+      - promote
+      - demote
+      - merge
+      - forget_request
+    review_required_mutations:
+      - archive
+      - restore
+      - change_sensitivity
+      - block
+      - unblock
+    autonomous_create_allowed: true
+    autonomous_update_allowed: false
+    autonomous_archive_allowed: false
+    autonomous_forget_allowed: false
+    append_only_default: true
+    immutable_default: false
+    durable_by_default: true
+    allow_direct_user_edit: false

@@ -1,0 +1,18 @@
+{
+  "contract_version": 1,
+  "change_control": "An established Desktop surface may be removed, hidden, or replaced only after the release owner explicitly approves that named surface for deprecation.",
+  "surfaces": [
+    { "id": "home", "label": "Chamber", "component": "HomePage" },
+    { "id": "conversations", "label": "Conversations", "component": "ConversationsPage" },
+    { "id": "projects", "label": "Projects", "component": "ProjectsPage" },
+    { "id": "artifacts", "label": "Artifacts", "component": "ArtifactsPage" },
+    { "id": "requests", "label": "Requests", "component": "RequestsPage" },
+    { "id": "memory", "label": "Memory", "component": "MemoryPage" },
+    { "id": "user_profile", "label": "Personal Identity", "component": "UserProfilePage" },
+    { "id": "governance", "label": "Governance", "component": "GovernancePage" },
+    { "id": "capabilities", "label": "Capabilities", "component": "CapabilitiesPage" },
+    { "id": "addons", "label": "Add-ons", "component": "AddonsPage" },
+    { "id": "health", "label": "Health", "component": "HealthPage" },
+    { "id": "admin", "label": "Admin", "component": "AdminPage", "visibility": "installation_owner_or_admin_only" }
+  ]
+}

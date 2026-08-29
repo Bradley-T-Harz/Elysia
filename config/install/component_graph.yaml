@@ -1,0 +1,279 @@
+version: 1
+contract_version: elysia-component-profile-graph-1.0
+release_target: 1.0.0
+authority: authoritative
+legacy_inputs:
+  profiles_yaml: compatibility_runtime_projection
+  dependency_catalog_yaml: exact_dependency_detail
+pass_iii_evidence_root: Pass_10D_III_Evidence_2026-08-24
+
+lifecycle_defaults: &lifecycle_defaults
+  privilege_requirements: user_local_no_silent_sudo
+  cancellation_stop_behavior: bounded_cancel_then_cleanup_owned_processes
+  update_behavior: verify_stage_checkpoint_activate_doctor_or_rollback
+  uninstall_behavior: remove_package_owned_bytes_preserve_account_data_by_default
+  data_preservation_behavior: preserve_xdg_identity_memory_projects_conversations_and_user_configuration
+
+components:
+  core_python_runtime:
+    <<: *lifecycle_defaults
+    component_id: core_python_runtime
+    exact_version_digest: python-3.12 / config/install/locks/core-py312.lock.txt sha256:d009afa72031c7377b04114218f364d4bae3319d6f3f320e41ca4acd0a787214
+    owning_profile: core
+    required_components: []
+    optional_components: [local_model_provider]
+    conflicts: []
+    system_dependencies: [glibc, libexpat, sqlite3, cairo, pango]
+    runtime_environment: package_owned_onefile_core
+    models_assets: []
+    license_provenance_record: components/DEPENDENCY_COMPONENT_MATRIX.tsv#python-core
+    network_behavior: loopback_api_only; no external egress by default
+    health_probe: core_python_imports_and_packaged_required_route_smoke
+    doctor_checks: [core_profile, local_api, local_api_auth, runtime_package_integrity]
+    capability_ids: [ELY-COG-001, ELY-COG-002, ELY-COG-003, ELY-INS-001, X-BLANK-001]
+
+  desktop_shell:
+    <<: *lifecycle_defaults
+    component_id: desktop_shell
+    exact_version_digest: Elysia Desktop 1.0.0 package-lock sha256:e6babe7cac0b923caa6d38a17e793708a9375e38cc52108c93ef2dde9ac16dfe + Cargo.lock sha256:64f3ebd300852ffc4e6645811b696c1c2b3c5ee9dbfda7f53be91679b42dd86b
+    owning_profile: core
+    required_components: [core_python_runtime, identity_memory_fabric]
+    optional_components: []
+    conflicts: []
+    system_dependencies: [webkit2gtk, gtk3, libappindicator, librsvg]
+    runtime_environment: tauri_linux_desktop
+    models_assets: [first_party_icons_and_desktop_artwork]
+    license_provenance_record: package_content/ELYSIA_PACKAGE_CONTENT_RECONCILIATION.md
+    network_behavior: loopback_bridge_only; external links require explicit user action
+    health_probe: desktop_api_contract_and_native_lifecycle
+    doctor_checks: [desktop_api_contract, desktop_package_integrity, launcher_icon_protocol]
+    capability_ids: [ELY-UI-001, ELY-PROJ-001, ELY-PROJ-002, ELY-PROJ-004]
+
+  identity_memory_fabric:
+    <<: *lifecycle_defaults
+    component_id: identity_memory_fabric
+    exact_version_digest: canonical-memory-schema-v4 + identity-schema-v1
+    owning_profile: core
+    required_components: [core_python_runtime]
+    optional_components: [semantic_retrieval]
+    conflicts: []
+    system_dependencies: [sqlite3]
+    runtime_environment: private_xdg_account_scoped
+    models_assets: []
+    license_provenance_record: tracked source provenance rows for app/memory and app/api/account_service.py
+    network_behavior: no external egress; no public Identity federation
+    health_probe: memory_integrity_keys_projections_backups_and_identity_authority
+    doctor_checks: [identity_account_db, memory_fabric, memory_release_state, memory_fts_projection, backups]
+    capability_ids: [ELY-ID-001, ELY-MEM-001, ELY-MEM-002, ELY-MEM-003, ELY-MEM-004, ELY-MEM-005, ELY-MEM-006, ELY-MEM-007, ELY-MEM-008, ELY-MEM-009, ELY-MEM-010, ELY-MEM-011, ELY-MEM-012, ELY-MEM-013, ELY-MEM-014, ELY-RET-001, ELY-ADM-001, X-ID-001]
+
+  personal_onboarding:
+    <<: *lifecycle_defaults
+    component_id: personal_onboarding
+    exact_version_digest: elysia-personal-onboarding-1.0 + questionnaire sha256:004c768258ec7c455b20258c633baefadff41cb10f3f3272f701076b02d5fb12
+    owning_profile: core
+    required_components: [identity_memory_fabric]
+    optional_components: []
+    conflicts: []
+    system_dependencies: []
+    runtime_environment: encrypted_account_owned_post_install_flow
+    models_assets: [config/onboarding/personal_questionnaire.yaml]
+    license_provenance_record: first_party tracked source and questionnaire contract
+    network_behavior: external_egress_prohibited
+    health_probe: encrypted_draft_and_reviewed_import_contract
+    doctor_checks: [onboarding_storage, onboarding_account_scope]
+    capability_ids: [X-BLANK-001]
+
+  local_model_provider:
+    <<: *lifecycle_defaults
+    component_id: local_model_provider
+    exact_version_digest: externally_acquired_ollama_and_user_selected_model_manifest
+    owning_profile: core
+    required_components: []
+    optional_components: []
+    conflicts: [silent_cloud_fallback]
+    system_dependencies: [ollama_optional]
+    runtime_environment: loopback_external_local_provider
+    models_assets: [user_selected_non_bundled_models]
+    license_provenance_record: MODEL_VOICE_ASSET_MATRIX.tsv
+    network_behavior: loopback at runtime; acquisition only after exact approval
+    health_probe: ollama_loopback_and_model_role_truth
+    doctor_checks: [ollama_reachability, model_manifest_and_license]
+    capability_ids: []
+
+  workstation_adapters:
+    <<: *lifecycle_defaults
+    component_id: workstation_adapters
+    exact_version_digest: config/install/locks/workstation-py312.lock.txt sha256:ceae506d23ac7d4c2536c3a856153a6c7f86121e8949cbf808b020a09c0c9c2f
+    owning_profile: workstation_research
+    required_components: [core_python_runtime]
+    optional_components: [governed_research, semantic_retrieval]
+    conflicts: []
+    system_dependencies: [ffmpeg, ffprobe, tesseract, libmagic]
+    runtime_environment: isolated_workstation_python_profile
+    models_assets: []
+    license_provenance_record: components/DEPENDENCY_COMPONENT_MATRIX.tsv#python-workstation
+    network_behavior: disabled unless a governed connector/research action is approved
+    health_probe: adapter_imports_and_bounded_system_tool_versions
+    doctor_checks: [workstation_python_imports, ffmpeg_and_ffprobe, tesseract_if_ocr_enabled]
+    capability_ids: []
+
+  governed_research:
+    <<: *lifecycle_defaults
+    component_id: governed_research
+    exact_version_digest: docker.io/searxng/searxng@sha256:bbd44b09b83e4ea8b8ab80953e5eed24837ff02d00fc752bd1762b9fc244eaa9
+    owning_profile: workstation_research
+    required_components: [core_python_runtime]
+    optional_components: []
+    conflicts: [public_unbounded_search_endpoint]
+    system_dependencies: [rootless_podman_or_bounded_docker]
+    runtime_environment: rootless_loopback_container
+    models_assets: []
+    license_provenance_record: components/DEPENDENCY_COMPONENT_MATRIX.tsv#searxng
+    network_behavior: explicit Internet master + approved public query; sensitive egress gate remains active
+    health_probe: searxng_loopback_confinement_and_timeout
+    doctor_checks: [searxng_reachability, container_confinement]
+    capability_ids: [ELY-RES-001, ELY-PROJ-003]
+
+  semantic_retrieval:
+    <<: *lifecycle_defaults
+    component_id: semantic_retrieval
+    exact_version_digest: qdrant sha256:a0e04fe623cb064502cd869cefc1dc7ce359d8edd481063b5bd351c0a0a2c91e + qwen sha256-06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439
+    owning_profile: workstation_research
+    required_components: [identity_memory_fabric]
+    optional_components: []
+    conflicts: [qdrant_cloud, private_or_sealed_vectorization]
+    system_dependencies: [rootless_podman_or_bounded_docker, ollama]
+    runtime_environment: authenticated_loopback_projection
+    models_assets: [qwen3-embedding-0.6b]
+    license_provenance_record: MODEL_VOICE_ASSET_MATRIX.tsv#qwen3-embedding and components matrix qdrant
+    network_behavior: loopback only after explicit acquisition
+    health_probe: qdrant_auth_dimension_projection_and_privacy_exclusion
+    doctor_checks: [qdrant_loopback_authenticated, qwen3_embedding_local_model, semantic_private_and_sealed_exclusion]
+    capability_ids: [ELY-RET-002]
+
+  creator_perception:
+    <<: *lifecycle_defaults
+    component_id: creator_perception
+    exact_version_digest: creator-cpu-py312 sha256:564fcbcb26d02fa0026d9335f725cc46161c15d346a4339b47d03fa325ba7c3d or creator-cuda-py312 sha256:1dc3afd76f80af0155d3aca2546eef4e4580b670dd17fa8045c68f59be195efd + approved model acquisition manifests
+    owning_profile: creator_perception
+    required_components: [workstation_adapters]
+    optional_components: []
+    conflicts: [silent_model_downloads, unconsented_voice_likeness, cloud_inference_default]
+    system_dependencies: [ffmpeg, rootless_sandbox]
+    runtime_environment: isolated_creator_workers
+    models_assets: [kokoro_tts_assets, imageforge_assets, approved_creator_models]
+    license_provenance_record: MODEL_VOICE_ASSET_MATRIX.tsv
+    network_behavior: runtime disabled; exact model acquisition only after license/resource preview and consent
+    health_probe: hardware_selected_worker_environment_model_manifest_resource_and_cancellation
+    doctor_checks: [creator_model_vault, model_license_and_provenance, disk_ram_vram_and_cuda, cancellation_and_resource_limits]
+    capability_ids: [ELY-CRE-001, ELY-CRE-002, ELY-CRE-003, ELY-CRE-004]
+
+  codev_companion:
+    <<: *lifecycle_defaults
+    component_id: codev_companion
+    exact_version_digest: Codev 1.0.0 package-lock sha256:c5a5445bbea7d2f3b1bbab7fa4837451425c5949ce8057bef67cfba6d46361e8 + qualified VSIX sha256:5cbb9298e0d9f56797b95854e4cf07db84fe2d7fc00deb7bc3364d503451f6ff
+    owning_profile: developer_codev
+    required_components: [core_python_runtime, desktop_shell]
+    optional_components: []
+    conflicts: [unapproved_repository, arbitrary_shell, network_authority, git_push_authority]
+    system_dependencies: [vscode, git]
+    runtime_environment: vscode_extension_host_and_packaged_elysia
+    models_assets: []
+    license_provenance_record: Codev LICENSES and VSIX THIRD_PARTY_NOTICES
+    network_behavior: no independent network or publication authority
+    health_probe: exact_vsix_contract_workspace_trust_repo_approval_and_revocation
+    doctor_checks: [codev_contract, vscode_engine_compatibility, codev_repo_approval]
+    capability_ids: [ELY-CODE-001, CODEV-001, CODEV-002, CODEV-003, X-PKG-001]
+
+  scientific_engineering:
+    <<: *lifecycle_defaults
+    component_id: scientific_engineering
+    exact_version_digest: config/install/locks/neurofabric-cpu-py312.lock.txt sha256:fffeb73ba3e990d060c0b9d377941e8c55f1a88f5504e94b56ec664a8dfdeaea or neurofabric-cuda-py312.lock.txt sha256:67528f22346a0dc7effe300a92b00b111461934124f56f05c8326e024945957a selected by hardware proof
+    owning_profile: scientific_engineering_mega
+    required_components: [workstation_adapters]
+    optional_components: []
+    conflicts: [simultaneous_cpu_cuda_environment, unsupported_cuda_activation]
+    system_dependencies: [cpu_baseline, optional_supported_nvidia_driver]
+    runtime_environment: isolated_elysia_neurofabric
+    models_assets: []
+    license_provenance_record: components/DEPENDENCY_COMPONENT_MATRIX.tsv#neurofabric
+    network_behavior: disabled at runtime; wheel acquisition after variant approval
+    health_probe: cpu_fallback_or_supported_cuda_driver_vram_and_oom_recovery
+    doctor_checks: [neurofabric_environment_isolation, neurofabric_cpu_fallback, neurofabric_gpu_and_driver]
+    capability_ids: []
+
+  local_connectors:
+    <<: *lifecycle_defaults
+    component_id: local_connectors
+    exact_version_digest: source-contract-v1 connectors
+    owning_profile: workstation_research
+    required_components: [core_python_runtime]
+    optional_components: []
+    conflicts: [ambient_identity_sync, ambient_memory_sync]
+    system_dependencies: []
+    runtime_environment: account_scoped_consent_receipts
+    models_assets: []
+    license_provenance_record: tracked source provenance rows for marketplace and connector services
+    network_behavior: disabled until explicit connector scope and Internet consent
+    health_probe: connector_scope_revocation_and_no_ambient_sync
+    doctor_checks: [connector_receipts_and_revocation]
+    capability_ids: [ELY-CON-001, X-MKT-001, X-ART-001]
+
+profiles:
+  core:
+    display_name: Core
+    extends: []
+    required_components: [core_python_runtime, desktop_shell, identity_memory_fabric, personal_onboarding]
+    optional_components: [local_model_provider]
+    hardware_policy: cpu_useful_without_gpu
+    runtime_projection: {active_profile: core, additional_profiles: []}
+  workstation_research:
+    display_name: Workstation / Research
+    extends: [core]
+    required_components: [workstation_adapters, governed_research, semantic_retrieval, local_connectors]
+    optional_components: []
+    hardware_policy: cpu_supported
+    runtime_projection: {active_profile: workstation, additional_profiles: [semantic_local]}
+  creator_perception:
+    display_name: Creator / Perception
+    extends: [workstation_research]
+    required_components: [creator_perception]
+    optional_components: []
+    hardware_policy: doctor_selects_cpu_or_supported_gpu_behavior
+    runtime_projection: {active_profile: creator, additional_profiles: [semantic_local]}
+  developer_codev:
+    display_name: Developer / Codev
+    extends: [core]
+    required_components: [codev_companion]
+    optional_components: []
+    hardware_policy: cpu_supported
+    runtime_projection: {active_profile: developer, additional_profiles: []}
+  scientific_engineering_mega:
+    display_name: Scientific / Engineering MEGA
+    extends: [workstation_research]
+    required_components: [scientific_engineering]
+    optional_components: []
+    hardware_policy: cpu_variant_required; cuda_variant only after supported_driver_and_resource_proof
+    runtime_projection: {active_profile: workstation, additional_profiles: [semantic_local, neurofabric_cpu]}
+  complete_v1_mega:
+    display_name: Complete Elysia v1 MEGA
+    extends: [creator_perception, developer_codev, scientific_engineering_mega]
+    required_components: [local_model_provider]
+    optional_components: []
+    hardware_policy: install_only_hardware_supported_variants_and_report_degraded_or_blocked_truthfully
+    runtime_projection: {active_profile: creator, additional_profiles: [developer, semantic_local, neurofabric_cpu]}
+  custom:
+    display_name: Custom
+    extends: [core]
+    required_components: []
+    optional_components: [workstation_adapters, governed_research, semantic_retrieval, creator_perception, codev_companion, scientific_engineering, local_connectors, local_model_provider]
+    hardware_policy: same_graph_validation_as_named_profiles
+    runtime_projection: {active_profile: core, additional_profiles: []}
+
+custom_constraints:
+  core_components_mandatory: true
+  reject_unknown_components: true
+  reject_conflicts: true
+  profile_selection_grants_operation_approval: false
+  no_source_forks: true
+  memory_and_governance_mandatory: true

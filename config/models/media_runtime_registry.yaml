@@ -1,0 +1,44 @@
+version: 1
+runtimes:
+  - id: whisper-cpp
+    capability: speech_to_text
+    status: available
+    declared_license: MIT
+    license_evidence: local_source_license_present
+    provenance_status: runtime_mit_model_apache_2_0_verified_2026_08_24
+    boundary: speechforge_subprocess_only
+  - id: kokoro-onnx
+    capability: text_to_speech
+    status: available
+    declared_license: Apache-2.0
+    license_evidence: official_kokoro_82m_model_card_and_repository_license_verified_2026_08_24
+    provenance_status: model_and_published_voice_assets_verified_official_kokoro_distribution
+    boundary: speechforge_subprocess_only_non_cloning
+  - id: torch-imageforge
+    capability: image_generation_runtime
+    status: lab_only
+    declared_license: BSD-3-Clause
+    license_evidence: exact_pypi_version_metadata_verified_2026_08_24
+    provenance_status: runtime_only_model_gates_apply_separately
+    boundary: imageforge_subprocess_only
+  - id: diffusers-imageforge
+    capability: image_generation_runtime
+    status: lab_only
+    declared_license: Apache-2.0
+    license_evidence: exact_pypi_version_metadata_verified_2026_08_24
+    provenance_status: runtime_only_model_gates_apply_separately
+    boundary: imageforge_subprocess_only
+  - id: torch-videoforge
+    capability: video_generation_runtime
+    status: lab_only
+    declared_license: BSD-3-Clause
+    license_evidence: exact_pypi_version_metadata_verified_2026_08_24
+    provenance_status: runtime_only_model_gates_apply_separately
+    boundary: videoforge_subprocess_only
+  - id: diffusers-videoforge
+    capability: video_generation_runtime
+    status: lab_only
+    declared_license: Apache-2.0
+    license_evidence: exact_pypi_version_metadata_verified_2026_08_24
+    provenance_status: runtime_only_model_gates_apply_separately
+    boundary: videoforge_subprocess_only

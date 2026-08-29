@@ -1,0 +1,300 @@
+conversation_metadata_schema:
+  name: conversation_metadata_schema
+  purpose: >
+    Shared compact metadata object describing a conversation container for Phase 1 UI
+    and local API use. This schema supports conversation listing, headers, recent-item
+    displays, chat linkage, and later request/project association without implying that
+    full thread persistence or message-history transport is already mature.
+  phase_scope: phase_1
+  reused_by:
+    - conversations_list
+    - conversation_header
+    - recent_conversations
+    - chat_send_schema
+    - future_request_summary_views
+    - future_project_linkage_views
+
+  governing_rules:
+    - >
+      This schema describes the conversation container, not the individual messages.
+    - >
+      It must not imply mature persistence, full message-history transport, or direct
+      control authority over routing, roles, or runtime behavior.
+    - >
+      Fields marked partial, planned, or empty-capable must be rendered honestly by the UI.
+    - >
+      This schema helps the UI describe conversation truth; it does not authorize control.
+
+  conversation_state_semantics:
+    description: >
+      State of the conversation record itself, not the full system and not the capability
+      state of a runtime path.
+    allowed_values:
+      - active
+      - inactive
+      - archived
+      - planned
+      - unknown
+
+  fields:
+    conversation_id:
+      type: string
+      required: true
+      live_state: live
+      description: >
+        Stable identifier for the conversation container.
+      notes:
+        - May be generated locally by the UI or backend depending on implementation phase.
+        - Must not be confused with request_id from the response envelope.
+
+    title:
+      type: string
+      required: false
+      live_state: partial
+      description: >
+        Human-facing conversation title for list and header use.
+      notes:
+        - May be user-supplied, generated, or empty in early Phase 1.
+        - UI should tolerate empty or placeholder titles honestly.
+
+    created_at_utc:
+      type: string
+      format: iso_8601_utc
+      required: false
+      live_state: partial
+      description: >
+        UTC timestamp for when the conversation container was created.
+      notes:
+        - May be absent until conversation persistence is fully live.
+
+    updated_at_utc:
+      type: string
+      format: iso_8601_utc
+      required: false
+      live_state: partial
+      description: >
+        UTC timestamp for the most recent meaningful update to the conversation container.
+      notes:
+        - Useful for sorting and recent-conversation rendering.
+
+    last_message_preview:
+      type: string
+      required: false
+      live_state: partial
+      description: >
+        Short preview text representing the latest user-visible exchange.
+      notes:
+        - May be generated from the last user message, the last response, or a compact summary.
+        - Must not imply full thread/history retrieval support by itself.
+
+    message_count:
+      type: integer
+      required: false
+      live_state: partial
+      description: >
+        Count of messages associated with the conversation container when available.
+      minimum: 0
+      notes:
+        - May be absent or approximate during early Phase 1.
+
+    current_mode:
+      type: string
+      required: false
+      live_state: live
+      description: >
+        Most recent or currently relevant mode posture associated with the conversation.
+      notes:
+        - Informational only.
+        - Must not be interpreted as a direct control field.
+
+    current_role:
+      type: string
+      required: false
+      live_state: live
+      description: >
+        Most recent or currently relevant routed role expression associated with the conversation.
+      allowed_examples:
+        - primary_general
+        - primary_code
+        - lighter_backup
+        - optional_fallback
+      notes:
+        - Informational summary only.
+        - Governed routing remains authoritative.
+
+    capability_state:
+      type: string
+      required: true
+      live_state: live
+      description: >
+        Capability truth relevant to how this conversation should be rendered or resumed.
+      allowed_values:
+        - live
+        - inactive
+        - planned
+        - unknown
+        - unavailable
+        - degraded
+      notes:
+        - Use canonical trust-language semantics.
+
+    locality:
+      type: string
+      required: true
+      live_state: live
+      description: >
+        Whether the conversation's current/resumable path is local, crossed an external boundary,
+        or is not yet known.
+      allowed_values:
+        - local
+        - crossed_boundary
+        - unknown
+      notes:
+        - Must be stated explicitly, not inferred by the UI.
+
+    approval_state:
+      type: string
+      required: true
+      live_state: partial
+      description: >
+        Broad approval posture relevant to resuming or continuing work in this conversation.
+      allowed_values:
+        - not_needed
+        - needed
+        - approved
+        - denied
+        - unknown
+      notes:
+        - This is a trust-surface summary, not a full approval workflow object.
+
+    project_id:
+      type: string
+      required: false
+      live_state: planned
+      description: >
+        Optional project linkage identifier for future project-aware conversation views.
+      notes:
+        - May be absent until project linkage is actually live.
+
+    archived:
+      type: boolean
+      required: true
+      live_state: live
+      description: >
+        Whether the conversation is archived from the primary active view.
+      default: false
+
+    pinned:
+      type: boolean
+      required: true
+      live_state: live
+      description: >
+        Whether the conversation is pinned for UI prominence.
+      default: false
+
+    conversation_state:
+      type: string
+      required: true
+      live_state: live
+      description: >
+        State of the conversation container itself.
+      allowed_values:
+        - active
+        - inactive
+        - archived
+        - planned
+        - unknown
+
+  semantic_rules:
+    - >
+      conversation_id identifies the conversation container, not a specific request and not
+      a specific message.
+    - >
+      title, last_message_preview, and message_count must not be treated as proof that full
+      thread retrieval/persistence is mature unless that capability is separately live.
+    - >
+      current_mode and current_role are descriptive summary fields only.
+      They do not authorize direct UI control over runtime routing.
+    - >
+      capability_state, locality, and approval_state should follow the same canonical semantics
+      used elsewhere in the UI/API contract.
+    - >
+      archived and conversation_state are related but not identical.
+      archived is a simple boolean UI management field; conversation_state is the broader
+      metadata state of the conversation container.
+    - >
+      This schema must remain compact and reusable across list, header, and linkage surfaces.
+
+  live_planned_guidance:
+    description: >
+      Honest implementation-readiness guidance for Phase 1.
+    likely_live:
+      - conversation_id
+      - current_mode
+      - current_role
+      - capability_state
+      - locality
+      - archived
+      - pinned
+      - conversation_state
+    likely_partial:
+      - title
+      - created_at_utc
+      - updated_at_utc
+      - last_message_preview
+      - message_count
+      - approval_state
+    likely_planned:
+      - project_id
+
+  examples:
+    minimal_active_conversation:
+      conversation_id: conv_20260323_0001
+      title: ""
+      created_at_utc: ""
+      updated_at_utc: ""
+      last_message_preview: ""
+      message_count: 0
+      current_mode: chat
+      current_role: primary_general
+      capability_state: live
+      locality: local
+      approval_state: not_needed
+      project_id: ""
+      archived: false
+      pinned: false
+      conversation_state: active
+
+    recent_conversation_with_preview:
+      conversation_id: conv_20260323_0002
+      title: "UI contract planning"
+      created_at_utc: "2026-03-23T05:20:00Z"
+      updated_at_utc: "2026-03-23T06:10:00Z"
+      last_message_preview: "Next concrete step: /chat/send schema."
+      message_count: 18
+      current_mode: planning
+      current_role: primary_general
+      capability_state: live
+      locality: local
+      approval_state: not_needed
+      project_id: ""
+      archived: false
+      pinned: true
+      conversation_state: active
+
+    archived_partial_conversation:
+      conversation_id: conv_20260318_0007
+      title: "Old runtime notes"
+      created_at_utc: "2026-03-18T02:00:00Z"
+      updated_at_utc: "2026-03-18T04:30:00Z"
+      last_message_preview: "Need to revisit runtime wording."
+      message_count: 9
+      current_mode: research
+      current_role: primary_general
+      capability_state: inactive
+      locality: local
+      approval_state: unknown
+      project_id: ""
+      archived: true
+      pinned: false
+      conversation_state: archived

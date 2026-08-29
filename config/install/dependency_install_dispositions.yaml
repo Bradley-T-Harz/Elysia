@@ -1,0 +1,292 @@
+version: 1
+contract_version: elysia-dependency-install-dispositions-1.0
+authority: authoritative_setup_dependency_projection
+
+category_definitions:
+  A: bundled_legally_and_technically_with_elysia
+  B: automatically_acquired_by_setup_after_exact_disclosure_and_approval
+  C: installed_by_setup_through_the_operating_system_after_exact_privilege_preview
+  D: detected_and_reused_from_an_existing_valid_local_installation
+  E: documented_user_action_required_because_automatic_installation_is_not_reasonable_or_legally_appropriate
+
+rules:
+  every_catalog_dependency_classified_once: true
+  every_graph_system_dependency_classified_once: true
+  every_runtime_dependency_owned_by_component_graph: true
+  selected_profile_dependencies_owned_by_component_graph: true
+  automatic_download_requires_exact_identity_size_source_and_approval: true
+  system_mutation_requires_exact_polkit_preview: true
+  category_e_requires_complete_guidance: true
+  profile_selection_grants_acquisition_approval: false
+  private_data_egress_during_install: false
+
+# These remain classified so the full source/build universe is auditable, but
+# they are contributor tools rather than dependencies of a packaged profile.
+contributor_only_dependency_ids:
+  - pytest
+  - httpx
+  - nodejs_npm
+  - rust_cargo
+
+component_dependency_ids:
+  core_python_runtime:
+    - fastapi
+    - uvicorn
+    - pydantic
+    - pyyaml
+    - pwdlib_argon2
+    - cryptography
+    - zstandard
+    - pillow
+    - numpy
+    - defusedxml
+    - cairosvg
+    - imageio
+    - pytesseract_python
+  desktop_shell: [elysia_tauri_desktop]
+  identity_memory_fabric: []
+  personal_onboarding: []
+  local_model_provider: [ollama_local_provider]
+  workstation_adapters:
+    - pypdf
+    - pdfplumber
+    - pymupdf
+    - python_docx
+    - openpyxl
+    - python_pptx
+    - odfpy
+    - lxml
+    - pandas
+    - pyarrow
+    - geopandas
+    - rasterio
+    - xarray
+    - netcdf4
+    - h5netcdf
+    - h5py
+    - zarr
+    - shapely
+    - pyogrio
+    - fiona
+    - piexif
+    - exifread
+    - opencv_python
+    - python_magic
+    - ffmpeg
+    - tesseract
+  governed_research: [searxng_loopback_service, rootless_container_engine]
+  semantic_retrieval: [qdrant_loopback_service, qwen3_embedding_0_6b, semantic_container_engine, ollama_local_provider]
+  creator_perception:
+    - torch
+    - diffusers
+    - safetensors
+    - kokoro_onnx
+    - speechforge_model_assets
+    - imageforge_model_assets
+    - videoforge_model_assets
+    - bubblewrap
+    - rootless_container_engine
+  codev_companion: [vscode, git, codev_vsix]
+  scientific_engineering:
+    - neurofabric_torch_cpu
+    - neurofabric_ncps_cpu
+    - neurofabric_torch_cuda
+    - neurofabric_ncps_cuda
+  local_connectors: []
+
+categories:
+  A:
+    - fastapi
+    - uvicorn
+    - pydantic
+    - pyyaml
+    - pwdlib_argon2
+    - cryptography
+    - zstandard
+    - pillow
+    - numpy
+    - defusedxml
+    - cairosvg
+    - imageio
+    - pytesseract_python
+    - elysia_tauri_desktop
+  B:
+    - pypdf
+    - pdfplumber
+    - pymupdf
+    - python_docx
+    - openpyxl
+    - python_pptx
+    - odfpy
+    - lxml
+    - pandas
+    - pyarrow
+    - geopandas
+    - rasterio
+    - xarray
+    - netcdf4
+    - h5netcdf
+    - h5py
+    - zarr
+    - shapely
+    - pyogrio
+    - fiona
+    - piexif
+    - exifread
+    - opencv_python
+    - python_magic
+    - torch
+    - diffusers
+    - safetensors
+    - kokoro_onnx
+    - speechforge_model_assets
+    - imageforge_model_assets
+    - videoforge_model_assets
+    - codev_vsix
+    - qdrant_loopback_service
+    - qwen3_embedding_0_6b
+    - semantic_container_engine
+    - searxng_loopback_service
+    - neurofabric_torch_cpu
+    - neurofabric_ncps_cpu
+    - neurofabric_torch_cuda
+    - neurofabric_ncps_cuda
+  C:
+    - ffmpeg
+    - tesseract
+    - bubblewrap
+    - rootless_container_engine
+    - git
+  D:
+    - ollama_local_provider
+    - vscode
+  E:
+    - pytest
+    - httpx
+    - nodejs_npm
+    - rust_cargo
+
+# Component-graph system prerequisites are a separate layer from the
+# fine-grained package/model catalog above.  They are classified separately so
+# package/runtime prerequisites cannot disappear behind a Python dependency
+# count or be counted as bundled merely because they are common on Ubuntu.
+system_dependency_categories:
+  A: []
+  B: []
+  C:
+    - cairo
+    - ffmpeg
+    - ffprobe
+    - git
+    - glibc
+    - gtk3
+    - libappindicator
+    - libexpat
+    - libmagic
+    - librsvg
+    - pango
+    - rootless_podman_or_bounded_docker
+    - rootless_sandbox
+    - sqlite3
+    - tesseract
+    - webkit2gtk
+  D:
+    - cpu_baseline
+  E:
+    - ollama
+    - ollama_optional
+    - optional_supported_nvidia_driver
+    - vscode
+
+system_dependency_guidance_refs:
+  ollama: ollama_local_provider
+  ollama_optional: ollama_local_provider
+  optional_supported_nvidia_driver: optional_supported_nvidia_driver
+  vscode: vscode
+
+category_e_guidance:
+  ollama_local_provider:
+    title: Ollama local model provider
+    why: Local conversational and embedding model roles need a compatible loopback provider; Core itself remains usable without it.
+    official_source: https://docs.ollama.com/linux
+    signup_required: No account is required to install Ollama; an individual gated model publisher may require separate terms or an account.
+    data_leaving_local_control: Download requests reveal ordinary network metadata to Ollama or the selected model publisher; runtime prompts remain loopback-local under Elysia policy.
+    license_privacy_security: Ollama and every selected model have separate licenses. Elysia does not run a moving curl-to-shell installer or create a system service without a separately reviewed exact lifecycle contract.
+    supported_steps:
+      - Review the current official Linux installation instructions and license.
+      - Install Ollama through the publisher-supported method appropriate to the machine.
+      - Start the local service and confirm `ollama --version` succeeds.
+      - Return to Elysia Setup; approve each exact model identity, license, size, and source separately.
+    doctor_detection: Doctor checks the local `ollama` command, loopback reachability, selected model manifests, and required model identities without sending a prompt.
+    retry_repair: Repair or update Ollama through its official lifecycle, restart the loopback service, then rerun Elysia Doctor and the exact model acquisition.
+  vscode:
+    title: VS Code-family Extension Host
+    why: The Developer / Codev profile needs a supported VS Code or VSCodium Extension Host.
+    official_source: https://code.visualstudio.com/docs/setup/linux
+    signup_required: No account is required for a local editor or local VSIX installation.
+    data_leaving_local_control: Download and update checks contact the chosen editor publisher. Codev itself has no independent network, shell, package-install, or Git-push authority.
+    license_privacy_security: Microsoft VS Code binaries use Microsoft product terms and privacy disclosures; VSCodium has its own publisher and package channel. Elysia detects either host but does not silently choose a publisher, accept product terms, add a repository, or enable editor telemetry for the user.
+    supported_steps:
+      - Choose VS Code or VSCodium and review that publisher's license, privacy, and update behavior.
+      - Install a supported Linux build using the publisher's documented method.
+      - Confirm `code --version` or `codium --version` succeeds.
+      - Return to Elysia Setup; Setup will acquire and install the exact first-party Codev v1.0.0 VSIX after approval.
+    doctor_detection: Doctor detects `code` or `codium`, checks the supported engine range, and verifies the installed Codev extension identity and Elysia API contract.
+    retry_repair: Repair or update the chosen editor through its publisher-supported lifecycle, then rerun the Codev component operation and Doctor.
+  pytest:
+    title: Contributor Python test runner
+    why: This is needed only for source-development regression work, not for an ordinary packaged Developer / Codev installation.
+    official_source: https://docs.pytest.org/en/stable/getting-started.html
+    signup_required: No account is required.
+    data_leaving_local_control: Package acquisition contacts the configured Python package index; test execution remains local unless a test explicitly declares another boundary.
+    license_privacy_security: Install only in a contributor-owned isolated development environment using the public developer lock and notices.
+    supported_steps: [Follow the repository contributor setup and exact developer lock; do not add pytest to the packaged runtime.]
+    doctor_detection: Packaged Doctor does not require pytest; contributor verification checks the declared development environment.
+    retry_repair: Recreate the contributor environment from the exact developer lock.
+  httpx:
+    title: Contributor API test client
+    why: This is needed only by source-development tests, not by an ordinary packaged Developer / Codev installation.
+    official_source: https://www.python-httpx.org/
+    signup_required: No account is required.
+    data_leaving_local_control: Package acquisition contacts the configured Python package index; test targets remain those explicitly selected by the contributor.
+    license_privacy_security: Install only in a contributor-owned isolated development environment using the public developer lock and notices.
+    supported_steps: [Follow the repository contributor setup and exact developer lock; do not add HTTPX to the packaged runtime solely for tests.]
+    doctor_detection: Packaged Doctor does not require HTTPX; contributor verification checks the declared development environment.
+    retry_repair: Recreate the contributor environment from the exact developer lock.
+  nodejs_npm:
+    title: Node.js and npm contributor toolchain
+    why: Required for rebuilding the Desktop or Codev from source; not required to run the packaged Elysia or install the qualified VSIX.
+    official_source: https://nodejs.org/en/download
+    signup_required: No account is required.
+    data_leaving_local_control: Toolchain/package acquisition contacts the selected Node.js and npm sources; repository contents do not leave local control merely by building.
+    license_privacy_security: Use the exact versions declared by repository metadata and lockfiles. Elysia Setup does not silently add a third-party Node repository or execute arbitrary package lifecycle scripts.
+    supported_steps: [Follow CONTRIBUTING.md and the repository's declared Node version and lockfile commands in an isolated contributor environment.]
+    doctor_detection: Packaged Doctor does not require Node/npm; contributor checks verify the declared source-build toolchain.
+    retry_repair: Recreate the contributor environment and reinstall from the lockfile without weakening script policy.
+  rust_cargo:
+    title: Rust and Cargo contributor toolchain
+    why: Required for rebuilding the Tauri desktop from source; not required to run Elysia packages.
+    official_source: https://www.rust-lang.org/tools/install
+    signup_required: No account is required.
+    data_leaving_local_control: Toolchain and crate acquisition contact the selected Rust distribution and registry; application data is not involved.
+    license_privacy_security: Use the repository's locked Rust dependencies and source-build instructions; do not place a moving compiler toolchain inside the runtime package.
+    supported_steps: [Follow CONTRIBUTING.md and the repository's declared Rust/Cargo build instructions in an isolated contributor environment.]
+    doctor_detection: Packaged Doctor does not require Rust/Cargo; contributor checks verify Cargo and the locked source build.
+    retry_repair: Repair the contributor toolchain, then rebuild against Cargo.lock and rerun the source qualification checks.
+
+system_only_guidance:
+  optional_supported_nvidia_driver:
+    category: E
+    title: Optional supported NVIDIA driver for CUDA profiles
+    why: CUDA acceleration requires a host driver compatible with the qualified PyTorch/CUDA runtime; CPU variants remain fully supported when it is absent.
+    official_source: https://documentation.ubuntu.com/server/how-to/graphics/install-nvidia-drivers/
+    signup_required: No account is required.
+    data_leaving_local_control: Ubuntu package acquisition uses configured operating-system repositories; no Elysia user content is involved.
+    license_privacy_security: Kernel/driver installation is host-wide and restart-sensitive, so Elysia does not silently change it. Setup selects CPU unless Doctor proves a supported driver and resource state.
+    supported_steps:
+      - Use Ubuntu's documented driver selection and installation path for the hardware.
+      - Reboot when Ubuntu requires it.
+      - Confirm `nvidia-smi` reports the expected device and driver.
+      - Rerun Elysia Setup/Doctor; never force the CUDA variant past a failed probe.
+    doctor_detection: Doctor checks GPU identity, driver/CUDA compatibility, VRAM, real workload behavior, pressure, OOM recovery, and CPU fallback.
+    retry_repair: Return to the CPU profile while repairing the host driver through Ubuntu; rerun Doctor before selecting CUDA again.

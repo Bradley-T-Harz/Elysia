@@ -1,0 +1,417 @@
+chat_send_schema:
+  name: chat_send_schema
+  route: /chat/send
+  method: POST
+  purpose: >
+    Main governed body-facing chat endpoint for Phase 1.
+    This endpoint accepts one user message plus limited optional request context,
+    passes the request into Elysia's governed runtime path, and returns the result
+    inside the standard response envelope.
+  envelope_reference: standard_response_envelope
+  phase_scope: phase_1
+  surfaces_expected_to_use_this_endpoint:
+    - conversations_room
+    - quick_invoke
+    - future_phase_1_text_entry_surfaces
+
+  governing_rules:
+    - >
+      This endpoint represents the governed body path, not direct model access.
+    - >
+      The UI may express preferences, but it may not directly command the active model,
+      runtime, or routing outcome.
+    - >
+      Requests must remain downstream of routing, policy, verification, logging,
+      journaling, and memory discipline.
+    - >
+      This schema must never imply silent cloud fallback or direct raw-Ollama control
+      from the UI.
+
+  request_body:
+    description: >
+      Payload the UI may send to the governed chat endpoint.
+      Fields marked as advisory or partial must not be interpreted as direct authority
+      over routing or runtime behavior.
+    required_fields:
+      - message
+    optional_fields:
+      - conversation_id
+      - project_id
+      - requested_mode
+      - requested_role
+      - request_context
+      - ui_surface
+
+    fields:
+      message:
+        type: string
+        required: true
+        live_state: live
+        description: >
+          The user message to be processed through the governed runtime path.
+        constraints:
+          - must_not_be_empty
+          - should_contain_user_visible_text
+        notes:
+          - This is the only strictly required request field for Phase 1.
+
+      conversation_id:
+        type: string
+        required: false
+        live_state: planned_or_partial
+        description: >
+          Optional conversation identifier supplied by the UI for continuity.
+        notes:
+          - May be absent, ignored, or echoed back unchanged during early Phase 1.
+          - Must not imply full conversation persistence unless that capability is live.
+
+      project_id:
+        type: string
+        required: false
+        live_state: planned_or_partial
+        description: >
+          Optional project identifier for future project-linked chat continuity.
+        notes:
+          - May be absent or not yet populated in early Phase 1.
+          - Must not imply mature project orchestration unless that capability is live.
+
+      requested_mode:
+        type: string
+        required: false
+        live_state: partial
+        description: >
+          Optional UI preference for a mode posture.
+        allowed_examples:
+          - chat
+          - research
+          - planning
+          - coding
+        notes:
+          - Advisory only.
+          - Governed runtime mode selection outranks this preference.
+
+      requested_role:
+        type: string
+        required: false
+        live_state: advisory_or_planned
+        description: >
+          Optional UI preference for an operational role expression.
+        allowed_examples:
+          - primary_general
+          - primary_code
+          - lighter_backup
+          - optional_fallback
+        notes:
+          - Advisory only.
+          - Governed routing outranks this preference.
+          - This field must not be interpreted as direct role command authority.
+
+      request_context:
+        type: mapping
+        required: false
+        live_state: planned_or_minimal
+        description: >
+          Optional structured request context supplied by the UI.
+        supported_examples:
+          ui_focus:
+            type: string
+          selected_text:
+            type: string
+          active_panel:
+            type: string
+          source_surface_state:
+            type: mapping
+        notes:
+          - Keep this small and inspectable.
+          - Must not be used to smuggle authority over policy or routing.
+
+      ui_surface:
+        type: string
+        required: false
+        live_state: live_enough_metadata
+        description: >
+          Optional metadata naming the UI surface that originated the request.
+        allowed_examples:
+          - conversations_room
+          - quick_invoke
+          - project_panel
+        notes:
+          - Useful for inspection, logging, and future UI behavior analysis.
+          - Must not alter routing authority by itself.
+
+  response:
+    envelope_reference: standard_response_envelope
+    description: >
+      Standard response envelope containing endpoint-specific chat data inside data.
+      The endpoint-specific payload below describes the expected contents of data.
+
+    data_payload:
+      description: >
+        Endpoint-specific payload returned inside the standard response envelope's data field.
+      fields:
+        user_message:
+          type: string
+          required: true
+          live_state: live
+          description: >
+            The normalized user message processed by the runtime.
+
+        response_text:
+          type: string
+          required: true
+          live_state: live
+          description: >
+            User-facing response text. This may be live invoker output or scaffold fallback text,
+            depending on runtime outcome.
+
+        response_source:
+          type: string
+          required: true
+          live_state: live
+          allowed_values:
+            - live_invoker
+            - scaffold_fallback
+          description: >
+            Indicates whether the user-facing response text came from the live invoker path
+            or the scaffold fallback path.
+
+        invocation_status:
+          type: string
+          required: true
+          live_state: live
+          allowed_values:
+            - ok
+            - blocked
+            - error
+            - not_invoked
+          description: >
+            Invocation outcome reported by the body path for this request.
+
+        selected_model_role:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            The role expression actually selected by governed routing and/or invocation.
+
+        selected_runtime:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            Runtime actually used for the request when known.
+
+        selected_model_runtime_tag:
+          type: string
+          required: false
+          live_state: live
+          description: >
+            Concrete runtime tag used by the invoker when known.
+
+        used_fallback:
+          type: boolean
+          required: false
+          live_state: live
+          description: >
+            Whether an allowed fallback runtime tag was used.
+
+        fallback_from:
+          type: string
+          required: false
+          live_state: live_or_empty
+          description: >
+            Preferred runtime tag that could not be used, when fallback occurred.
+
+        fallback_to:
+          type: string
+          required: false
+          live_state: live_or_empty
+          description: >
+            Runtime tag actually used after fallback, when fallback occurred.
+
+        caveats:
+          type: list
+          item_type: string
+          required: true
+          live_state: live
+          description: >
+            Honest user-facing caveats derived from policy, invocation, verification,
+            memory posture, and scaffold boundaries.
+
+        approval_needed:
+          type: boolean
+          required: false
+          live_state: partial
+          description: >
+            Broad trust-surface indicator that the request cannot fully proceed without approval.
+          notes:
+            - Intended for calm UI badge/drawer signaling.
+
+        approval_token:
+          type: string
+          required: false
+          live_state: planned_or_empty
+          description: >
+            Optional approval workflow token for future approval-resolution flows.
+          notes:
+            - May be absent during early Phase 1.
+
+        conversation_id:
+          type: string
+          required: false
+          live_state: planned_or_partial
+          description: >
+            Conversation identifier echoed or resolved for continuity.
+          notes:
+            - May be empty until conversation persistence is truly live.
+
+        project_id:
+          type: string
+          required: false
+          live_state: planned_or_partial
+          description: >
+            Project identifier echoed or resolved for continuity.
+          notes:
+            - May be empty until project linkage is truly live.
+
+  endpoint_status_behavior:
+    description: >
+      How this endpoint should use the standard response envelope status field.
+    status_meanings:
+      ok: >
+        A user-facing result was successfully returned through the governed path.
+        This may include live invoker output or a valid scaffold fallback response.
+      blocked: >
+        The request was stopped by policy, boundary rules, or approval requirements
+        before a valid user-facing result could proceed normally.
+      degraded: >
+        A user-facing result was returned, but only partially or with a reduced-quality path,
+        such as allowed fallback use or reduced capability state.
+      error: >
+        The runtime path failed unexpectedly and could not complete cleanly.
+      unavailable: >
+        A required local service or path needed for this endpoint was unavailable.
+
+  capability_state_behavior:
+    description: >
+      How capability_state should be interpreted for this endpoint.
+    notes:
+      - >
+        capability_state describes the relevant feature/path truth, not merely whether the
+        request returned something.
+      - >
+        A response may have status: ok while still surfacing capability_state: degraded
+        if a fallback path was required.
+      - >
+        A blocked request may still report capability_state: live if the capability exists
+        but current policy prevented its use.
+      - >
+        Use the canonical semantics:
+          live, inactive, planned, unknown, unavailable, degraded
+
+  semantic_rules:
+    - >
+      requested_mode and requested_role are preferences only. Governed routing and runtime logic
+      remain authoritative.
+    - >
+      This endpoint must never imply direct raw-Ollama access from the UI.
+    - >
+      This endpoint must never imply silent cloud fallback.
+    - >
+      This endpoint must remain downstream of routing, policy, verification, logging,
+      journaling, and memory discipline.
+    - >
+      response_source and invocation_status must remain distinct.
+      response_source describes what the user saw; invocation_status describes what the body did.
+    - >
+      approval_needed is a broad trust-surface state, while future workflow-specific approval
+      mechanics may be represented elsewhere.
+    - >
+      conversation_id and project_id must not imply mature persistence/linkage until those
+      capabilities are actually live.
+
+  examples:
+    request_minimal:
+      message: "Help me think through this plan."
+
+    request_with_preferences:
+      message: "Can you help me debug this function?"
+      requested_mode: coding
+      requested_role: primary_code
+      ui_surface: conversations_room
+      request_context:
+        ui_focus: editor
+        active_panel: project_context
+
+    response_ok_live_invoker:
+      envelope_status: ok
+      result_type: chat_response
+      capability_state: live
+      locality: local
+      approval_state: not_needed
+      data:
+        user_message: "Help me think through this plan."
+        response_text: "Here is the clearest next step..."
+        response_source: live_invoker
+        invocation_status: ok
+        selected_model_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: qwen2.5:7b
+        used_fallback: false
+        fallback_from: ""
+        fallback_to: ""
+        caveats:
+          - "Live local model generation succeeded through the governed invoker. Broader tool use and side-effecting execution remain blocked during scaffold phase."
+        approval_needed: false
+        approval_token: ""
+        conversation_id: ""
+        project_id: ""
+
+    response_degraded_fallback:
+      envelope_status: degraded
+      result_type: chat_response
+      capability_state: degraded
+      locality: local
+      approval_state: not_needed
+      data:
+        user_message: "Help me think through this plan."
+        response_text: "Here is the best available answer from the allowed fallback path..."
+        response_source: live_invoker
+        invocation_status: ok
+        selected_model_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: qwen2.5:7b
+        used_fallback: true
+        fallback_from: qwen3:14b
+        fallback_to: qwen2.5:7b
+        caveats:
+          - "An allowed local fallback model was used instead of the preferred runtime tag."
+        approval_needed: false
+        approval_token: ""
+        conversation_id: ""
+        project_id: ""
+
+    response_blocked:
+      envelope_status: blocked
+      result_type: chat_response
+      capability_state: live
+      locality: local
+      approval_state: needed
+      data:
+        user_message: "Do the blocked thing."
+        response_text: "A bounded scaffold response path was used. Broader tool use and side-effecting execution remain disabled during this phase."
+        response_source: scaffold_fallback
+        invocation_status: blocked
+        selected_model_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: ""
+        used_fallback: false
+        fallback_from: ""
+        fallback_to: ""
+        caveats:
+          - "Broader tool use and side-effecting execution remain blocked during scaffold phase."
+          - "Live local invocation was blocked by the current routed path or boundary rules."
+        approval_needed: true
+        approval_token: ""
+        conversation_id: ""
+        project_id: ""

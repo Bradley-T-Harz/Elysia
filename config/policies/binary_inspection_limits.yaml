@@ -1,0 +1,25 @@
+version: binary-inspection-limits-0.1
+limits:
+  max_input_bytes: 1073741824
+  max_sections: 512
+  max_imports: 4096
+  max_exports: 4096
+  max_symbols: 4096
+  max_strings: 256
+  max_string_chars: 240
+  max_string_scan_bytes: 16777216
+  max_worker_stdout_bytes: 4194304
+  max_worker_stderr_bytes: 65536
+  timeout_seconds: 30
+posture:
+  static_only: true
+  strings_artifact_only: true
+  raw_bytes_in_response: false
+  execution: false
+  loading: false
+  import_into_runtime: false
+  install: false
+  link: false
+  mutation: false
+  patch: false
+  malware_verdicts: false

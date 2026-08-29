@@ -1,0 +1,86 @@
+version: 2
+worker_key: speechforge_worker
+worker_kind: governed_local_speech_worker
+state: local_stt_tts
+enabled: true
+contract_doc: docs/speech/speechforge_worker_contract.md
+environment: elysia_creator
+
+runtime:
+  python_path: null
+  worker_script: sandbox/speechforge_worker/worker_cli.py
+  network_allowed: false
+  cloud_allowed: false
+  shell_allowed: false
+  process_timeout_seconds: 300
+  max_stdout_bytes: 65536
+  max_stderr_bytes: 131072
+
+stt:
+  enabled: true
+  primary_engine: whisper_cpp
+  model_id: whisper-cpp-base-en
+  executable: null
+  model_path: null
+  faster_whisper_model_path: null
+  faster_whisper_model_acquisition_pending: true
+  output_formats: [txt, json, srt, vtt]
+
+tts:
+  enabled: true
+  engine: kokoro_onnx
+  model_id: kokoro-onnx-v1
+  model_path: null
+  voices_path: null
+  voice_catalog: config/workers/kokoro_voice_catalog.yaml
+  state: lab_local_reading_voice
+  reference_voice_input_allowed: false
+  voice_cloning_allowed: false
+
+posture:
+  local_file_only: true
+  explicit_approval_required: true
+  exact_one_time_approval_for_saved_outputs: true
+  consent_attestation_required_for_other_people: true
+  external_upload_allowed: false
+  microphone_capture_allowed: false
+  device_capture_allowed: false
+  transcription_live: true
+  subtitles_live: true
+  tts_live: true
+  voice_generation_live: false
+  voice_cloning_allowed: false
+  deceptive_impersonation_allowed: false
+
+limits:
+  max_stt_input_bytes: 536870912
+  max_stt_duration_seconds: 1800
+  max_transcript_bytes: 2097152
+  max_tts_preview_chars: 500
+  max_tts_artifact_chars: 4000
+  max_tts_output_bytes: 16777216
+  max_concurrent_jobs: 1
+
+retention:
+  raw_audio_copy_allowed: false
+  raw_audio_in_central_ledger: false
+  full_transcript_in_central_ledger: false
+  raw_tts_text_in_central_ledger: false
+  generated_audio_in_central_ledger: false
+  transcript_memory_promotion_default: false
+  request_scoped_output_only: true
+  redaction_required_before_transcript_preview: true
+
+trace:
+  compact_request_truth_only: true
+  include_request_session_operation_approval_ids: true
+  include_relative_path_and_hashes: true
+  include_consent_and_retention_truth: true
+  include_model_provenance_id: true
+  include_locality_network_cloud_truth: true
+  never_log_raw_audio: true
+  never_log_full_transcript: true
+  never_log_raw_tts_text: true
+  never_log_generated_audio: true
+  never_log_absolute_private_paths: true
+  never_log_worker_output: true

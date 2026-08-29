@@ -1,0 +1,21 @@
+version: engineering-preview-limits-0.1
+limits:
+  max_input_bytes: 268435456
+  max_segments: 20000
+  max_points: 50000
+  max_output_bytes: 8388608
+  width_pixels: 960
+  height_pixels: 720
+  timeout_seconds: 30
+permissions:
+  exact_approval_required: true
+  sandbox_output_only: true
+  source_write_allowed: false
+  project_root_write_allowed: false
+posture:
+  available_formats: [stl, obj, dxf, gcode]
+  svg_scripts_allowed: false
+  svg_external_references_allowed: false
+  blender_preview: future_sandbox_required
+  cad_tessellation_preview: plan_only
+  robot_simulator_preview: plan_only

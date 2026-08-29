@@ -1,0 +1,44 @@
+version: 1
+profile_kind: portable_public_default
+
+machine_identity:
+  hostname: null
+  user: null
+  device_model: null
+
+hardware:
+  cpu:
+    model: null
+    threads: null
+  memory:
+    ram_gib: null
+  gpu:
+    primary:
+      model: null
+      vram_gib: null
+
+os:
+  distro: null
+  session_type: null
+  shell: null
+
+storage:
+  internal_primary: null
+  external_backup: null
+
+paths:
+  project_root: .
+  approved_projects_root: null
+  backup_root_hint: null
+
+operating_constraints:
+  local_first: true
+  privacy_first: true
+  destructive_actions_require_approval: true
+  external_actions_require_approval: true
+  vault_access_requires_fresh_consent: true
+
+notes:
+  - Tracked public defaults must not identify an operator, workstation, external drive, or private path.
+  - Doctor discovers bounded runtime facts; user-specific values belong under XDG user configuration.
+  - Unknown values grant no capability or authority.

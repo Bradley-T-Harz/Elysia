@@ -1,0 +1,34 @@
+version: binary-types-0.1
+local_first: true
+authority_model: static_analysis_only
+capability_states: [available, metadata_only, lab_only, blocked, unavailable_by_design, future_sandbox_required]
+formats:
+  pe:
+    extensions: [.exe, .dll]
+    inspection: available
+  elf:
+    extensions: [.so, .o, .bin]
+    inspection: available
+  class:
+    extensions: [.class]
+    inspection: available
+  wasm:
+    extensions: [.wasm]
+    inspection: available
+  bin_unknown:
+    extensions: [.bin]
+    inspection: metadata_only
+dangerous_capabilities:
+  execute: unavailable_by_design
+  load: unavailable_by_design
+  import: unavailable_by_design
+  install: unavailable_by_design
+  link: unavailable_by_design
+  patch: unavailable_by_design
+  trust: unavailable_by_design
+  decompile: future_sandbox_required
+  disassemble: future_sandbox_required
+autonomy:
+  autonomous_inspection: false
+  autonomous_execution: false
+  future_execution_requires_separate_sandbox: true

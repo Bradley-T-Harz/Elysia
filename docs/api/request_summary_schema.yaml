@@ -1,0 +1,468 @@
+request_summary_schema:
+  name: request_summary_schema
+  route: /requests/{request_id}/summary
+  method: GET
+  purpose: >
+    Read-only request-truth inspection endpoint for Phase 1.
+    This endpoint returns a compact summary of one real governed request for
+    surfaces such as the right drawer request detail view, Governance room
+    request review, approval history context, and later request audit/history views.
+  envelope_reference: standard_response_envelope
+  phase_scope: phase_1
+  surfaces_expected_to_use_this_endpoint:
+    - right_drawer_request_detail_view
+    - governance_room_request_review
+    - approval_history_context
+    - future_request_audit_views
+
+  governing_rules:
+    - >
+      This endpoint summarizes a real existing governed request. It must not be
+      usable to invent or simulate request records that do not exist.
+    - >
+      It is a read-only inspection surface, not a control surface.
+    - >
+      It must not expose full logs, raw journal contents, secrets, raw stack traces,
+      or full internal traces.
+    - >
+      It must not pretend to be a full message thread or conversation history surface.
+    - >
+      It must remain downstream of governed request tracking, policy, logging,
+      journaling, and approval history when those exist.
+
+  request:
+    description: >
+      Phase 1 read-only request-summary lookup. No request body is required or expected.
+      One required path parameter identifies the governed request to summarize.
+    request_body_allowed: false
+
+    path_parameters:
+      request_id:
+        type: string
+        required: true
+        live_state: live
+        description: >
+          Identifier of a real governed request already known to the system.
+        notes:
+          - Reuses the existing request_id concept already used in the response envelope
+            and approval-resolution flow.
+          - Must not be user-invented.
+          - Must not be confused with conversation_id or project_id.
+
+    query_parameters:
+      include_notes:
+        type: boolean
+        required: false
+        live_state: planned
+        description: >
+          Optional future query parameter for requesting extra compact notes.
+        notes:
+          - Planned only for now.
+          - Must not expose raw logs or journal contents.
+      include_resolution:
+        type: boolean
+        required: false
+        live_state: planned
+        description: >
+          Optional future query parameter for requesting extra compact resolution detail.
+        notes:
+          - Planned only for now.
+          - Must not expose internal traces.
+
+  response:
+    envelope_reference: standard_response_envelope
+    description: >
+      Standard response envelope containing endpoint-specific request-summary data
+      inside the data field.
+
+    data_payload:
+      description: >
+        Compact summary object describing one governed request.
+      fields:
+        request_id:
+          type: string
+          required: true
+          live_state: live
+          description: >
+            Identifier of the governed request being summarized.
+
+        request_state:
+          type: string
+          required: true
+          live_state: live
+          description: >
+            Current state of the governed request itself.
+          allowed_values:
+            - pending
+            - approved
+            - denied
+            - cancelled
+            - completed
+            - blocked
+            - expired
+            - unknown
+
+        request_type:
+          type: string
+          required: false
+          live_state: partial
+          description: >
+            Compact type/category label for the governed request.
+          allowed_examples:
+            - approval_bound_action
+            - outward_action
+            - local_runtime_request
+            - governance_resolution
+            - unknown
+
+        summary_text:
+          type: string
+          required: true
+          live_state: partial
+          description: >
+            Compact human-readable summary of what the request was about and
+            what its current state means.
+
+        created_at_utc:
+          type: string
+          format: iso_8601_utc
+          required: false
+          live_state: partial
+          description: >
+            UTC timestamp for when the request record was created.
+
+        updated_at_utc:
+          type: string
+          format: iso_8601_utc
+          required: false
+          live_state: partial
+          description: >
+            UTC timestamp for the most recent meaningful update to the request record.
+
+        approval_required:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Formal governance truth about whether this request type is approval-bound.
+
+        approval_state:
+          type: string
+          required: true
+          live_state: partial
+          description: >
+            Broad approval posture currently associated with the request.
+          allowed_values:
+            - not_needed
+            - needed
+            - approved
+            - denied
+            - unknown
+
+        locality:
+          type: string
+          required: true
+          live_state: live
+          description: >
+            Whether the request path is local, crossed a boundary, or is currently unknown.
+          allowed_values:
+            - local
+            - crossed_boundary
+            - unknown
+
+        selected_role:
+          type: string
+          required: false
+          live_state: partial
+          description: >
+            Governed role expression associated with the request when known.
+          allowed_examples:
+            - primary_general
+            - primary_code
+            - lighter_backup
+            - optional_fallback
+
+        selected_runtime:
+          type: string
+          required: false
+          live_state: partial
+          description: >
+            Runtime associated with the request when known.
+
+        selected_model_runtime_tag:
+          type: string
+          required: false
+          live_state: partial
+          description: >
+            Concrete model/runtime tag associated with the request when known.
+
+        used_fallback:
+          type: boolean
+          required: true
+          live_state: partial
+          description: >
+            Whether an allowed fallback path was used for this request.
+
+        resolution_status:
+          type: string
+          required: false
+          live_state: partial
+          description: >
+            Resolution outcome associated with the request when a formal approval
+            resolution exists.
+          allowed_values:
+            - accepted
+            - rejected
+            - ignored
+            - error
+            - unknown
+
+        can_proceed:
+          type: boolean
+          required: true
+          live_state: live
+          description: >
+            Whether current governance now allows the request to move forward.
+
+        related_conversation_id:
+          type: string
+          required: false
+          live_state: partial
+          description: >
+            Related conversation identifier when the request is associated with a conversation.
+
+        related_project_id:
+          type: string
+          required: false
+          live_state: planned
+          description: >
+            Related project identifier when the request is associated with a project.
+
+        notes:
+          type: list
+          item_type: string
+          required: true
+          live_state: live
+          description: >
+            Compact request-summary notes safe for UI display.
+
+  request_state_semantics:
+    description: >
+      Canonical meanings for request_state values returned inside data.
+    values:
+      pending: >
+        The request exists and is still awaiting a final outcome.
+      approved: >
+        The request has been approved under current governance.
+      denied: >
+        The request has been denied under current governance.
+      cancelled: >
+        The request has been explicitly cancelled.
+      completed: >
+        The request reached its intended completion state.
+      blocked: >
+        The request remains blocked by policy, boundary rules, or approval posture.
+      expired: >
+        The request is no longer valid for action or resolution.
+      unknown: >
+        The current request state could not yet be confirmed.
+
+  endpoint_status_behavior:
+    description: >
+      How the standard response envelope status field should be used for this endpoint.
+    status_meanings:
+      ok: >
+        The /requests/{request_id}/summary request succeeded and returned a valid summary.
+      blocked: >
+        The summary-inspection request itself was blocked by policy or boundary rules.
+        This should be rare for Phase 1.
+      degraded: >
+        The request-summary lookup succeeded, but some parts of the returned summary
+        are partial, stale, or reduced.
+      error: >
+        The request-summary lookup failed unexpectedly and did not produce a clean result.
+      unavailable: >
+        The endpoint could not access the required local request-summary path.
+
+  semantic_rules:
+    - >
+      Envelope status and data.request_state must remain distinct.
+      Envelope status describes whether the summary API call succeeded.
+      data.request_state describes the governed request itself.
+    - >
+      request_id must refer to a real existing governed request.
+      The UI must not be able to invent fake request identifiers and treat them as real.
+    - >
+      Request summary is not the same thing as full logs, full journaling, or full internal trace.
+    - >
+      approval_required and approval_state are related but not interchangeable.
+      approval_required is a formal governance truth field; approval_state is the current posture.
+    - >
+      related_conversation_id and related_project_id must not imply full linkage maturity
+      unless those capabilities are actually live.
+    - >
+      The UI must not treat missing optional fields as proof that the request never existed.
+
+  live_planned_guidance:
+    description: >
+      Honest implementation-readiness guidance for Phase 1.
+    likely_live:
+      - request_id
+      - request_state
+      - approval_required
+      - locality
+      - can_proceed
+      - notes
+    likely_partial:
+      - request_type
+      - summary_text
+      - created_at_utc
+      - updated_at_utc
+      - approval_state
+      - selected_role
+      - selected_runtime
+      - selected_model_runtime_tag
+      - used_fallback
+      - resolution_status
+      - related_conversation_id
+    likely_planned:
+      - related_project_id
+      - include_notes
+      - include_resolution
+
+  examples:
+    pending_request_summary:
+      envelope_status: ok
+      result_type: request_summary
+      capability_state: live
+      locality: local
+      approval_state: needed
+      data:
+        request_id: req_20260323_000041
+        request_state: pending
+        request_type: approval_bound_action
+        summary_text: "Pending approval for a governed outward action request."
+        created_at_utc: "2026-03-23T09:55:00Z"
+        updated_at_utc: "2026-03-23T09:56:00Z"
+        approval_required: true
+        approval_state: needed
+        locality: local
+        selected_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: qwen2.5:7b
+        used_fallback: false
+        resolution_status: unknown
+        can_proceed: false
+        related_conversation_id: conv_20260323_0004
+        related_project_id: ""
+        notes:
+          - "Request is waiting for explicit governance resolution."
+
+    approved_request_summary:
+      envelope_status: ok
+      result_type: request_summary
+      capability_state: live
+      locality: local
+      approval_state: approved
+      data:
+        request_id: req_20260323_000042
+        request_state: approved
+        request_type: approval_bound_action
+        summary_text: "Request was approved and may proceed to its next governed step."
+        created_at_utc: "2026-03-23T10:00:00Z"
+        updated_at_utc: "2026-03-23T10:03:00Z"
+        approval_required: true
+        approval_state: approved
+        locality: local
+        selected_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: qwen2.5:7b
+        used_fallback: false
+        resolution_status: accepted
+        can_proceed: true
+        related_conversation_id: conv_20260323_0005
+        related_project_id: ""
+        notes:
+          - "Approval was accepted."
+          - "Later execution may still fail independently of approval."
+
+    denied_request_summary:
+      envelope_status: ok
+      result_type: request_summary
+      capability_state: live
+      locality: local
+      approval_state: denied
+      data:
+        request_id: req_20260323_000043
+        request_state: denied
+        request_type: approval_bound_action
+        summary_text: "Request was denied and remains blocked."
+        created_at_utc: "2026-03-23T10:05:00Z"
+        updated_at_utc: "2026-03-23T10:07:00Z"
+        approval_required: true
+        approval_state: denied
+        locality: local
+        selected_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: qwen2.5:7b
+        used_fallback: false
+        resolution_status: accepted
+        can_proceed: false
+        related_conversation_id: conv_20260323_0006
+        related_project_id: ""
+        notes:
+          - "Request was explicitly denied."
+
+    expired_request_summary:
+      envelope_status: ok
+      result_type: request_summary
+      capability_state: degraded
+      locality: local
+      approval_state: unknown
+      data:
+        request_id: req_20260323_000044
+        request_state: expired
+        request_type: approval_bound_action
+        summary_text: "Request is no longer actionable because it has expired."
+        created_at_utc: "2026-03-23T09:20:00Z"
+        updated_at_utc: "2026-03-23T10:10:00Z"
+        approval_required: true
+        approval_state: unknown
+        locality: local
+        selected_role: primary_general
+        selected_runtime: ollama
+        selected_model_runtime_tag: ""
+        used_fallback: false
+        resolution_status: ignored
+        can_proceed: false
+        related_conversation_id: ""
+        related_project_id: ""
+        notes:
+          - "Request can no longer be resumed."
+
+    missing_request_summary:
+      envelope_status: blocked
+      result_type: request_summary
+      capability_state: live
+      locality: local
+      approval_state: unknown
+      data:
+        request_id: req_fake_0000
+        request_state: unknown
+        request_type: unknown
+        summary_text: "Requested summary could not be produced because the request_id is not valid."
+        created_at_utc: ""
+        updated_at_utc: ""
+        approval_required: false
+        approval_state: unknown
+        locality: unknown
+        selected_role: ""
+        selected_runtime: ""
+        selected_model_runtime_tag: ""
+        used_fallback: false
+        resolution_status: unknown
+        can_proceed: false
+        related_conversation_id: ""
+        related_project_id: ""
+        notes:
+          - "No real governed request exists for this request_id."

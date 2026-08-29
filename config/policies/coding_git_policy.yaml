@@ -1,0 +1,12 @@
+contract_id: coding-git-policy
+contract_version: coding-git-policy-0.1
+read_preview_allowed: true
+mutation_allowed: false
+commit_helper_allowed: false
+push_allowed: false
+reset_allowed: false
+clean_allowed: false
+shell_git_allowed: false
+notes:
+  - "Git support is read-only metadata preview and commit planning only."
+  - "No git command execution or mutation is live."

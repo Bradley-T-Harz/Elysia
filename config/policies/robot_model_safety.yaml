@@ -1,0 +1,18 @@
+version: robot-model-safety-0.1
+static_inspection:
+  defused_xml_required: true
+  xacro_detect_only: true
+  package_uri_requires_explicit_mapping: true
+  external_uri_fetch_allowed: false
+forbidden:
+  - launch_ros
+  - launch_robot_state_publisher
+  - launch_rviz
+  - launch_gazebo
+  - load_sdf_or_gazebo_plugins
+  - start_controllers
+  - connect_hardware
+  - actuate_robot
+claims:
+  inertial_safety_verdict_allowed: false
+  physics_safety_verdict_allowed: false

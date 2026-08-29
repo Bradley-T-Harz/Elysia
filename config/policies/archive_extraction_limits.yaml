@@ -1,0 +1,35 @@
+version: archive-extraction-limits-0.1
+limits:
+  max_archive_input_bytes: 536870912
+  max_projected_uncompressed_bytes: 1073741824
+  max_single_file_bytes: 268435456
+  max_members: 10000
+  max_directories: 2000
+  max_nested_archive_depth: 1
+  max_output_path_chars: 240
+  max_extraction_runtime_seconds: 60
+  max_extraction_bytes_written: 1073741824
+  max_worker_stdout_bytes: 2097152
+  max_worker_stderr_bytes: 65536
+  max_metadata_member_bytes: 1048576
+  max_manifest_members_in_response: 500
+  compression_ratio_warn: 100
+  compression_ratio_block: 1000
+permissions:
+  directory_mode: "0700"
+  file_mode: "0600"
+  preserve_owner_group: false
+  preserve_executable_bits: false
+  preserve_setid_bits: false
+member_policy:
+  symlink: blocked
+  hardlink: blocked
+  device: blocked
+  fifo: blocked
+  socket: blocked
+  encrypted: blocked
+  absolute_path: blocked
+  traversal: blocked
+  windows_unc_or_drive_path: blocked
+  duplicate_or_collision: blocked
+  nested_archive: inspect_only

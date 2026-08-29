@@ -1,0 +1,33 @@
+version: 1
+contract_version: elysia-system-prerequisites-1.0
+supported_os: ubuntu-24.04
+supported_architecture: x86_64
+rules:
+  silent_sudo: false
+  exact_package_version_preview: true
+  graphical_polkit_authorization: true
+  full_setup_runs_as_root: false
+  unlisted_package_operation_allowed: false
+
+dependencies:
+  glibc: {kind: apt, packages: [libc6], purpose: Core C runtime}
+  libexpat: {kind: apt, packages: [libexpat1], purpose: Packaged Python XML runtime}
+  sqlite3: {kind: apt, packages: [sqlite3], purpose: Local canonical database diagnostics}
+  cairo: {kind: apt, packages: [libcairo2], purpose: Document and vector rendering}
+  pango: {kind: apt, packages: [libpango-1.0-0], purpose: Text layout and rendering}
+  webkit2gtk: {kind: apt, packages: [libwebkit2gtk-4.1-0], purpose: Elysia desktop webview}
+  gtk3: {kind: apt, packages: [libgtk-3-0t64], purpose: Elysia desktop shell}
+  libappindicator: {kind: apt, packages: [libayatana-appindicator3-1], purpose: Linux desktop integration}
+  librsvg: {kind: apt, packages: [librsvg2-2], purpose: Desktop and document SVG rendering}
+  ffmpeg: {kind: apt, packages: [ffmpeg], purpose: Bounded audio/video operations}
+  ffprobe: {kind: apt, packages: [ffmpeg], purpose: Bounded media metadata inspection}
+  tesseract: {kind: apt, packages: [tesseract-ocr], purpose: Optional local OCR}
+  libmagic: {kind: apt, packages: [libmagic1t64], purpose: Local file-type inspection}
+  git: {kind: apt, packages: [git], purpose: Governed Codev repository truth}
+  rootless_podman_or_bounded_docker: {kind: apt, packages: [podman, skopeo, uidmap, slirp4netns, fuse-overlayfs], purpose: Rootless local worker services and exact platform transfer previews}
+  rootless_sandbox: {kind: apt, packages: [podman, skopeo, uidmap, slirp4netns, fuse-overlayfs], purpose: Rootless creator sandbox isolation and exact platform transfer previews}
+  cpu_baseline: {kind: logical, packages: [], purpose: Scientific CPU fallback requires the exact locally checked instruction baseline}
+  ollama: {kind: external, packages: [], command: ollama, purpose: Separately approved local model provider}
+  ollama_optional: {kind: external_optional, packages: [], command: ollama, purpose: Optional separately approved local model provider}
+  vscode: {kind: external, packages: [], commands: [code, codium], purpose: User-selected VS Code-family Extension Host}
+  optional_supported_nvidia_driver: {kind: hardware_optional, packages: [], purpose: CUDA only after supported NVIDIA driver and resource proof}

@@ -1,0 +1,13 @@
+# Coding Archive Boundary
+
+Archive contents are untrusted data. A recognized extension, readable manifest, locally installed tool, valid package metadata, or clean risk summary never authorizes installation, execution, import, activation, auto-open, trust, or a write into a project.
+
+ArchiveForge accepts only an explicitly selected file under an approved path-guarded workspace. Symlinked sources, private/secret/runtime paths, content/extension mismatches, malformed containers, dangerous member paths/types, encrypted members, collisions, and policy-limit breaches are refused for extraction. Nested archives are reported but not recursively expanded. The effective nested extraction depth is zero.
+
+ZIP, TAR, and TAR.GZ extraction is selected-file only. It requires an exact plan and fresh expiring one-time approval. The archive and manifest are re-inspected immediately before apply; operation-ID, archive, selected-set, plan, or sandbox-destination change invalidates approval. A bounded hash-verified private source snapshot is used during extraction and removed on success. Output is a new mode-`0700` disposable sandbox outside Elysia, the selected workspace, and its approved project root. The sandbox root must be owned by the process user and may not be a symlink. Regular files are created exclusively with descriptor-relative no-follow semantics and mode `0600`. Existing sandboxes are never overwritten. Partial output is removed after abort.
+
+The fixed external worker has one operation: noninteractive listing for 7Z or RAR. It uses a fixed direct argv, `shell=False`, closed stdin, a stripped offline environment, bounded stdout/stderr, and a timeout. It has no extraction, creation, install, execute, mount, or arbitrary-argument operation. RAR tooling is recorded as mixed multiverse/nonfree/license-sensitive and must not be silently bundled or promoted.
+
+WHL, JAR, VSIX, AppImage, and DEB are inspect-only package containers. Wheel entrypoints/native modules, JAR manifests/classes, VSIX activation/scripts, Debian maintainer scripts/system payloads, and AppImage ELF markers are static risk truth only. Elysia never runs `pip install`, imports wheel code, invokes `java -jar`, installs or activates a VSIX, runs/mounts an AppImage, uses `--appimage-extract`, or invokes `dpkg`/`apt` installation.
+
+Full member manifests and package/risk details are local artifacts. Central audit and request trace contain compact hashes, counts, policy/tool truth, approval IDs, and outcomes only. Archive bytes, extracted content, raw sensitive filenames, absolute paths, package dumps, passwords, and worker logs are excluded.

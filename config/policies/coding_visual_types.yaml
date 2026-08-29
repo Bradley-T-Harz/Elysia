@@ -1,0 +1,48 @@
+contract: coding-visual-types-0.1
+local_first: true
+cloud_vision_default: false
+supported_formats:
+  raster:
+    - .png
+    - .jpg
+    - .jpeg
+    - .webp
+    - .gif
+    - .bmp
+    - .tif
+    - .tiff
+  vector:
+    - .svg
+limits:
+  max_visual_bytes: 26214400
+  max_pixels: 60000000
+  max_frames: 120
+  max_ocr_chars: 4000
+  max_svg_bytes: 2097152
+  max_svg_nodes: 5000
+privacy:
+  raw_pixel_audit_allowed: false
+  full_ocr_audit_allowed: false
+  precise_gps_audit_allowed: false
+  external_upload_allowed: false
+svg:
+  render_unsanitized: false
+  remove_elements:
+    - script
+    - foreignObject
+    - iframe
+    - object
+    - embed
+  remove_event_handlers: true
+  remove_external_references: true
+approval_required_for:
+  - ocr
+  - visual_analysis
+  - export
+  - edit
+  - derived_copy_write
+mutation_model:
+  source_mutation_allowed: false
+  derived_copy_default: true
+  expected_source_hash_required: true
+  audit_required: true

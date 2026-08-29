@@ -1,0 +1,59 @@
+version: 1
+worker_key: imageforge_worker
+worker_kind: governed_local_image_generation_worker
+state: profile_gated
+enabled: false
+contract_doc: docs/image/imageforge_worker_contract.md
+environment: elysia_creator
+python_path: null
+worker_script: sandbox/imageforge_worker/worker_cli.py
+model_registry: config/models/imageforge_models.yaml
+network_allowed: false
+cloud_allowed: false
+shell_allowed: false
+environment_override: ELYSIA_IMAGEFORGE_LAB_ENABLED
+limits:
+  max_concurrent_jobs: 1
+  cancellation_supported: true
+  process_timeout_seconds: 180
+  max_stdout_bytes: 65536
+  max_stderr_bytes: 131072
+  allowed_sizes: [256]
+  max_steps: 12
+  model_profiles:
+    commoncanvas-xl-c: {max_steps: 12, offload: model_cpu_offload}
+    flux1-schnell: {max_steps: 1, offload: sequential_cpu_offload}
+posture:
+  lab_acknowledgement_required_for_lab_models_only: true
+  exact_one_time_approval_required: true
+  synthetic_label_required: true
+  real_person_likeness_allowed: false
+  identity_bearing_generation_allowed: false
+  political_persuasion_allowed: false
+  deceptive_media_allowed: false
+  prompt_in_central_ledger: false
+  output_bytes_in_central_ledger: false
+smoke_truth:
+  status: passed
+  model_id: commoncanvas-xl-c
+  width: 256
+  height: 256
+  steps: 1
+  runtime_seconds: 6.68
+  peak_gpu_memory_mib: 5073.5
+  output_sha256: 551f030d28191e5f5b794d8d7c9d44d9590aee0564ba4fbd33bcc75fc6e571ab
+  output_retention: discarded_after_hash_and_bounded_receipt
+  provenance_retention: compact_receipt_only
+  production_enabled: false
+  final_power_profile: balanced
+flux_smoke_truth:
+  status: passed
+  model_id: flux1-schnell
+  resource_profile: sequential_cpu_offload_256_one_step
+  runtime_seconds: 6.927
+  peak_gpu_memory_mib: 262.1
+  output_sha256: defbde3bbe06fb671488e8ed0cb459772f0d68d1e63e96b3da1b4c497eeb7314
+  output_retention: discarded_after_hash_and_bounded_receipt
+  provenance_retention: compact_receipt_only
+  production_enabled: true
+  final_power_profile: balanced

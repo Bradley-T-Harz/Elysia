@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "candidates": [
+    {
+      "addon_id": "org.ecosyneva.elysia-codev",
+      "name": "Codev",
+      "publisher": "EcoSyneva Commons LLC",
+      "version_channel": "stable",
+      "version": "1.0.0",
+      "extension_id": "ecosyneva-commons.elysia-codev",
+      "coding_contract_version": "vscode-coding-agent-contract-0.1",
+      "listing_state": "official_v1_release",
+      "required_profile": "developer",
+      "purpose": "Governed local coding companion with approved repository context, patch proposals, exact approved mutation, bounded checks, and request traceability.",
+      "requested_permissions": [
+        "filesystem.read_project",
+        "filesystem.write_project"
+      ],
+      "local_install_contract": "scripts/install_codev.sh",
+      "local_package_format": "vsix",
+      "install_action_live": true,
+      "public_distribution_supported": true,
+      "canonical_marketplace_url": "https://elysiaecobotics.com/marketplace/browse",
+      "live_availability_source": "canonical_external_release_surfaces",
+      "in_app_install_control_live": false,
+      "admin_reviewed": true,
+      "notes": [
+        "Developer profile uses an explicit user-local VSIX installer and XDG receipt; public distribution is through the canonical Elysia Ecobotics Marketplace.",
+        "No hidden shell, silent push, silent publish, or arbitrary repository authority."
+      ]
+    }
+  ]
+}

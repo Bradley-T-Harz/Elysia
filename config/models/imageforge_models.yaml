@@ -1,0 +1,105 @@
+version: 1
+models:
+  - id: flux1-schnell
+    display_name: FLUX.1-schnell
+    relative_path: huggingface/black-forest-labs/FLUX.1-schnell
+    pipeline: FluxPipeline
+    enabled_state: profile_gated
+    gate_status: available_creator_profile
+    license: Apache-2.0
+    license_review_status: verified_against_official_bfl_apache_2_0_source_2026_08_21
+    local_readme_sha256: 66f915ff73552215a78f83852312eda079af1f5a08a258b6b6733350101c58aa
+    model_index_sha256: 24946df21ff25e210486b5f6b14208983a90c9c73f8d48cfa724c0e4e03f7201
+    model_source: local_huggingface_snapshot_black_forest_labs
+    revision: unavailable_in_local_snapshot
+    training_data_provenance: incomplete
+    weights_format: safetensors
+    unsafe_pickle_risk: false
+    commercial_use_status: permitted_by_official_apache_2_0_license
+    default_size: 256
+    max_size: 256
+    max_steps: 1
+    resource_profile: sequential_cpu_offload_256_one_step
+    known_failure_modes: [model_cpu_offload_cuda_oom, optional_creator_profile_assets_missing]
+    production_blockers:
+      - creator_profile_model_assets_and_runtime_required
+    worker_route_smoke_status: passed
+    worker_route_smoke_runtime_seconds: 6.927
+    worker_route_smoke_peak_gpu_memory_mib: 262.1
+    worker_route_smoke_output_sha256: defbde3bbe06fb671488e8ed0cb459772f0d68d1e63e96b3da1b4c497eeb7314
+    low_memory_smoke_status: passed
+    low_memory_smoke_runtime_seconds: 11.927
+    low_memory_smoke_peak_gpu_memory_mib: 262.1
+    low_memory_smoke_output_sha256: defbde3bbe06fb671488e8ed0cb459772f0d68d1e63e96b3da1b4c497eeb7314
+    synthetic_label_required: true
+    gates:
+      safety: passed_current_lab_prompt_policy
+      licensing: passed_official_apache_2_0
+      provenance: incomplete
+      resource_stability: bounded_sequential_offload_single_job_with_cancellation
+      consent: passed_real_person_requests_blocked
+  - id: mitsua-diffusion-one
+    display_name: Mitsua Diffusion One
+    relative_path: huggingface/Mitsua/mitsua-diffusion-one
+    pipeline: StableDiffusionPipeline
+    enabled_state: disabled_unsafe_weights
+    gate_status: blocked
+    license: Mitsua-Open-RAIL-M
+    license_review_status: verified_against_official_mitsua_model_card_and_license_2026_08_24
+    local_readme_sha256: 47f3687a351c9a8e4973b2774f69e0b0aaabd5edc006b0afc236a5dfccc5af6e
+    local_license_sha256: 74f0f50e305b3e277f2e9059d07befe4cccb225ccd9242182b1febec55edac69
+    model_index_sha256: f051e9874780c1ddc69bbaf6a2c926bbc34ad39e3080807e3a604ff78c64f39c
+    model_source: local_huggingface_snapshot_mitsua
+    revision: unavailable_in_local_snapshot
+    training_data_provenance: public_domain_cc0_or_permissioned_claim_in_local_card
+    weights_format: pickle_bin_fallback
+    unsafe_pickle_risk: true
+    commercial_use_status: permitted_subject_to_mitsua_open_rail_m_use_restrictions_and_notice
+    known_failure_modes: [unsafe_pickle_fallback]
+    production_blockers:
+      - unsafe_pickle_weights_refused
+      - training_data_claim_requires_preserved_model_card_and_output_disclosure
+    synthetic_label_required: true
+    gates:
+      safety: blocked_unsafe_pickle_weights
+      licensing: passed_official_mitsua_open_rail_m_with_use_restrictions
+      provenance: model_card_claim_recorded_no_independent_dataset_audit
+      resource_stability: smoke_passed
+      consent: passed_real_person_requests_blocked
+  - id: commoncanvas-xl-c
+    display_name: CommonCanvas-XL-C
+    relative_path: huggingface/common-canvas/CommonCanvas-XL-C
+    pipeline: StableDiffusionXLPipeline
+    enabled_state: lab_only
+    gate_status: lab_only
+    license: CC-BY-SA-4.0
+    license_review_status: verified_official_model_card_cc_by_sa_4_0_local_conflicting_license_file_rejected_2026_08_24
+    local_readme_sha256: 47d308e10ddef81f0589c957fd9c8ba3bf9d48304d37b875b1ebf1419b96576c
+    local_license_sha256: 19b6998b569b53ac1fc2158a8a3202c8699a9a4605b47075715d9c96be7fb6d0
+    model_index_sha256: 6d7b93508390ab91ac5bfbe4aeb4dc2d83f7bb1b05fb069d714b5b0c75f70d44
+    model_source: local_huggingface_snapshot_common_canvas
+    revision: unavailable_in_local_snapshot
+    training_data_provenance: creative_commons_oriented_with_synthetic_captions_claim
+    weights_format: safetensors
+    unsafe_pickle_risk: false
+    commercial_use_status: license_permits_commercial_use_subject_to_attribution_and_sharealike
+    default_size: 256
+    max_size: 256
+    max_steps: 12
+    requires_gpu: true
+    known_failure_modes: [local_snapshot_contained_stale_conflicting_license_file]
+    production_blockers:
+      - full_training_asset_attribution_chain_not_packaged
+      - stale_local_conflicting_license_file_must_not_be_relied_on
+      - user_cancellation_not_implemented
+    worker_route_smoke_status: passed
+    worker_route_smoke_runtime_seconds: 6.68
+    worker_route_smoke_peak_gpu_memory_mib: 5073.5
+    worker_route_smoke_output_sha256: 551f030d28191e5f5b794d8d7c9d44d9590aee0564ba4fbd33bcc75fc6e571ab
+    synthetic_label_required: true
+    gates:
+      safety: passed_lab_prompt_and_output_policy
+      licensing: passed_official_cc_by_sa_4_0_terms_but_distribution_obligations_not_yet_satisfied
+      provenance: partial_training_dataset_claim_without_complete_item_level_attribution
+      resource_stability: passed_bounded_256_profile
+      consent: passed_real_person_requests_blocked

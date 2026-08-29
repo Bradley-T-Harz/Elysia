@@ -1,0 +1,65 @@
+version: 1
+worker_key: bounded_fetch_worker
+worker_kind: governed_public_page_fetch_worker
+state: configured
+contract_doc: docs/research/fetch_worker_contract.md
+
+service:
+  enabled: true
+  timeout_seconds: 10
+  max_response_bytes: 120000
+  max_decompressed_bytes: 480000
+  max_snippet_chars: 1200
+  max_redirects: 3
+  user_agent: Elysia-BoundedFetch/1.0
+  follow_redirects: true
+
+posture:
+  approval_required: false
+  public_url_only: true
+  private_context_allowed: false
+  private_context_sent: false
+  cloud_search_allowed: false
+  cloud_model_allowed: false
+  browser_automation_allowed: false
+  crawling_allowed: false
+  login_required_sources_allowed: false
+  network_access_scope: worker_public_single_url_fetch_only
+  core_network_access_allowed: false
+
+allowed_schemes:
+  - http
+  - https
+
+blocked_schemes:
+  - file
+  - ftp
+  - data
+  - javascript
+  - mailto
+
+blocked_hosts:
+  - localhost
+  - 127.0.0.1
+  - 0.0.0.0
+  - ::1
+
+trace:
+  log_fetch_ticket: true
+  log_requested_url: true
+  log_url_hash: true
+  log_sanitized_snippet: true
+  include_boundary_flags: true
+  never_log_raw_private_context: true
+  never_log_raw_secrets: true
+  never_log_full_page_text: true
+  never_log_raw_html: true
+
+ui_truth:
+  service_label: bounded_public_page_fetch
+  boundary_label: external_public_web_for_approved_url
+  private_context_sent: false
+  cloud_search_used: false
+  cloud_model_used: false
+  browser_automation_used: false
+  crawling_used: false

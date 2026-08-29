@@ -1,0 +1,79 @@
+version: 1
+contract_version: elysia-personal-onboarding-1.0
+title: Personal onboarding
+purpose: Optional, local, account-owned context proposed for explicit memory review.
+defaults:
+  privacy: private
+  retention: persistent
+  cognitive_form: semantic
+  scope: user
+  external_egress: false
+  canonical_memory_before_review: false
+prohibited_default_categories:
+  - national_identity_number
+  - banking_credentials
+  - passwords_or_recovery_codes
+  - precise_home_address
+  - unnecessary_medical_diagnosis
+  - sexual_history
+  - trauma_disclosure
+  - criminal_history
+  - political_affiliation
+  - required_religious_identity
+  - secret_employer_or_client_information
+  - nonconsenting_third_party_information
+sections:
+  - section_id: relationship_communication
+    title: Relationship and communication
+    questions:
+      - {question_id: q01, prompt: "What would make Elysia genuinely useful in your life?"}
+      - {question_id: q02, prompt: "What usually makes an assistant feel unhelpful, artificial, or frustrating to you?"}
+      - {question_id: q03, prompt: "When you are mistaken, how direct should Elysia be?"}
+      - {question_id: q04, prompt: "When you are emotionally charged, should Elysia first clarify, steady, challenge, or simply listen?"}
+      - {question_id: q05, prompt: "What kind of humor feels welcome, and what kind does not?"}
+      - {question_id: q06, prompt: "Are there tones, phrases, or interaction habits you want Elysia to avoid?"}
+  - section_id: thinking_uncertainty
+    title: Thinking and uncertainty
+    questions:
+      - {question_id: q07, prompt: "Do you prefer the big picture first or step-by-step detail first?"}
+      - {question_id: q08, prompt: "How should Elysia communicate uncertainty and disagreement?"}
+      - {question_id: q09, prompt: "When evidence is incomplete, do you prefer a cautious recommendation, several hypotheses, or a decisive best estimate with caveats?"}
+      - {question_id: q10, prompt: "What kinds of claims should Elysia verify especially carefully for you?"}
+      - {question_id: q11, prompt: "Do you want Elysia to point out contradictions between your current statement and earlier decisions?"}
+  - section_id: learning_work
+    title: Learning and work
+    questions:
+      - {question_id: q12, prompt: "What are you trying to learn, build, repair, understand, or finish?"}
+      - {question_id: q13, prompt: "How do you learn best: examples, conceptual explanation, practice, visual structure, dialogue, or another way?"}
+      - {question_id: q14, prompt: "What subjects or forms of work occupy most of your attention?"}
+      - {question_id: q15, prompt: "What recurring responsibilities or projects should Elysia understand from the beginning?"}
+      - {question_id: q16, prompt: "When helping you work, should Elysia optimize first for speed, rigor, creativity, completion, or another priority?"}
+  - section_id: values_judgment
+    title: Values and judgment
+    questions:
+      - {question_id: q17, prompt: "Which values should Elysia never sacrifice merely for convenience?"}
+      - {question_id: q18, prompt: "What does responsible use of power or technology mean to you?"}
+      - {question_id: q19, prompt: "Are there kinds of persuasion, manipulation, or pressure you especially want Elysia to name?"}
+      - {question_id: q20, prompt: "When compassion and truth feel in tension, how should Elysia help you reason?"}
+      - {question_id: q21, prompt: "What would you want Elysia to protect in every serious conversation?"}
+  - section_id: creativity_meaning_life
+    title: Creativity, meaning, and life
+    questions:
+      - {question_id: q22, prompt: "What kinds of art, stories, games, places, or ideas make you feel most alive?"}
+      - {question_id: q23, prompt: "Are there symbols, themes, or aesthetics that matter to you?"}
+      - {question_id: q24, prompt: "What kinds of creative collaboration would you enjoy?"}
+      - {question_id: q25, prompt: "What goals, hopes, or long-term directions are you carrying right now?"}
+      - {question_id: q26, prompt: "What does a good life, good work, or good stewardship look like to you?"}
+  - section_id: boundaries_memory
+    title: Boundaries and memory
+    questions:
+      - {question_id: q27, prompt: "What should Elysia never assume about you?"}
+      - {question_id: q28, prompt: "What kinds of information should Elysia normally ask before remembering?"}
+      - {question_id: q29, prompt: "Are there subjects Elysia should avoid raising unless you bring them up first?"}
+      - {question_id: q30, prompt: "What should Elysia do if it thinks a remembered fact about you may no longer be true?"}
+      - {question_id: q31, prompt: "Which answers here should be Normal, Private, Sealed, temporary, or not remembered?"}
+  - section_id: closing_orientation
+    title: Closing orientation
+    questions:
+      - {question_id: q32, prompt: "What do you want your relationship with Elysia to become over time?"}
+      - {question_id: q33, prompt: "Is there anything important about how you think or live that these questions failed to ask?"}

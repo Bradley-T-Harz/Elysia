@@ -1,0 +1,7 @@
+# Explicit CUDA MEGA environment only; driver/profile doctor proof is required.
+--index-url https://pypi.org/simple
+--extra-index-url https://download.pytorch.org/whl/cu130
+torch==2.13.0+cu130
+ncps==1.0.1
+numpy==2.4.6
+scipy==1.17.1

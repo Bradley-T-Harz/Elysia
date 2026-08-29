@@ -1,0 +1,51 @@
+version: 1
+contract_version: elysia-local-model-overrides-1.0
+
+# Copy this template to $XDG_CONFIG_HOME/elysia/models/local_overrides.yaml.
+# It remains user-local and outside the tracked source tree. Null means "not configured". Doctor
+# must verify every configured path, executable, provider, model tag, and asset.
+
+local_only: true
+
+provider_overrides:
+  ollama:
+    base_url: http://127.0.0.1:11434
+    role_runtime_tags:
+      primary_general: null
+      primary_code: null
+      lighter_backup: null
+      optional_specialist: null
+
+model_vault:
+  root: null
+  permit_authenticated_download_state: false
+  provenance_manifest: null
+
+worker_overrides:
+  speechforge:
+    python_path: null
+    executable: null
+    transcription_model: null
+    tts_model: null
+    tts_voices: null
+  imageforge:
+    python_path: null
+    model_root: null
+  videoforge:
+    python_path: null
+    model_root: null
+  engineeringforge:
+    sandbox_mechanism: null
+
+policy:
+  allow_network_for_model_acquisition: false
+  allow_runtime_network: false
+  allow_private_memory_mounts: false
+  allow_host_docker_socket: false
+  allow_physical_hardware: false
+
+notes:
+  - This example contains no machine-specific or private path.
+  - Model roots are private local roots; tracked model registries contain only relative asset identifiers.
+  - Selecting a local path or model tag does not enable a capability by itself.
+  - Profile selection, doctor checks, policy gates, and per-operation approval still apply.

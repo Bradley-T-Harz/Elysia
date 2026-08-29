@@ -1,0 +1,21 @@
+version: 1
+contract_version: elysia-update-trust-1.0
+state: active
+algorithm: ed25519
+publisher: EcoSyneva Commons LLC
+key_id: elysia-updater-ed25519-2026-02
+public_key_base64: Xd9hO67t5IDFCDXH0PQtgOLbWcGzO4KaDKMM1sbZSqM=
+not_before_utc: '2026-08-26T09:44:41Z'
+not_after_utc: '2028-08-26T09:44:41Z'
+channel: stable
+mutation_authority: local_admin_explicit
+silent_update_allowed: false
+supersedes_key_id: elysia-updater-ed25519-2026-01
+revoked_at_utc: null
+revocation_reason: null
+notes:
+- Dedicated production updater verification key; private custody remains external
+  to release artifacts and follows the operator offline-custody doctrine.
+- Update and repair mutation requires an explicit authenticated Local Admin preview
+  and approval.
+- Unknown, unsigned, wrong-channel, expired, or revoked authority fails closed.

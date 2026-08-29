@@ -1,0 +1,37 @@
+version: 1
+models:
+  - id: wan21-t2v-1.3b
+    display_name: Wan2.1 T2V 1.3B Diffusers
+    relative_path: huggingface/Wan-AI/Wan2.1-T2V-1.3B-Diffusers
+    pipeline: WanPipeline
+    enabled_state: lab_only
+    gate_status: lab_only
+    license: Apache-2.0
+    license_review_status: verified_official_wan_ai_model_card_apache_2_0_2026_08_24
+    local_readme_sha256: 816554be63d52aceaf640948c87ae0888887846ee2d2cdcc48231b3322089e37
+    model_index_sha256: b8b28e022329acf975e027579a1d2dc3de44dba28f4c909b98a880fbf5b0de7d
+    model_source: local_huggingface_snapshot_wan_ai
+    revision: unavailable_in_local_snapshot
+    training_data_provenance: incomplete
+    weights_format: safetensors
+    unsafe_pickle_risk: false
+    commercial_use_status: permitted_by_apache_2_0_subject_to_safety_and_likeness_policy
+    smoke_status: passed
+    smoke_runtime_seconds: 11.273
+    smoke_peak_gpu_memory_mib: 10872.6
+    smoke_output_sha256: 96253738d2dee3023b361b1dd451e0ea0d35e8c26185200b2088e3d5ea5e1a4f
+    governed_route_status: passed
+    governed_route_runtime_seconds: 13.416
+    governed_route_peak_gpu_memory_mib: 10872.6
+    governed_route_output_sha256: fad9f8523dc94eb3366df5591193dbed3f2bf5b6ce82b13b05e8ef1e62adf65b
+    governed_cancel_status: passed_no_partial_output
+    synthetic_label_required: true
+    production_blockers:
+      - training_data_provenance_remains_incomplete_for_production_gate
+      - sustained_resource_and_thermal_profile_not_benchmarked
+    gates:
+      safety: passed_lab_text_to_video_only
+      licensing: passed_official_apache_2_0
+      provenance: partial_training_data_details_incomplete
+      resource_stability: partial_one_bounded_route_and_cancel_proof_sustained_testing_pending
+      consent: passed_identity_bearing_requests_blocked

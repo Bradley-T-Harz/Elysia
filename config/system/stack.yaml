@@ -1,0 +1,84 @@
+version: 1
+status: part3_finishline_documented
+
+source_documents:
+  - docs/canon/HER_SOUL.md
+  - docs/canon/HER_MIND.md
+  - docs/canon/HER_BODY.md
+  - docs/architecture/Current_Architectural_Summary_2026-06-01_Part3_Finishline.md
+  - docs/architecture/Current_File_Tree_2026-06-01_Part3_Finishline.md
+  - docs/architecture/File_History.md
+
+project_root: .
+
+current_phase: part3_finishline_release_gate
+
+planned_stack:
+  runtime:
+    planned: false
+    selected: local_ollama_role_routing
+    notes:
+      - Local-first Ollama model role routing is the current trusted runtime path.
+      - Silent cloud fallback remains disabled.
+
+  interface:
+    planned: false
+    selected: local_fastapi_bridge_and_tauri_desktop_chamber
+    notes:
+      - Local FastAPI bridge and React/Tauri desktop chamber are present.
+      - No public exposure by default.
+
+  memory_backend:
+    planned: true
+    selected: local_memory_source_and_state_layers
+    notes:
+      - Layered memory source and local state exist.
+      - Memory promotion remains governed and not automatic.
+
+  web_research_layer:
+    planned: false
+    selected: bounded_searxng_and_fetch_workers
+    notes:
+      - Bounded SearXNG worker path exists but is disabled by default unless configured/running.
+      - Bounded fetch worker exists and remains approval-required.
+
+  coding_agent_layer:
+    planned: false
+    selected: governed_coder_1_0
+    notes:
+      - Read-only repo context, proposal-only patch planning, approved patch worker, focused command worker, and Aider dry-run lane exist.
+      - Broad shell, autonomous git, OpenHands, and autonomous mutation remain out of scope.
+
+  voice_layer:
+    planned: true
+    selected: null
+    notes:
+      - Optional later phase.
+      - Not enabled yet.
+
+  sandboxing:
+    planned: false
+    selected: bounded_worker_cages
+    notes:
+      - Bounded worker cages exist for Aider dry-run, patch, command, SearXNG, and fetch paths.
+      - Host freedom must not equal tool freedom.
+
+  cloud_assistance:
+    planned: optional_only
+    selected: null
+    notes:
+      - Never default.
+      - Never silent fallback.
+      - Only explicit use when enabled.
+
+build_principles:
+  - local_first
+  - privacy_first
+  - explicit_boundaries
+  - reversible_changes
+  - no_silent_cloud_fallback
+  - think_check_act_verify_log
+
+notes:
+  - This file is the stack manifest, not the final deployment config.
+  - Finishline architecture docs are the current map; risky Final Phase powers still require separate contracts, gates, ledgers, UI truth, tests, and rollback stories.

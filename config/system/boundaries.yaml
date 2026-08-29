@@ -1,0 +1,127 @@
+version: 1
+source_canons:
+  - docs/canon/HER_SOUL.md
+  - docs/canon/HER_BODY.md
+
+boundary_principles:
+  local_first: true
+  least_privilege: true
+  explicit_approval_for_sensitive_actions: true
+  no_silent_expansion_of_access: true
+  protect_private_material_by_default: true
+
+filesystem_zones:
+  canonical_docs:
+    paths:
+      - docs/
+      - README.md
+    default_access: read_write
+    sensitivity: medium
+
+  config_zone:
+    paths:
+      - config/
+    default_access: read_write
+    sensitivity: medium
+
+  project_workspace:
+    paths:
+      - projects/
+    default_access: read_write
+    sensitivity: medium
+
+  journal_zone:
+    paths:
+      - memory/journal/
+    default_access: read_write
+    sensitivity: medium
+
+  runtime_data_zone:
+    paths:
+      - data/
+      - logs/
+      - memory/chroma/
+    default_access: read_write
+    sensitivity: medium
+
+  sealed_identity_zone:
+    paths:
+      - data/identity/
+    default_access: sealed_local_identity_only
+    sensitivity: critical
+    normal_memory_access: blocked
+    runtime_private_profile_access: blocked
+    tools_access: blocked
+    workers_access: blocked
+
+  sandbox_zone:
+    paths:
+      - sandbox/
+    default_access: bounded_execution_only
+    sensitivity: high
+
+  model_zone:
+    paths:
+      - models/
+    default_access: read_only_by_default
+    sensitivity: medium
+
+  vault_zone:
+    paths:
+      - vault/
+    default_access: blocked_without_fresh_explicit_consent
+    sensitivity: critical
+
+restricted_actions:
+  - destructive_file_deletion
+  - unrestricted_shell_execution
+  - host_package_installs
+  - secret_access
+  - credential_export
+  - public_posting
+  - outbound_data_exfiltration
+  - archive_install_or_execution
+  - archive_extraction_into_project_roots
+  - autonomous_archive_extraction
+
+approval_required_for:
+  - touching_vault_zone
+  - reading_sensitive_private_material
+  - writing_outside_project_workspace
+  - destructive_commands
+  - host_system_changes
+  - public_or_external_actions
+  - selected_archive_extraction_into_disposable_sandbox
+
+identity_store_boundary:
+  trust_zone: sealed_local_identity
+  private_profile_store: data/identity/
+  runtime_private_access: blocked
+  tools_access: blocked
+  workers_access: blocked
+  normal_memory_import: blocked
+  visible_projection_access: allowed_for_runtime_only
+  visible_projection_fields:
+    - name_or_username
+    - interests
+    - bio
+    - profile_photo_asset_id
+    - profile_photo_available
+  sealed_fields:
+    - password
+    - password_hash
+    - birthdate
+    - emails
+    - phone_number
+    - social_media
+    - github
+    - city_state
+    - session_token
+    - session_token_hash
+    - original_profile_photo_path
+
+notes:
+  - Boundaries should be enforced before convenience.
+  - Sandbox access is not the same as host-level freedom.
+  - Vault access always requires fresh explicit consent.
+  - Account/profile identity data belongs in sealed local identity storage, not normal Memory.

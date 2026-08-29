@@ -1,0 +1,36 @@
+version: coding-data-types-0.1
+
+defaults:
+  require_workspace_scope: true
+  require_approval_for_preview: true
+  require_approval_for_export: true
+  require_approval_for_mutation: true
+  require_backup_for_in_place_mutation: true
+  require_transaction_for_database_mutation: true
+  max_preview_rows: 50
+  max_preview_features: 25
+  max_preview_values: 100
+
+supported_formats:
+  tabular: [".csv", ".tsv"]
+  json_lines: [".jsonl"]
+  columnar: [".parquet"]
+  database_handoff: [".sqlite", ".sqlite3", ".db", ".duckdb"]
+  geospatial_vector: [".geojson", ".gpkg", ".shp", ".kml", ".kmz"]
+  geospatial_raster: [".tif", ".tiff"]
+  multidimensional: [".nc", ".netcdf", ".h5", ".hdf5", ".zarr"]
+
+forbidden:
+  arbitrary_sql: true
+  shell_execution: true
+  package_manager_execution: true
+  cloud_upload: true
+  unapproved_mutation: true
+  unbounded_full_load: true
+  private_runtime_paths: true
+
+notes:
+  - "CSV/TSV, JSONL, GeoJSON, KML, and KMZ have standard-library governed support."
+  - "SQLite, ambiguous .db, and DuckDB are handed to Chunk 7 DatabaseForge; legacy row preview, export, and mutation are unavailable."
+  - "Parquet, GPKG, Shapefile, GeoTIFF, NetCDF, HDF5, and Zarr expose reduced metadata unless the science/geospatial dependencies are installed."
+  - "Audit records store operation truth and hashes, not full raw datasets."

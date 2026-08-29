@@ -1,0 +1,36 @@
+{
+  "name": "elysia-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Local desktop chamber shell for Elysia.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "tauri": "tauri",
+    "tauri:build": "tauri build",
+    "notices:native": "python3 ../../scripts/generate_appimage_native_notices.py --appdir src-tauri/target/release/bundle/appimage/Elysia.AppDir --output THIRD_PARTY_NOTICES.native.txt",
+    "tauri:build:linux": "../../scripts/tauri_build_linux.sh"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.7.2",
+    "@tauri-apps/plugin-opener": "^2.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "jsdom": "^27.0.1",
+    "typescript": "^5",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7"
+  }
+}

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REAL_APPSTREAMCLI="${ELYSIA_REAL_APPSTREAMCLI:-/usr/bin/appstreamcli}"
+
+if [[ ! -x "$REAL_APPSTREAMCLI" ]]; then
+  echo "The system AppStream validator is unavailable." >&2
+  exit 127
+fi
+
+if [[ "${1:-}" != "validate-tree" || "$#" -ne 2 ]]; then
+  exec "$REAL_APPSTREAMCLI" "$@"
+fi
+
+APPDIR="$2"
+CANONICAL="$APPDIR/usr/share/metainfo/llc.ecosyneva.elysia.metainfo.xml"
+TAURI_ALIAS="$APPDIR/usr/share/metainfo/Elysia.appdata.xml"
+HELD_ALIAS="$APPDIR/usr/share/metainfo/Elysia.appdata.xml.tauri-validation-alias"
+
+if [[ ! -f "$CANONICAL" ]]; then
+  echo "The canonical Elysia AppStream metainfo file is missing." >&2
+  exit 2
+fi
+
+if [[ -e "$HELD_ALIAS" ]]; then
+  echo "A stale temporary AppStream alias prevents safe validation." >&2
+  exit 2
+fi
+
+restore_alias() {
+  if [[ -e "$HELD_ALIAS" ]]; then
+    mv -- "$HELD_ALIAS" "$TAURI_ALIAS"
+  fi
+}
+trap restore_alias EXIT HUP INT TERM
+
+if [[ -e "$TAURI_ALIAS" ]]; then
+  if ! cmp -s -- "$TAURI_ALIAS" "$CANONICAL"; then
+    echo "The Tauri AppStream alias differs from canonical Elysia metadata." >&2
+    exit 2
+  fi
+  mv -- "$TAURI_ALIAS" "$HELD_ALIAS"
+fi
+
+# Package metadata validity must be deterministic and offline. This suppresses
+# only remote URL reachability checks; schema, desktop, icon, component-ID,
+# and all other tree validation remain authoritative.
+"$REAL_APPSTREAMCLI" validate-tree --no-net "$APPDIR"

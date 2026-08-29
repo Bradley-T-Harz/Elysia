@@ -1,0 +1,9 @@
+# Developer / Codev Python-side test contract. Setup uses
+# config/install/locks/developer-py312.lock.txt as the exact installer input.
+-r core.txt
+
+pytest
+httpx
+
+# Node/npm, Rust/Cargo, VS Code, Git, and the Codev VSIX are non-Python
+# dependencies described in config/install/dependency_catalog.yaml.

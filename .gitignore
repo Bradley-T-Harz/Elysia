@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment / secrets
+.env
+.env.*
+!apps/elysia-desktop/.env.production
+secrets/
+*.key
+*.pem
+*.crt
+
+# Local app data
+data/
+logs/*
+!logs/README.md
+!logs/_log_entry_template.md
+memory/chroma/
+vault/
+
+# Local databases / runtime state
+*.db
+*.sqlite
+*.sqlite3
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Operator-local Codex workspace configuration and transition backups
+.codex/config.toml
+.codex/config.toml.pre-*.bak
+
+# Model/runtime clutter
+*.gguf
+*.safetensors
+ollama-models/
+
+# Operator-local release/profile overrides (tracked examples use *.example.yaml)
+config/models/local_overrides.yaml
+config/install/local_profiles.yaml
+config/system/machine_profile.local.yaml
+config/workers/*.local.yaml
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Generated scaffold journal entries
+memory/journal/sessions/*_runtime-session.md
+
+# Local build/runtime artifacts
+apps/elysia-desktop/node_modules/
+apps/elysia-desktop/dist/
+apps/elysia-desktop/src-tauri/target/
+apps/elysia-desktop/src-tauri/binaries/
+*.py[cod]
+
+# Local R/session scratch files
+memory/journal/sessions/.Rhistory
+
+# R session history
+.Rhistory

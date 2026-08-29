@@ -1,0 +1,161 @@
+schema_version: 1
+contract_version: elysia-public-package-1.0
+target_release: 1.0.0
+current_channel: stable
+
+repository_identity:
+  owner: Bradley-T-Harz
+  name: Elysia
+  canonical_url: https://github.com/Bradley-T-Harz/Elysia
+
+publication:
+  release_role: qualified_public_release_payload
+  live_state_source: canonical_external_release_surfaces
+  mutable_external_state_not_embedded: true
+  owner_authorization_required_for_external_mutation: true
+  canonical_release_url: https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.0.0
+  canonical_archive_url: https://elysiaecobotics.com/archive
+
+reviewed_source:
+  include_roots:
+    - LICENSES
+    - app
+    - apps/elysia-desktop
+    - config
+    - core
+    - derived
+    - docs
+    - packaging
+    - requirements
+    - sandbox
+    - scripts
+    - skills
+    - tests
+    - workers
+  required_root_files:
+    - LICENSE
+    - LICENSING.md
+    - NOTICE
+    - THIRD_PARTY_NOTICES.md
+    - MODEL_ASSET_NOTICES.md
+    - TRADEMARKS.md
+    - CONTRIBUTING.md
+    - SECURITY.md
+    - README.md
+    - requirements.txt
+    - .gitignore
+  exclude_globs:
+    - docs/architecture/**
+    - docs/benchmarks/**
+    - docs/reports/**
+    - docs/release/ELYSIA_V1_IMPLEMENTATION_PASS_PLAN.md
+
+core_payload:
+  include_roots:
+    - LICENSES
+    - app
+    - core
+    - config
+    - skills
+    - packaging/core_runtime_prompts
+    - sandbox/aider_worker
+    - sandbox/command_worker
+    - sandbox/fetch_worker
+    - sandbox/patch_worker
+    - sandbox/searxng_worker
+    - workers/pdf
+  required_files:
+    - LICENSE
+    - LICENSING.md
+    - NOTICE
+    - THIRD_PARTY_NOTICES.md
+    - MODEL_ASSET_NOTICES.md
+    - TRADEMARKS.md
+    - README.md
+    - requirements/core.txt
+    - requirements/THIRD_PARTY_NOTICES.txt
+    - packaging/public_manifest.yaml
+  source_mappings:
+    packaging/core_runtime_prompts: derived/runtime
+  excluded_optional_contracts:
+    - config/system/machine_profile.yaml
+    - config/models/imageforge_models.yaml
+    - config/models/speechforge_models.yaml
+    - config/models/videoforge_models.yaml
+    - config/workers/*forge_worker.yaml
+
+tracked_source_deny_globs:
+  - '**/.env'
+  - '**/.env.*'
+  - '**/*.key'
+  - '**/*.pem'
+  - '**/*.p12'
+  - '**/*.pfx'
+  - '**/*.db'
+  - '**/*.sqlite'
+  - '**/*.sqlite3'
+  - '**/*.log'
+  - '**/node_modules/**'
+  - '**/target/**'
+  - '**/__pycache__/**'
+  - '**/.pytest_cache/**'
+  - '**/.wrangler/**'
+  - '**/test-results/**'
+  - 'data/**'
+  - 'logs/**'
+  - 'memory/**'
+  - 'vault/**'
+  - 'config/models/local_overrides.yaml'
+  - 'config/install/local_profiles.yaml'
+  - 'config/system/machine_profile.local.yaml'
+
+package_deny_globs:
+  - '**/.env'
+  - '**/.env.*'
+  - '**/*.key'
+  - '**/*.pem'
+  - '**/*.p12'
+  - '**/*.pfx'
+  - '**/*.db'
+  - '**/*.sqlite'
+  - '**/*.sqlite3'
+  - '**/*.log'
+  - '**/node_modules/**'
+  - '**/target/**'
+  - '**/__pycache__/**'
+  - '**/.pytest_cache/**'
+  - '**/.wrangler/**'
+  - '**/test-results/**'
+  - 'data/**'
+  - 'logs/**'
+  - 'memory/**'
+  - 'vault/**'
+  - 'config/models/local_overrides.yaml'
+  - 'config/install/local_profiles.yaml'
+  - 'config/system/machine_profile.local.yaml'
+  - '**/*.gguf'
+  - '**/*.safetensors'
+  - '**/*.onnx'
+
+tracked_template_exceptions:
+  - apps/elysia-desktop/.env.production
+  - logs/README.md
+  - logs/_log_entry_template.md
+  - memory/journal/README.md
+  - memory/journal/_entry_template.md
+
+forbidden_operator_markers:
+  - operator home username
+  - operator workstation hostname
+  - operator external-drive label
+  - operator absolute project root
+
+diagnostics:
+  absolute_paths_in_normal_ui: prohibited
+  secret_values: prohibited
+  raw_logs: prohibited
+  allowed_identity_forms:
+    - stable component ID
+    - relative label
+    - bounded hash
+    - request or operation receipt ID
