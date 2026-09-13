@@ -22,6 +22,7 @@ reviewed_source:
     - app
     - apps/elysia-desktop
     - config
+    - contracts
     - core
     - derived
     - docs
