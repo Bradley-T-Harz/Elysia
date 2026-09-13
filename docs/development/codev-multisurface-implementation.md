@@ -280,3 +280,105 @@ forced RLS, nine functions and one audit trigger. Existing policies and objects
 were not removed or altered. Migration SHA-256:
 `d931217ae703ab97ae464a56db9aaedfe7ae9465e7d46c57b42a96b281508193`.
 Publication and production website deployment/verification follow this checkpoint.
+
+
+## Production model qualification follow-up — 13 September 2026
+
+The preceding phase sections record their state at each checkpoint. Online is now
+pushed at `e8fa5cad8f4fbf80beb2abf8e9c0496a3b534915`, migration
+`20260913010000_codev_pairing_sessions.sql` is applied, and production Pages
+`60239324-be2b-46dd-bd74-5157584ba8c3` is live. The follow-up changes only native
+runtime/transport and tests; it requires no additional website deployment or
+migration. Elysia and the unchanged Codev Add-on remain 1.0.0.
+
+The original website timeout had several interacting causes, established from
+actual local provider options/timing and the runtime path:
+
+- A bounded Quick explanation selected the configured 24B general model on CPU.
+  It waited 180 seconds before headers; a fallback then received a fresh full
+  timeout although the website allows 240 seconds for the entire request.
+- Coding proposal wording was classified as requiring tools even though shared
+  Codev chat only returns text/proposals. That unnecessarily raised the requested
+  Quick gear to research/engineering and a larger coding model/output budget.
+- A blocked provider read could ignore cancellation before response headers or
+  between streamed tokens. Partial output must never count as a completed answer.
+- Native desktop transport allowed 120 seconds, shorter than the model request.
+
+Codev now uses the existing within-role latency selection for a bounded Quick
+request when the user has balanced preference. Explicit quality preference,
+role membership, installation and compute admission remain authoritative. Ordinary
+Elysia routing does not receive this Codev-only flag. Chat no longer claims tool
+execution is required merely because it discusses code. Stakes, verification,
+resource and authority floors still apply; actual tools remain separately gated.
+
+The invoker shares a total deadline across preflight and attempts. A scoped Codev
+request can invoke only the concrete model whose compute was admitted; a failed
+provider cannot launch another model with that admission. A subsequent request
+can re-route from updated measured health and seek a new admission. A request-owned
+socket monitor interrupts only its literal-loopback provider connection on cancel
+or deadline, including before headers; completion requires a terminal provider
+frame. It never kills/unloads shared Ollama, changes GPU policy, enables proxies,
+follows redirects, or uses cloud models.
+
+Both Codev clients now use a trusted 210-second request deadline, including planning
+and preflight, inside their 240-second transport allowance. An explicit shorter
+internal timeout still wins. The desktop extension is limited to POST /codev/chat;
+other desktop API requests keep 120 seconds. Late responses are withheld and
+installation/account/grant/lease checks still run before delivery.
+
+Focused validation: 157 native/runtime/governance/security regressions passed in
+one serialized run; later routing-scope refinement passed 78 tests. The final
+whole-request deadline change passed 71 affected Python tests and all 7 desktop
+Rust tests. Real Chromium/Firefox signed broker checks passed 2/2 after this change.
+The separate public checkout skipped these browser cases because its adjacent
+Online checkout is absent; those skips are not counted as passes. Its source and
+history hygiene scan passed with zero findings.
+
+Actual production model qualification passed with the rebuilt v1.0.0 package
+(Core SHA-256 `528263a9652864313874d01484a3afe775ffc570735daf2924ed42a15c1b454d`,
+Debian SHA-256 `770739b743437f8c77c246173845c72cde9df9b9021a89eec243877da5e1ec46`).
+The package source is public commit `ddc94ec594a352724794781fa6f690b6230a1101`.
+
+The complete CPU run used real production pages, real account sessions and the
+unchanged VSIX installed into a disposable native profile. Marketplace reasoning
+and proposal completed in 186.522s and 203.338s; Forge in 188.700s and 206.650s.
+Both pages separately granted read/proposal context, received real local
+`granite3.3:8b` proposals, reviewed current hashes/revisions, and explicitly applied
+the exact replacement. Marketplace changed `answer` 41 to 42 at revision 3 to 4;
+Forge changed `retryLimit` 3 to 5 at revision 2 to 3. The harness did not supply
+replacement JSON or intercept the provider/API. Original source backups and all
+unselected LICENSE/binary/manifest bytes were verified. Replayed approvals returned
+403; an unrelated account could not access the pairing. Native revocation
+cancelled a fifth real inference (4.458s) and preserved the browser workspace.
+
+A normal automatic-compute repeat also passed both actual proposal/review/apply
+flows, taking 182.689s for Marketplace and 64.215s for Forge, with another real
+inference cancelled by revocation (4.334s). The governor admitted its normal hybrid
+`cuda:0` path with CPU fallback allowed; provider residency reported zero GPU bytes.
+This qualifies the automatic setting, not GPU execution/performance. An earlier
+automatic harness used the wrong literal `gpu` device identifier and stopped after
+a successful 171.086s model response; the corrected harness checks the canonical
+device identifier, concrete model admission and resource ceiling.
+
+Both final runs reported `passed: true`, zero page errors, zero initial workspace
+grants, no implicit authority increase and no research network access. Their
+review, applied/recovery and revoked-state screenshots were manually inspected.
+Browser loopback permission was explicitly configured under normal browser
+security; interactive CAPTCHA and the human OS/browser permission dialogs are not
+qualified by this automation. Repository tests/builds were not executed by these
+model edits: patch verification means exact approved browser bytes.
+
+CPU prefill dominated latency and the slowest browser request took 209.001s.
+This qualification covers bounded Quick requests and selected small files on this
+host; it does not guarantee performance or complete context for larger workspaces,
+all models/gears, or other hardware. Deadline exhaustion still fails closed.
+Evidence: `/tmp/codev-implementation-20260913/production-model-full-budget-cpu/results.json`
+and `/tmp/codev-implementation-20260913/production-model-proposals-automatic/results.json`.
+The owner evidence report records exact source inventory, production/security
+rechecks, fixture-cleanup status, commits and artifact hashes.
+
+The reviewed public source is pushed to `codev-multisurface-v1-integration` in
+https://github.com/Bradley-T-Harz/Elysia/pull/2. GitHub's existing main protection
+requires an independent approving review; the PR author/last pusher cannot satisfy
+it by self-review. Main is not merged. No protection or repository auto-merge
+setting was changed. Private local history/configuration remains excluded.
