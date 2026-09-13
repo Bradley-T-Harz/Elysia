@@ -526,7 +526,9 @@ def test_live_capability_manifest_names_part3_organs_with_current_truth():
     assert patch_review["approval_state"] == "needed"
     assert patch_review["read_only"] is True
     assert "Proposal-only patch planning" in patch_notes
-    assert "Patch application is not live" in patch_notes
+    assert "This proposal-only path does not apply patches" in patch_notes
+    assert "exact-approved patch path remains independently state-bound" in patch_notes
+    assert "grants no broad shell, git mutation, or package-install authority" in patch_notes
 
     patch_application = capabilities["patch_application"]
     patch_application_notes = " ".join(patch_application["notes"])

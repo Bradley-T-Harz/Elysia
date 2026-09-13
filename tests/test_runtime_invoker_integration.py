@@ -629,3 +629,36 @@ def test_runtime_verification_still_runs_and_surfaces_verification_caveat_when_i
 
     assert captured["log_payload"]["invoker_note"] == ""
     assert captured["journal_payload"]["invoker_note"] == ""
+
+
+def test_codev_runtime_scope_preserves_governed_routing_without_ambient_context(
+    monkeypatch, base_configs, runtime_skills,
+):
+    from hashlib import sha256
+    from core.codev.contracts import WorkspaceFile
+    from core.codev.runtime_scope import DevelopmentContext, development_context
+    captured = _install_runtime_environment(monkeypatch, base_configs, runtime_skills)
+    from core.context_gatherer import gather_context
+    monkeypatch.setattr(runtime, "gather_context", gather_context)
+    call = {}
+    def fake_invoke(**kwargs):
+        call.update(kwargs)
+        return {"status": "ok", "allowed": True, "stayed_local": True,
+                "selected_role": "primary_general", "selected_runtime": "ollama",
+                "response_text": "The approved function returns 42.", "used_fallback": False,
+                "note": "Fixture transport; real governed planner and routing executed."}
+    monkeypatch.setattr(runtime, "invoke_model", fake_invoke)
+    content = "def answer(): return 42\n"
+    file = WorkspaceFile(path="answer.py", text=content, content_hash=sha256(content.encode()).hexdigest(),
+                         size_bytes=len(content), availability="text", provenance="local_file")
+    with development_context(DevelopmentContext("workspace-a", (file,))):
+        result = runtime.handle_user_message("Explain this Python function.", runtime.SessionState(active_mode="coder"),
+            request_context={"internet_master_enabled": True, "explicit_sealed_memory": True,
+                             "profile_context": {"name": "PRIVATE_PROFILE_CANARY"}, "requested_gear": "standard"})
+    assert result["model_routing"]["stayed_local"]
+    assert content.strip() in call["context_summary"]
+    assert "PRIVATE_PROFILE_CANARY" not in call["context_summary"]
+    assert not result["retrieval_policy"]["retrieval_enabled"]
+    assert not result["research"]["network_access_used"]
+    assert not captured["journal_policy_arg"]["journal_write_allowed"]
+    assert captured["log_payload"]["message_summary"] == "Scoped Codev development request"

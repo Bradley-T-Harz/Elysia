@@ -141,3 +141,52 @@ def test_patch_apply_blocks_in_plan_only_even_with_operator_approval(tmp_path):
     assert result.status == "blocked_by_approval_mode"
     assert result.mutation_performed is False
     assert source.read_text(encoding="utf-8") == old
+
+
+def _approved_fixture(tmp_path):
+    old, new = "answer = 1\n", "answer = 2\n"
+    (tmp_path / "fibonacci_bug.py").write_text(old)
+    diff = _diff(old, new)
+    source_hash = sha256(old.encode()).hexdigest()
+    patch_hash = patch_hash_for_diff(diff)
+    approval = _approve_patch(tmp_path, "fibonacci_bug.py", source_hash, patch_hash)
+    return CodingPatchApplyRequest(approval_mode="apply_with_approval", workspace_root=str(tmp_path),
+        target_file="fibonacci_bug.py", proposed_diff=diff, expected_content_hash=source_hash,
+        patch_hash=patch_hash, approval_id=approval.approval_id, approval_token=approval.approval_token,
+        operator_approved=True)
+
+
+def test_patch_backup_failure_returns_typed_refusal_without_source_write(tmp_path):
+    payload = _approved_fixture(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (tmp_path / ".elysia_backups").symlink_to(outside, target_is_directory=True)
+    result = apply_patch_with_approval(payload)
+    assert result.status == "blocked"
+    assert not result.mutation_performed
+    assert (tmp_path / "fibonacci_bug.py").read_text() == "answer = 1\n"
+    assert list(outside.iterdir()) == []
+
+
+def test_patch_completion_audit_failure_preserves_mutation_truth(tmp_path, monkeypatch):
+    from app.api import coding_patch_service
+    payload = _approved_fixture(tmp_path)
+    def fail(*args, **kwargs):
+        raise OSError("fixture full disk")
+    monkeypatch.setattr(coding_patch_service, "write_coding_audit_record", fail)
+    result = apply_patch_with_approval(payload)
+    assert result.status == "applied"
+    assert result.mutation_performed and not result.audit_written
+    assert (tmp_path / "fibonacci_bug.py").read_text() == "answer = 2\n"
+    assert result.rollback_receipt_id
+
+
+def test_patch_source_replacement_race_returns_typed_refusal(tmp_path, monkeypatch):
+    from app.api import coding_patch_service
+    payload = _approved_fixture(tmp_path)
+    def fail(*args, **kwargs):
+        raise OSError("fixture replaced source")
+    monkeypatch.setattr(coding_patch_service, "read_bytes", fail)
+    result = apply_patch_with_approval(payload)
+    assert result.status == "blocked"
+    assert not result.mutation_performed

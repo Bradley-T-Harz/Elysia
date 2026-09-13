@@ -9,6 +9,7 @@ from hmac import compare_digest
 from pathlib import Path
 from threading import RLock
 from uuid import uuid4
+from core.codev.identity import approval_actor
 
 from app.api.coding_audit_service import utc_now_iso, write_coding_audit_record
 from app.api.coding_path_guard_service import guard_workspace_path
@@ -28,6 +29,7 @@ class _ApprovalRecord:
     workspace_root: Path
     expires_at: datetime
     consumed_at: datetime | None = None
+    actor: str = ""
 
 
 _APPROVALS: dict[str, _ApprovalRecord] = {}
@@ -133,7 +135,7 @@ def approve_operation(payload: CodingOperationApproveRequest) -> CodingOperation
         warnings=warnings,
     )
     with _APPROVAL_LOCK:
-        _APPROVALS[approval_id] = _ApprovalRecord(approval, token, root, expires_at)
+        _APPROVALS[approval_id] = _ApprovalRecord(approval, token, root, expires_at, actor=approval_actor())
     write_coding_audit_record(
         "approval",
         approval_id,
@@ -177,6 +179,8 @@ def _consume_operation_approval_locked(
         return CodingApprovalConsumption(allowed=False, approval_id=approval_id, reason="unknown_or_unapproved_approval_id")
     if not approval_token or not compare_digest(approval_token, record.token):
         return CodingApprovalConsumption(allowed=False, approval_id=approval_id, reason="approval_token_mismatch")
+    if record.actor != approval_actor():
+        return CodingApprovalConsumption(allowed=False, approval_id=approval_id, reason="approval_actor_mismatch")
     now = datetime.now(timezone.utc).replace(microsecond=0)
     if now >= record.expires_at:
         return CodingApprovalConsumption(allowed=False, approval_id=approval_id, reason="approval_expired")

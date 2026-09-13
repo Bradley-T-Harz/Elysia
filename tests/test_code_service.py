@@ -21,7 +21,7 @@ def _approved_repo_config(tmp_path: Path) -> Path:
     return config_path
 
 
-def test_code_service_applies_approved_patch_and_writes_truth(tmp_path, monkeypatch):
+def test_code_service_rejects_legacy_boolean_approval_without_mutation(tmp_path, monkeypatch):
     config_path = _approved_repo_config(tmp_path)
     repo_root = tmp_path / "repo"
     (repo_root / "sample.txt").write_text("before\n", encoding="utf-8")
@@ -54,11 +54,11 @@ def test_code_service_applies_approved_patch_and_writes_truth(tmp_path, monkeypa
         }
     )
 
-    assert result.status == "completed"
-    assert result.mutated_files is True
+    assert result.status == "blocked"
+    assert result.mutated_files is False
     assert result.shell_used is False
     assert result.git_mutation_used is False
-    assert (repo_root / "sample.txt").read_text(encoding="utf-8") == "after\n"
+    assert (repo_root / "sample.txt").read_text(encoding="utf-8") == "before\n"
 
 
 def test_code_service_blocks_unapproved_patch(tmp_path, monkeypatch):

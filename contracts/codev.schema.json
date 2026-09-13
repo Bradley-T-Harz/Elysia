@@ -1,0 +1,1626 @@
+{
+  "$defs": {
+    "Actor": {
+      "additionalProperties": false,
+      "properties": {
+        "client_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Client Id",
+          "type": "string"
+        },
+        "client_kind": {
+          "enum": [
+            "native",
+            "browser",
+            "vscode_compatibility"
+          ],
+          "title": "Client Kind",
+          "type": "string"
+        },
+        "local_profile_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Local Profile Id",
+          "type": "string"
+        },
+        "online_account_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Online Account Id"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Origin"
+        },
+        "surface": {
+          "enum": [
+            "local",
+            "marketplace",
+            "forge"
+          ],
+          "title": "Surface",
+          "type": "string"
+        }
+      },
+      "required": [
+        "local_profile_id",
+        "client_id",
+        "client_kind",
+        "surface"
+      ],
+      "title": "Actor",
+      "type": "object"
+    },
+    "BrokerPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "clock_skew_seconds": {
+          "const": 30,
+          "default": 30,
+          "title": "Clock Skew Seconds",
+          "type": "integer"
+        },
+        "host": {
+          "const": "127.0.0.1:47321",
+          "default": "127.0.0.1:47321",
+          "title": "Host",
+          "type": "string"
+        },
+        "max_body_bytes": {
+          "const": 2097152,
+          "default": 2097152,
+          "title": "Max Body Bytes",
+          "type": "integer"
+        },
+        "origin": {
+          "const": "http://127.0.0.1:47321",
+          "default": "http://127.0.0.1:47321",
+          "title": "Origin",
+          "type": "string"
+        },
+        "port": {
+          "const": 47321,
+          "default": 47321,
+          "title": "Port",
+          "type": "integer"
+        }
+      },
+      "title": "BrokerPolicy",
+      "type": "object"
+    },
+    "BrokerProof": {
+      "additionalProperties": false,
+      "properties": {
+        "browser_session_id": {
+          "maxLength": 128,
+          "minLength": 32,
+          "title": "Browser Session Id",
+          "type": "string"
+        },
+        "nonce": {
+          "pattern": "^[A-Za-z0-9_-]{32,64}$",
+          "title": "Nonce",
+          "type": "string"
+        },
+        "online_account_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Online Account Id",
+          "type": "string"
+        },
+        "pairing_id": {
+          "maxLength": 128,
+          "minLength": 16,
+          "title": "Pairing Id",
+          "type": "string"
+        },
+        "signature": {
+          "pattern": "^[A-Za-z0-9_-]{86}$",
+          "title": "Signature",
+          "type": "string"
+        },
+        "timestamp_ms": {
+          "minimum": 0,
+          "title": "Timestamp Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pairing_id",
+        "browser_session_id",
+        "online_account_id",
+        "nonce",
+        "timestamp_ms",
+        "signature"
+      ],
+      "title": "BrokerProof",
+      "type": "object"
+    },
+    "BrokerRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "payload_json": {
+          "maxLength": 2097152,
+          "title": "Payload Json",
+          "type": "string"
+        },
+        "proof": {
+          "$ref": "#/$defs/BrokerProof"
+        }
+      },
+      "required": [
+        "proof",
+        "payload_json"
+      ],
+      "title": "BrokerRequest",
+      "type": "object"
+    },
+    "BrokerResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "payload_json": {
+          "maxLength": 2097152,
+          "title": "Payload Json",
+          "type": "string"
+        },
+        "signature": {
+          "pattern": "^[A-Za-z0-9_-]{86}$",
+          "title": "Signature",
+          "type": "string"
+        }
+      },
+      "required": [
+        "payload_json",
+        "signature"
+      ],
+      "title": "BrokerResponse",
+      "type": "object"
+    },
+    "BrowserApproveRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "content_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "explicitly_approved": {
+          "default": false,
+          "title": "Explicitly Approved",
+          "type": "boolean"
+        },
+        "grant_epoch": {
+          "minimum": 1,
+          "title": "Grant Epoch",
+          "type": "integer"
+        },
+        "plan_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "plan_id": {
+          "maxLength": 128,
+          "minLength": 16,
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "revision",
+        "content_hash",
+        "grant_epoch",
+        "plan_id",
+        "plan_hash"
+      ],
+      "title": "BrowserApproveRequest",
+      "type": "object"
+    },
+    "BrowserCancelRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "pattern": "^codev_[a-f0-9]{32}$",
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id"
+      ],
+      "title": "BrowserCancelRequest",
+      "type": "object"
+    },
+    "BrowserChatRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "content_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "grant_epoch": {
+          "minimum": 1,
+          "title": "Grant Epoch",
+          "type": "integer"
+        },
+        "message": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "request_id": {
+          "pattern": "^codev_[a-f0-9]{32}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "requested_gear": {
+          "default": "standard",
+          "title": "Requested Gear",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "revision",
+        "content_hash",
+        "grant_epoch",
+        "message",
+        "request_id"
+      ],
+      "title": "BrowserChatRequest",
+      "type": "object"
+    },
+    "BrowserPatchRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "content_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "edits": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 20,
+          "minProperties": 1,
+          "title": "Edits",
+          "type": "object"
+        },
+        "grant_epoch": {
+          "minimum": 1,
+          "title": "Grant Epoch",
+          "type": "integer"
+        },
+        "revision": {
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "revision",
+        "content_hash",
+        "grant_epoch",
+        "summary",
+        "edits"
+      ],
+      "title": "BrowserPatchRequest",
+      "type": "object"
+    },
+    "BrowserPublicKey": {
+      "additionalProperties": false,
+      "properties": {
+        "crv": {
+          "const": "P-256",
+          "default": "P-256",
+          "title": "Crv",
+          "type": "string"
+        },
+        "kty": {
+          "const": "EC",
+          "default": "EC",
+          "title": "Kty",
+          "type": "string"
+        },
+        "x": {
+          "pattern": "^[A-Za-z0-9_-]{43}$",
+          "title": "X",
+          "type": "string"
+        },
+        "y": {
+          "pattern": "^[A-Za-z0-9_-]{43}$",
+          "title": "Y",
+          "type": "string"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "BrowserPublicKey",
+      "type": "object"
+    },
+    "BrowserRevisionRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "content_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "grant_epoch": {
+          "minimum": 1,
+          "title": "Grant Epoch",
+          "type": "integer"
+        },
+        "revision": {
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "revision",
+        "content_hash",
+        "grant_epoch"
+      ],
+      "title": "BrowserRevisionRequest",
+      "type": "object"
+    },
+    "BrowserWorkspaceShare": {
+      "additionalProperties": false,
+      "properties": {
+        "base_revision": {
+          "minimum": 0,
+          "title": "Base Revision",
+          "type": "integer"
+        },
+        "content_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "current_revision": {
+          "minimum": 0,
+          "title": "Current Revision",
+          "type": "integer"
+        },
+        "draft_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Draft Id"
+        },
+        "expected_epoch": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Expected Epoch",
+          "type": "integer"
+        },
+        "explicitly_approved": {
+          "title": "Explicitly Approved",
+          "type": "boolean"
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/WorkspaceFile"
+          },
+          "maxItems": 2000,
+          "title": "Files",
+          "type": "array"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "scopes": {
+          "items": {
+            "enum": [
+              "read",
+              "propose"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Scopes",
+          "type": "array"
+        },
+        "surface": {
+          "enum": [
+            "marketplace",
+            "forge"
+          ],
+          "title": "Surface",
+          "type": "string"
+        },
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "surface",
+        "label",
+        "base_revision",
+        "current_revision",
+        "content_hash",
+        "files",
+        "scopes",
+        "explicitly_approved"
+      ],
+      "title": "BrowserWorkspaceShare",
+      "type": "object"
+    },
+    "Capability": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "requires": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Requires",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "available"
+      ],
+      "title": "Capability",
+      "type": "object"
+    },
+    "ChangePlan": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/Actor"
+        },
+        "base_revision": {
+          "minimum": 0,
+          "title": "Base Revision",
+          "type": "integer"
+        },
+        "changes": {
+          "items": {
+            "$ref": "#/$defs/FileChange"
+          },
+          "maxItems": 20,
+          "title": "Changes",
+          "type": "array"
+        },
+        "command_argv": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Command Argv",
+          "type": "array"
+        },
+        "command_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command Id"
+        },
+        "cwd_label": {
+          "title": "Cwd Label",
+          "type": "string"
+        },
+        "expected_checks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Expected Checks",
+          "type": "array"
+        },
+        "expires_at": {
+          "title": "Expires At",
+          "type": "string"
+        },
+        "grant_epoch": {
+          "minimum": 1,
+          "title": "Grant Epoch",
+          "type": "integer"
+        },
+        "network_policy": {
+          "const": "none",
+          "default": "none",
+          "title": "Network Policy",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "plan_id": {
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "recovery_note": {
+          "title": "Recovery Note",
+          "type": "string"
+        },
+        "risks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Risks",
+          "type": "array"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "title": "Summary",
+          "type": "string"
+        },
+        "workspace_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Workspace Hash",
+          "type": "string"
+        },
+        "workspace_id": {
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id",
+        "workspace_id",
+        "actor",
+        "base_revision",
+        "workspace_hash",
+        "grant_epoch",
+        "plan_hash",
+        "summary",
+        "cwd_label",
+        "expires_at",
+        "recovery_note"
+      ],
+      "title": "ChangePlan",
+      "type": "object"
+    },
+    "ExactApproval": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/Actor"
+        },
+        "approval_id": {
+          "title": "Approval Id",
+          "type": "string"
+        },
+        "command_argv": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command Argv",
+          "type": "array"
+        },
+        "consumed": {
+          "default": false,
+          "title": "Consumed",
+          "type": "boolean"
+        },
+        "cwd_label": {
+          "title": "Cwd Label",
+          "type": "string"
+        },
+        "expires_at": {
+          "title": "Expires At",
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "grant_epoch": {
+          "minimum": 1,
+          "title": "Grant Epoch",
+          "type": "integer"
+        },
+        "network_policy": {
+          "default": "none",
+          "enum": [
+            "none",
+            "approved_remote_save"
+          ],
+          "title": "Network Policy",
+          "type": "string"
+        },
+        "one_time": {
+          "const": true,
+          "default": true,
+          "title": "One Time",
+          "type": "boolean"
+        },
+        "operation": {
+          "enum": [
+            "patch_apply",
+            "command_run",
+            "browser_patch",
+            "remote_save"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "plan_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Plan Hash",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "workspace_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Workspace Hash",
+          "type": "string"
+        },
+        "workspace_id": {
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approval_id",
+        "actor",
+        "workspace_id",
+        "revision",
+        "workspace_hash",
+        "grant_epoch",
+        "operation",
+        "plan_hash",
+        "cwd_label",
+        "expires_at"
+      ],
+      "title": "ExactApproval",
+      "type": "object"
+    },
+    "FileChange": {
+      "additionalProperties": false,
+      "properties": {
+        "base_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Base Hash",
+          "type": "string"
+        },
+        "diff": {
+          "maxLength": 262144,
+          "title": "Diff",
+          "type": "string"
+        },
+        "new_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "New Hash",
+          "type": "string"
+        },
+        "new_text": {
+          "maxLength": 131072,
+          "title": "New Text",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "base_hash",
+        "new_text",
+        "new_hash",
+        "diff"
+      ],
+      "title": "FileChange",
+      "type": "object"
+    },
+    "Installation": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/Capability"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "contract_version": {
+          "const": "codev-client-1",
+          "default": "codev-client-1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "contract_versions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Contract Versions",
+          "type": "array"
+        },
+        "expected_version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Expected Version",
+          "type": "string"
+        },
+        "installed": {
+          "default": false,
+          "title": "Installed",
+          "type": "boolean"
+        },
+        "note": {
+          "title": "Note",
+          "type": "string"
+        },
+        "raw_paths_exposed": {
+          "const": false,
+          "default": false,
+          "title": "Raw Paths Exposed",
+          "type": "boolean"
+        },
+        "source": {
+          "default": "none",
+          "enum": [
+            "none",
+            "legacy_install_receipt"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "absent",
+            "installed_unavailable",
+            "installed_ready",
+            "incompatible",
+            "degraded"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "usable": {
+          "default": false,
+          "title": "Usable",
+          "type": "boolean"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "state",
+        "note"
+      ],
+      "title": "Installation",
+      "type": "object"
+    },
+    "OperationReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/ResultArtifact"
+          },
+          "title": "Artifacts",
+          "type": "array"
+        },
+        "audit_written": {
+          "default": false,
+          "title": "Audit Written",
+          "type": "boolean"
+        },
+        "base_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Revision"
+        },
+        "commands_run": {
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Commands Run",
+          "type": "array"
+        },
+        "contract_version": {
+          "const": "codev-receipt-1",
+          "default": "codev-receipt-1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "files_changed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files Changed",
+          "type": "array"
+        },
+        "files_inspected": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files Inspected",
+          "type": "array"
+        },
+        "network_used": {
+          "default": false,
+          "title": "Network Used",
+          "type": "boolean"
+        },
+        "operation_id": {
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "outward_destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outward Destination"
+        },
+        "recovery_note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recovery Note"
+        },
+        "request_id": {
+          "title": "Request Id",
+          "type": "string"
+        },
+        "resulting_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resulting Revision"
+        },
+        "status": {
+          "enum": [
+            "proposed",
+            "approval_required",
+            "approved",
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "partial",
+            "blocked",
+            "conflict",
+            "verification_required"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "tests_run": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tests Run",
+          "type": "array"
+        },
+        "verification": {
+          "default": "not_run",
+          "enum": [
+            "not_run",
+            "passed",
+            "failed",
+            "partial",
+            "required"
+          ],
+          "title": "Verification",
+          "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "workspace_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Workspace Id"
+        }
+      },
+      "required": [
+        "operation_id",
+        "request_id",
+        "status",
+        "summary",
+        "created_at"
+      ],
+      "title": "OperationReceipt",
+      "type": "object"
+    },
+    "PairingIntent": {
+      "additionalProperties": false,
+      "properties": {
+        "account_label": {
+          "maxLength": 200,
+          "title": "Account Label",
+          "type": "string"
+        },
+        "browser_public_key": {
+          "$ref": "#/$defs/BrowserPublicKey"
+        },
+        "browser_session_id": {
+          "maxLength": 128,
+          "minLength": 32,
+          "title": "Browser Session Id",
+          "type": "string"
+        },
+        "contract_version": {
+          "const": "codev-pairing-1",
+          "default": "codev-pairing-1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "expires_at": {
+          "title": "Expires At",
+          "type": "string"
+        },
+        "intent_id": {
+          "title": "Intent Id",
+          "type": "string"
+        },
+        "online_account_id": {
+          "title": "Online Account Id",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "https://elysiaecobotics.com",
+            "https://www.elysiaecobotics.com"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "native_approved",
+            "paired",
+            "denied",
+            "expired",
+            "revoked"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "surface": {
+          "enum": [
+            "marketplace",
+            "forge"
+          ],
+          "title": "Surface",
+          "type": "string"
+        }
+      },
+      "required": [
+        "intent_id",
+        "online_account_id",
+        "account_label",
+        "origin",
+        "surface",
+        "browser_session_id",
+        "browser_public_key",
+        "expires_at"
+      ],
+      "title": "PairingIntent",
+      "type": "object"
+    },
+    "PairingSession": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/Actor"
+        },
+        "browser_public_key": {
+          "$ref": "#/$defs/BrowserPublicKey"
+        },
+        "browser_session_id": {
+          "title": "Browser Session Id",
+          "type": "string"
+        },
+        "contract_version": {
+          "const": "codev-pairing-1",
+          "default": "codev-pairing-1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "expires_at": {
+          "title": "Expires At",
+          "type": "string"
+        },
+        "installation": {
+          "$ref": "#/$defs/Installation"
+        },
+        "native_public_key": {
+          "$ref": "#/$defs/BrowserPublicKey"
+        },
+        "note": {
+          "const": "Connected to local Codev. No workspace shared.",
+          "default": "Connected to local Codev. No workspace shared.",
+          "title": "Note",
+          "type": "string"
+        },
+        "pairing_id": {
+          "title": "Pairing Id",
+          "type": "string"
+        },
+        "workspace_grants": {
+          "items": {
+            "$ref": "#/$defs/WorkspaceGrant"
+          },
+          "maxItems": 0,
+          "title": "Workspace Grants",
+          "type": "array"
+        }
+      },
+      "required": [
+        "pairing_id",
+        "actor",
+        "browser_session_id",
+        "browser_public_key",
+        "native_public_key",
+        "expires_at",
+        "installation"
+      ],
+      "title": "PairingSession",
+      "type": "object"
+    },
+    "ResultArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "content_type": {
+          "title": "Content Type",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "relative_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relative Path"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "label",
+        "content_type"
+      ],
+      "title": "ResultArtifact",
+      "type": "object"
+    },
+    "WorkspaceDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_operations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Operations",
+          "type": "array"
+        },
+        "base_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Base Hash",
+          "type": "string"
+        },
+        "base_revision": {
+          "minimum": 0,
+          "title": "Base Revision",
+          "type": "integer"
+        },
+        "content_hash": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "contract_version": {
+          "const": "codev-workspace-1",
+          "default": "codev-workspace-1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "current_revision": {
+          "minimum": 0,
+          "title": "Current Revision",
+          "type": "integer"
+        },
+        "denied_classes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Denied Classes",
+          "type": "array"
+        },
+        "dirty": {
+          "default": false,
+          "title": "Dirty",
+          "type": "boolean"
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/WorkspaceFile"
+          },
+          "maxItems": 2000,
+          "title": "Files",
+          "type": "array"
+        },
+        "grant_epoch": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Grant Epoch",
+          "type": "integer"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "owner": {
+          "$ref": "#/$defs/Actor"
+        },
+        "package_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Package Revision"
+        },
+        "validation_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Validation Revision"
+        },
+        "workspace_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Workspace Id",
+          "type": "string"
+        },
+        "workspace_type": {
+          "enum": [
+            "local_repository",
+            "selected_local_files",
+            "marketplace_browser",
+            "forge_browser",
+            "remote_draft_snapshot"
+          ],
+          "title": "Workspace Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "workspace_type",
+        "label",
+        "owner",
+        "base_revision",
+        "current_revision",
+        "base_hash",
+        "content_hash"
+      ],
+      "title": "WorkspaceDescriptor",
+      "type": "object"
+    },
+    "WorkspaceFile": {
+      "additionalProperties": false,
+      "properties": {
+        "availability": {
+          "enum": [
+            "text",
+            "binary",
+            "oversized",
+            "metadata_only",
+            "excluded",
+            "missing"
+          ],
+          "title": "Availability",
+          "type": "string"
+        },
+        "content_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Content Hash"
+        },
+        "path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "provenance": {
+          "enum": [
+            "local_file",
+            "intake",
+            "editor",
+            "codev_patch",
+            "remote_draft",
+            "recovery"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 131072,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        }
+      },
+      "required": [
+        "path",
+        "size_bytes",
+        "availability",
+        "provenance"
+      ],
+      "title": "WorkspaceFile",
+      "type": "object"
+    },
+    "WorkspaceGrant": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/Actor"
+        },
+        "command_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Command Ids",
+          "type": "array"
+        },
+        "epoch": {
+          "minimum": 1,
+          "title": "Epoch",
+          "type": "integer"
+        },
+        "expires_at": {
+          "title": "Expires At",
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Files",
+          "type": "array"
+        },
+        "grant_id": {
+          "title": "Grant Id",
+          "type": "string"
+        },
+        "network_destinations": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Network Destinations",
+          "type": "array"
+        },
+        "revoked": {
+          "default": false,
+          "title": "Revoked",
+          "type": "boolean"
+        },
+        "scopes": {
+          "items": {
+            "enum": [
+              "metadata",
+              "read",
+              "propose",
+              "apply",
+              "command"
+            ],
+            "type": "string"
+          },
+          "title": "Scopes",
+          "type": "array"
+        },
+        "workspace_id": {
+          "title": "Workspace Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "grant_id",
+        "workspace_id",
+        "actor",
+        "epoch",
+        "expires_at"
+      ],
+      "title": "WorkspaceGrant",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema root for deterministic JSON Schema and TypeScript generation.",
+  "properties": {
+    "approval": {
+      "$ref": "#/$defs/ExactApproval"
+    },
+    "broker_policy": {
+      "$ref": "#/$defs/BrokerPolicy"
+    },
+    "broker_proof": {
+      "$ref": "#/$defs/BrokerProof"
+    },
+    "broker_request": {
+      "$ref": "#/$defs/BrokerRequest"
+    },
+    "broker_response": {
+      "$ref": "#/$defs/BrokerResponse"
+    },
+    "browser_approve": {
+      "$ref": "#/$defs/BrowserApproveRequest"
+    },
+    "browser_cancel": {
+      "$ref": "#/$defs/BrowserCancelRequest"
+    },
+    "browser_chat": {
+      "$ref": "#/$defs/BrowserChatRequest"
+    },
+    "browser_patch": {
+      "$ref": "#/$defs/BrowserPatchRequest"
+    },
+    "browser_revision": {
+      "$ref": "#/$defs/BrowserRevisionRequest"
+    },
+    "browser_share": {
+      "$ref": "#/$defs/BrowserWorkspaceShare"
+    },
+    "grant": {
+      "$ref": "#/$defs/WorkspaceGrant"
+    },
+    "installation": {
+      "$ref": "#/$defs/Installation"
+    },
+    "pairing_intent": {
+      "$ref": "#/$defs/PairingIntent"
+    },
+    "pairing_session": {
+      "$ref": "#/$defs/PairingSession"
+    },
+    "plan": {
+      "$ref": "#/$defs/ChangePlan"
+    },
+    "receipt": {
+      "$ref": "#/$defs/OperationReceipt"
+    },
+    "workspace": {
+      "$ref": "#/$defs/WorkspaceDescriptor"
+    }
+  },
+  "required": [
+    "installation",
+    "workspace",
+    "grant",
+    "plan",
+    "approval",
+    "receipt",
+    "pairing_intent",
+    "pairing_session",
+    "broker_proof",
+    "broker_policy",
+    "broker_request",
+    "broker_response",
+    "browser_share",
+    "browser_revision",
+    "browser_chat",
+    "browser_cancel",
+    "browser_patch",
+    "browser_approve"
+  ],
+  "title": "CodevContracts",
+  "type": "object"
+}

@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Body
 
-from app.api.coding_patch_service import apply_patch_with_approval, propose_patch
+from core.codev.service import apply_patch_with_approval, propose_patch
 from app.api.schemas.coding_patch import CodingPatchApplyRequest, CodingPatchProposeRequest
 from app.api.schemas.common import ApprovalState, CapabilityState, EnvelopeStatus, LocalityState
 from app.api.schemas.envelope import TraceSummary, build_response_envelope

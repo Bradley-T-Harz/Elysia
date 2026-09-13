@@ -73,6 +73,7 @@ ROUTE_MODULES: tuple[tuple[str, str], ...] = (
     ("app.api.routes.addon_actions", "router"),
     ("app.api.routes.addons", "router"),
     ("app.api.routes.coding", "router"),
+    ("app.api.routes.codev", "router"),
     ("app.api.routes.coding_file_types", "router"),
     ("app.api.routes.coding_files", "router"),
     ("app.api.routes.coding_documents", "router"),
@@ -130,7 +131,9 @@ def _managed_policy_requirements(path: str, method: str) -> tuple[str, ...]:
     verb = method.upper()
     if verb not in MUTATING_METHODS:
         return ()
-    if path.startswith("/coding/") or path == "/coding":
+    if path in {"/coding/command/cancel", "/coding/repo/revoke", "/codev/grants/revoke", "/codev/pairing/revoke", "/codev/commands/cancel", "/codev/chat/cancel", "/codev/commands/status"}:
+        return ()
+    if path.startswith(("/coding/", "/code/", "/codev/")) or path in {"/coding", "/codev"}:
         return ("coding_execution",)
     if path.startswith("/addon-actions/") or path.startswith("/addons/"):
         return ("addons",)
@@ -337,6 +340,13 @@ def create_app(
             return JSONResponse(status_code=401, content=envelope.to_payload())
 
         if request.method.upper() in MUTATING_METHODS and request.url.path not in {
+            "/coding/command/cancel",
+            "/coding/repo/revoke",
+            "/codev/grants/revoke",
+            "/codev/pairing/revoke",
+            "/codev/commands/cancel",
+            "/codev/chat/cancel",
+            "/codev/commands/status",
             "/emergency/stop",
             "/emergency/reset",
             "/account/login",

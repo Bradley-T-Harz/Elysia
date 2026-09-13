@@ -18,7 +18,8 @@ from app.api.coding_archive_type_registry import ARCHIVE_EXTENSIONS, is_register
 from app.api.coding_binary_type_registry import BINARY_EXTENSIONS, is_registered_binary_path
 from app.api.coding_database_type_registry import DATABASE_EXTENSIONS, is_registered_database_path
 from app.api.coding_engineering_type_registry import ENGINEERING_EXTENSIONS, is_registered_engineering_path
-from app.api.coding_repo_registry import list_approved_repo_roots
+from app.api.coding_repo_registry import list_approved_repo_roots, repository_revoked
+from core.codev.identity import current_workspace_root
 
 
 @dataclass(frozen=True)
@@ -92,6 +93,8 @@ def _blocked_path_reason(relative_path: str, policy: dict) -> str | None:
 
 
 def _authorize_workspace_root(root: Path, policy: dict) -> tuple[Path | None, str | None, str | None, str]:
+    if repository_revoked(root):
+        return None, None, None, "workspace_root_revoked"
     if not root.exists() or not root.is_dir():
         return None, None, None, "workspace_root_not_directory"
     if _path_contains_symlink(root):
@@ -99,6 +102,12 @@ def _authorize_workspace_root(root: Path, policy: dict) -> tuple[Path | None, st
     broad_roots = {Path(root.anchor), Path.home().resolve(), Path("/home"), Path("/tmp")}
     if root in broad_roots:
         return None, None, None, "workspace_root_too_broad"
+
+    scoped = current_workspace_root()
+    if scoped is not None:
+        if root != scoped:
+            return None, None, None, "workspace_outside_client_grant"
+        return root, "codev_session_grant", ".", ""
 
     for key, approved_root in _configured_workspace_roots():
         if key.startswith("user_") and root != approved_root:
@@ -137,6 +146,8 @@ def guard_workspace_path(
 ) -> GuardedPath:
     policy = load_coding_policy()
     raw_root = Path(workspace_root).expanduser()
+    if _path_contains_symlink(Path(os.path.abspath(str(raw_root)))):
+        return GuardedPath(False, raw_root, raw_root, None, "workspace_root_symlink")
     root = raw_root.resolve(strict=False)
     approved_root, approved_root_key, root_relative, root_reason = _authorize_workspace_root(root, policy)
     if root_reason:
@@ -165,6 +176,9 @@ def guard_workspace_path(
 
     if require_existing and not target.exists():
         return GuardedPath(False, root, target, relative, "missing_path", approved_root, approved_root_key)
+
+    if target.is_file() and target.stat().st_nlink != 1:
+        return GuardedPath(False, root, target, relative, "hardlink_not_allowed", approved_root, approved_root_key)
 
     if target.exists() and target.is_dir() and not allow_directory:
         return GuardedPath(False, root, target, relative, "directory_not_allowed", approved_root, approved_root_key)

@@ -1074,7 +1074,7 @@ def _code_patch_plan_state() -> tuple[CapabilityState, list[str]]:
     if formatter_ready:
         return CapabilityState.LIVE, [
             "Proposal-only patch planning formatter exists for governed Coder paths.",
-            "Patch application is not live here; no file mutation, shell execution, git mutation, or package install authority is granted.",
+            "This proposal-only path does not apply patches; the separate exact-approved patch path remains independently state-bound and grants no broad shell, git mutation, or package-install authority.",
         ]
 
     return CapabilityState.PLANNED, [

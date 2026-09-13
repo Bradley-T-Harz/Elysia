@@ -8,6 +8,8 @@ from hashlib import sha256
 from pathlib import Path
 from threading import RLock
 from uuid import uuid4
+import os
+from core.codev.identity import approval_actor
 
 from app.api.coding_audit_service import write_coding_audit_record
 from app.api.coding_policy_service import load_coding_policy
@@ -15,6 +17,7 @@ from app.api.coding_repo_registry import (
     list_approved_repo_roots,
     record_repo_approval,
     revoke_repo_approval,
+    repository_revoked,
 )
 from app.api.schemas.coding import (
     CodingRepoApprovalApplyRequest,
@@ -36,6 +39,7 @@ class _PlanRecord:
     root: Path
     expires_at: datetime
     used: bool = False
+    actor: str = ""
 
 
 _PLANS: dict[str, _PlanRecord] = {}
@@ -55,7 +59,7 @@ def _root_hash(root: Path) -> str:
 
 
 def _candidate(workspace_root: str) -> tuple[Path, str, str | None]:
-    root = Path(workspace_root).expanduser().resolve(strict=False)
+    root = Path(os.path.abspath(str(Path(workspace_root).expanduser())))
     label = root.name or "repository"
     broad = {Path(root.anchor), Path.home().resolve(), Path("/home"), Path("/tmp")}
     if not root.exists() or not root.is_dir():
@@ -77,13 +81,13 @@ def _candidate(workspace_root: str) -> tuple[Path, str, str | None]:
 def repo_approval_status(payload: CodingRepoApprovalStatusRequest) -> CodingRepoApprovalStatus:
     root, label, error = _candidate(payload.workspace_root)
     root_hash = _root_hash(root)
-    approved = any(candidate == root for _, candidate in list_approved_repo_roots())
+    approved = not repository_revoked(root) and any(candidate == root for _, candidate in list_approved_repo_roots())
     return CodingRepoApprovalStatus(
         status="approved" if approved else "blocked" if error else "approval_required",
         workspace_label=label,
         workspace_root_hash=root_hash,
         approved=approved,
-        revoked=False,
+        revoked=repository_revoked(root),
         approval_source="XDG private repository registry" if approved else None,
         blocked_reason=error,
         raw_path_exposed=False,
@@ -123,7 +127,7 @@ def plan_repo_approval(payload: CodingRepoApprovalPlanRequest) -> CodingRepoAppr
         warnings=["Review the exact repository label and root hash before approval."],
     )
     with _LOCK:
-        _PLANS[plan_id] = _PlanRecord(plan=plan, root=root, expires_at=expires)
+        _PLANS[plan_id] = _PlanRecord(plan=plan, root=root, expires_at=expires, actor=approval_actor())
     return plan
 
 
@@ -134,6 +138,8 @@ def apply_repo_approval(payload: CodingRepoApprovalApplyRequest) -> CodingRepoAp
             return CodingRepoApprovalResult(status="blocked", blocked_reason="unknown_plan")
         if record.used:
             return CodingRepoApprovalResult(status="blocked", blocked_reason="plan_already_used")
+        if record.actor != approval_actor():
+            return CodingRepoApprovalResult(status="blocked", blocked_reason="plan_actor_mismatch")
         if _now() >= record.expires_at:
             return CodingRepoApprovalResult(status="blocked", blocked_reason="plan_expired")
         if payload.plan_hash != record.plan.plan_hash:
@@ -171,13 +177,13 @@ def apply_repo_approval(payload: CodingRepoApprovalApplyRequest) -> CodingRepoAp
 
 
 def revoke_repo(payload: CodingRepoRevokeRequest) -> CodingRepoApprovalResult:
-    root, label, error = _candidate(payload.workspace_root)
+    # Revocation must remain possible after a folder is moved, deleted, or replaced.
+    root = Path(os.path.abspath(str(Path(payload.workspace_root).expanduser())))
+    label = root.name or "repository"
     root_hash = _root_hash(root)
-    if error:
-        return CodingRepoApprovalResult(status="blocked", blocked_reason=error)
     if not payload.operator_approved or payload.confirmation_phrase != "Revoke repository approval":
         return CodingRepoApprovalResult(status="approval_required", blocked_reason="explicit_confirmation_required")
-    revoked = revoke_repo_approval(root_hash=root_hash)
+    revoked = revoke_repo_approval(root_hash=root_hash, root=root)
     operation_id = f"repo_revoke_{uuid4().hex[:16]}"
     audit_written = write_coding_audit_record(
         "repo_revoke",

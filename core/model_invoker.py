@@ -396,6 +396,25 @@ def _build_chat_messages(
     return messages
 
 
+def _provider_open(request, *, timeout):
+    from core.codev.runtime_scope import current_context
+    if current_context() is None:
+        return urllib_request.urlopen(request, timeout=timeout)
+    # A Codev file grant never enables provider egress, inherited proxies or redirects.
+    from urllib.parse import urlsplit
+    from core.codev.grants import GrantDenied
+    url = urlsplit(request if isinstance(request, str) else request.full_url)
+    if (url.scheme != "http" or url.netloc != "127.0.0.1:11434"
+        or url.path not in {"/api/tags", "/api/show", "/api/chat"} or url.query or url.fragment):
+        raise GrantDenied("codev_model_provider_must_be_literal_loopback")
+
+    class NoRedirect(urllib_request.HTTPRedirectHandler):
+        def redirect_request(self, *_args, **_kwargs):
+            raise GrantDenied("codev_model_provider_redirect_denied")
+
+    return urllib_request.build_opener(urllib_request.ProxyHandler({}), NoRedirect()).open(request, timeout=timeout)
+
+
 def _post_json(
     url: str,
     payload: Dict[str, Any],
@@ -411,7 +430,7 @@ def _post_json(
         method="POST",
     )
 
-    with urllib_request.urlopen(request, timeout=timeout_s) as response:
+    with _provider_open(request, timeout=timeout_s) as response:
         body = response.read().decode("utf-8")
 
     parsed = json.loads(body or "{}")
@@ -434,7 +453,7 @@ def _list_ollama_models(
     url = f"{ollama_base_url.rstrip('/')}/api/tags"
 
     try:
-        with urllib_request.urlopen(url, timeout=timeout_s) as response:
+        with _provider_open(url, timeout=timeout_s) as response:
             body = response.read().decode("utf-8")
 
         parsed = json.loads(body or "{}")
@@ -600,7 +619,7 @@ def _call_ollama_chat(
             chunks: list[str] = []
             final: Dict[str, Any] = {}
             first_token_ms: int | None = None
-            with urllib_request.urlopen(request, timeout=timeout_s) as stream:
+            with _provider_open(request, timeout=timeout_s) as stream:
                 for raw_line in stream:
                     if cancel_check is not None and cancel_check():
                         stream.close()

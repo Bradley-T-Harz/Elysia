@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from app.api.coding_audit_service import write_coding_audit_record
 from app.api.coding_backup_service import create_coding_backup, hash_file_bytes
+from core.codev.filesystem import atomic_write, delete_exact, move_exact, WorkspaceConflict, WorkspaceWriteUncertain
 from app.api.coding_approval_modes import approval_mode_policy, mode_required_message
 from app.api.coding_file_adapter_service import validate_patch_for_descriptor
 from app.api.coding_file_type_service import is_supported_file_operation, normalize_file_operation_kind
@@ -300,115 +301,136 @@ def execute_file_operation(payload: CodingFileOperationExecuteRequest) -> Coding
             warnings=["A matching, unexpired, one-time approval record is required."],
         )
 
-    if kind in {"create", "edit", "replace"}:
-        raw = None
-        if target.target_path.exists() and target.target_path.is_file():
-            with target.target_path.open("rb") as stream:
-                raw = stream.read(4096)
-        descriptor = detect_file_type(target.target_path, raw)
-        descriptor_ok, descriptor_reason = validate_patch_for_descriptor(descriptor, new_text=payload.new_text)
-        if not descriptor_ok:
-            return CodingFileOperationExecuteResult(
-                status="blocked",
-                operation_kind=kind,
-                target_relative_path=target.relative_path,
-                previous_content_hash=previous_hash,
-                rollback_note="No files were changed.",
-                blocked_reason=descriptor_reason,
-                warnings=list(descriptor.notes),
-            )
-        if kind in {"edit", "replace"}:
+    try:
+        if kind in {"create", "edit", "replace"}:
+            raw = None
+            if target.target_path.exists() and target.target_path.is_file():
+                with target.target_path.open("rb") as stream:
+                    raw = stream.read(4096)
+            descriptor = detect_file_type(target.target_path, raw)
+            descriptor_ok, descriptor_reason = validate_patch_for_descriptor(descriptor, new_text=payload.new_text)
+            if not descriptor_ok:
+                return CodingFileOperationExecuteResult(
+                    status="blocked",
+                    operation_kind=kind,
+                    target_relative_path=target.relative_path,
+                    previous_content_hash=previous_hash,
+                    rollback_note="No files were changed.",
+                    blocked_reason=descriptor_reason,
+                    warnings=list(descriptor.notes),
+                )
+            if kind in {"edit", "replace"}:
+                backup = create_coding_backup(
+                    workspace_root=target.workspace_root,
+                    source_path=target.target_path,
+                    source_relative_path=target.relative_path or target.target_path.name,
+                    operation_kind=kind,
+                    session_id=payload.session_id,
+                    expected_hash=previous_hash,
+                )
+            atomic_write(target.workspace_root, target.relative_path, payload.new_text.encode("utf-8"),
+                         expected_hash=previous_hash, create_parents=True)
+            new_hash = _hash_text(payload.new_text)
+        elif kind == "delete":
             backup = create_coding_backup(
                 workspace_root=target.workspace_root,
                 source_path=target.target_path,
                 source_relative_path=target.relative_path or target.target_path.name,
                 operation_kind=kind,
                 session_id=payload.session_id,
+                expected_hash=previous_hash,
             )
-        target.target_path.parent.mkdir(parents=True, exist_ok=True)
-        target.target_path.write_text(payload.new_text, encoding="utf-8")
-        new_hash = _hash_text(payload.new_text)
-    elif kind == "delete":
-        backup = create_coding_backup(
-            workspace_root=target.workspace_root,
-            source_path=target.target_path,
-            source_relative_path=target.relative_path or target.target_path.name,
-            operation_kind=kind,
-            session_id=payload.session_id,
-        )
-        target.target_path.unlink()
-    elif kind in {"rename", "move"}:
-        if not payload.destination_path:
+            delete_exact(target.workspace_root, target.relative_path, expected_hash=previous_hash)
+        elif kind in {"rename", "move"}:
+            if not payload.destination_path:
+                return CodingFileOperationExecuteResult(
+                    status="blocked",
+                    operation_kind=kind,
+                    target_relative_path=target.relative_path,
+                    rollback_note="No files were changed.",
+                    blocked_reason="destination_required",
+                )
+            destination = guard_workspace_path(
+                workspace_root=payload.workspace_root,
+                target_path=payload.destination_path,
+                require_existing=False,
+                allow_directory=False,
+            )
+            if not destination.allowed:
+                return CodingFileOperationExecuteResult(
+                    status="blocked",
+                    operation_kind=kind,
+                    target_relative_path=target.relative_path,
+                    destination_relative_path=destination.relative_path,
+                    rollback_note="No files were changed.",
+                    blocked_reason=destination.reason,
+                )
+            source_descriptor = detect_file_type(target.target_path)
+            destination_descriptor = detect_file_type(destination.target_path)
+            if destination_descriptor.type_id != source_descriptor.type_id:
+                return CodingFileOperationExecuteResult(
+                    status="blocked",
+                    operation_kind=kind,
+                    target_relative_path=target.relative_path,
+                    destination_relative_path=destination.relative_path,
+                    rollback_note="No files were changed.",
+                    blocked_reason="type_changing_move_not_allowed",
+                )
+            backup = create_coding_backup(
+                workspace_root=target.workspace_root,
+                source_path=target.target_path,
+                source_relative_path=target.relative_path or target.target_path.name,
+                operation_kind=kind,
+                session_id=payload.session_id,
+                expected_hash=previous_hash,
+            )
+            move_exact(target.workspace_root, target.relative_path, destination.relative_path, expected_hash=previous_hash)
+            destination_relative = destination.relative_path
+        else:
             return CodingFileOperationExecuteResult(
-                status="blocked",
+                status="unsupported_operation_kind",
                 operation_kind=kind,
                 target_relative_path=target.relative_path,
                 rollback_note="No files were changed.",
-                blocked_reason="destination_required",
+                blocked_reason="unsupported_operation_kind",
             )
-        destination = guard_workspace_path(
-            workspace_root=payload.workspace_root,
-            target_path=payload.destination_path,
-            require_existing=False,
-            allow_directory=False,
-        )
-        if not destination.allowed:
-            return CodingFileOperationExecuteResult(
-                status="blocked",
-                operation_kind=kind,
-                target_relative_path=target.relative_path,
-                destination_relative_path=destination.relative_path,
-                rollback_note="No files were changed.",
-                blocked_reason=destination.reason,
-            )
-        source_descriptor = detect_file_type(target.target_path)
-        destination_descriptor = detect_file_type(destination.target_path)
-        if destination_descriptor.type_id != source_descriptor.type_id:
-            return CodingFileOperationExecuteResult(
-                status="blocked",
-                operation_kind=kind,
-                target_relative_path=target.relative_path,
-                destination_relative_path=destination.relative_path,
-                rollback_note="No files were changed.",
-                blocked_reason="type_changing_move_not_allowed",
-            )
-        backup = create_coding_backup(
-            workspace_root=target.workspace_root,
-            source_path=target.target_path,
-            source_relative_path=target.relative_path or target.target_path.name,
-            operation_kind=kind,
-            session_id=payload.session_id,
-        )
-        destination.target_path.parent.mkdir(parents=True, exist_ok=True)
-        target.target_path.rename(destination.target_path)
-        destination_relative = destination.relative_path
-    else:
+    except WorkspaceWriteUncertain:
         return CodingFileOperationExecuteResult(
-            status="unsupported_operation_kind",
-            operation_kind=kind,
-            target_relative_path=target.relative_path,
-            rollback_note="No files were changed.",
-            blocked_reason="unsupported_operation_kind",
+            status="verification_required", operation_kind=kind, mutation_performed=True,
+            blocked_reason="write_durability_unconfirmed",
+            backup_relative_path=backup.backup_relative_path if backup else None,
+            rollback_receipt_id=backup.receipt_id if backup else None,
+            rollback_note="A filesystem change occurred. Inspect the current revision and backup before continuing.",
+        )
+    except (WorkspaceConflict, OSError) as exc:
+        return CodingFileOperationExecuteResult(
+            status="blocked", operation_kind=kind, blocked_reason="workspace_write_conflict",
+            rollback_note="Inspect the current revision and any backup before requesting another approval.",
+            warnings=[str(exc) if isinstance(exc, WorkspaceConflict) else type(exc).__name__],
         )
 
-    audit_written = write_coding_audit_record(
-        "file_operation",
-        f"{uuid4().hex[:16]}",
-        {
-            "session_id": payload.session_id,
-            "operation_kind": kind,
-            "target_relative_path": target.relative_path,
-            "destination_relative_path": destination_relative,
-            "file_type": descriptor.type_id if descriptor is not None else detect_file_type(payload.destination_path or payload.target_path).type_id,
-            "previous_content_hash": previous_hash,
-            "new_content_hash": new_hash,
-            "operator_approved": True,
-            "approval_phrase_present": bool(payload.approval_phrase),
-            "approval_id": payload.approval_id,
-            "backup_relative_path": backup.backup_relative_path if backup else None,
-            "rollback_receipt_id": backup.receipt_id if backup else None,
-        },
-    )
+    try:
+        audit_written = write_coding_audit_record(
+            "file_operation",
+            f"{uuid4().hex[:16]}",
+            {
+                "session_id": payload.session_id,
+                "operation_kind": kind,
+                "target_relative_path": target.relative_path,
+                "destination_relative_path": destination_relative,
+                "file_type": descriptor.type_id if descriptor is not None else detect_file_type(payload.destination_path or payload.target_path).type_id,
+                "previous_content_hash": previous_hash,
+                "new_content_hash": new_hash,
+                "operator_approved": True,
+                "approval_phrase_present": bool(payload.approval_phrase),
+                "approval_id": payload.approval_id,
+                "backup_relative_path": backup.backup_relative_path if backup else None,
+                "rollback_receipt_id": backup.receipt_id if backup else None,
+            },
+        )
+    except (OSError, ValueError):
+        audit_written = False
+
     return CodingFileOperationExecuteResult(
         status="applied",
         operation_kind=kind,
@@ -425,7 +447,7 @@ def execute_file_operation(payload: CodingFileOperationExecuteRequest) -> Coding
             if backup
             else "Created file can be rolled back by deleting the exact approved target."
         ),
-        warnings=["File operation used Python filesystem APIs only; no shell, git, or package manager was used."],
+        warnings=["Exact file operation completed without shell execution."] + ([] if audit_written else ["Completion audit could not be persisted; preserve this receipt."]),
     )
 
 

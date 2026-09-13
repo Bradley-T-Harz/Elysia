@@ -8,12 +8,25 @@ import json
 import os
 from pathlib import Path
 import tempfile
+from threading import RLock
+from functools import wraps
+from core.codev.filesystem import read_bytes
 from typing import Any
 
 from app.install.paths import resolve_elysia_paths
+from core.codev.identity import local_profile_id
 
 
 REGISTRY_VERSION = 1
+_REGISTRY_LOCK = RLock()
+
+
+def _serialized(function):
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        with _REGISTRY_LOCK:
+            return function(*args, **kwargs)
+    return wrapped
 
 
 def _utc_now_iso() -> str:
@@ -31,14 +44,16 @@ def _empty_registry() -> dict[str, Any]:
 def load_approved_repo_registry(path: Path | None = None) -> dict[str, Any]:
     target = path or approved_repo_registry_path()
     try:
-        payload = json.loads(target.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        payload = json.loads(read_bytes(target.parent, target.name, limit=1024 * 1024))
+    except FileNotFoundError:
         return _empty_registry()
+    except (OSError, ValueError):
+        return {**_empty_registry(), "invalid": True}
     if not isinstance(payload, dict) or payload.get("version") != REGISTRY_VERSION:
-        return _empty_registry()
+        return {**_empty_registry(), "invalid": True}
     repos = payload.get("repos")
     if not isinstance(repos, dict):
-        return _empty_registry()
+        return {**_empty_registry(), "invalid": True}
     return {"version": REGISTRY_VERSION, "repos": repos}
 
 
@@ -72,6 +87,8 @@ def list_approved_repo_roots(path: Path | None = None) -> list[tuple[str, Path]]
     for key, raw in payload["repos"].items():
         if not isinstance(raw, dict) or raw.get("approved") is not True or raw.get("revoked") is True:
             continue
+        if raw.get("local_profile_id") not in {None, local_profile_id()}:
+            continue
         root = Path(str(raw.get("root") or "")).expanduser()
         if not root.is_absolute() or not root.exists() or not root.is_dir():
             continue
@@ -93,8 +110,11 @@ def list_approved_repo_roots(path: Path | None = None) -> list[tuple[str, Path]]
     return roots
 
 
+@_serialized
 def record_repo_approval(*, root_hash: str, root: Path, label: str, path: Path | None = None) -> dict[str, Any]:
     payload = load_approved_repo_registry(path)
+    if payload.get("invalid"):
+        raise ValueError("repository_registry_requires_recovery")
     now = _utc_now_iso()
     entry = {
         "root": str(root),
@@ -103,22 +123,45 @@ def record_repo_approval(*, root_hash: str, root: Path, label: str, path: Path |
         "revoked": False,
         "approved_at_utc": now,
         "updated_at_utc": now,
+        "local_profile_id": local_profile_id(),
     }
     payload["repos"][root_hash] = entry
     _save_registry(payload, path)
     return entry
 
 
-def revoke_repo_approval(*, root_hash: str, path: Path | None = None) -> bool:
+@_serialized
+def revoke_repo_approval(*, root_hash: str, path: Path | None = None, root: Path | None = None) -> bool:
     payload = load_approved_repo_registry(path)
+    if payload.get("invalid"):
+        raise ValueError("repository_registry_requires_recovery")
     entry = payload["repos"].get(root_hash)
     if not isinstance(entry, dict):
-        return False
+        if root is None:
+            return False
+        entry = {"root": str(root), "local_profile_id": local_profile_id()}
+        payload["repos"][root_hash] = entry
     entry["approved"] = False
     entry["revoked"] = True
     entry["updated_at_utc"] = _utc_now_iso()
     _save_registry(payload, path)
     return True
+
+
+def repository_revoked(root: Path, path: Path | None = None) -> bool:
+    """Explicit denials override every positive root source and its descendants."""
+    registry = load_approved_repo_registry(path)
+    if registry.get("invalid"):
+        return True
+    for key, entry in registry["repos"].items():
+        if not isinstance(entry, dict) or entry.get("revoked") is not True:
+            continue
+        denied = Path(str(entry.get("root") or ""))
+        if not denied.is_absolute() or sha256(str(denied).encode()).hexdigest()[:24] != key:
+            continue
+        if root == denied or denied in root.parents:
+            return True
+    return False
 
 
 __all__ = (
