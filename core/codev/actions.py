@@ -4,13 +4,14 @@ from __future__ import annotations
 from datetime import timedelta
 from hashlib import sha256
 from threading import RLock, Event, Thread
+from time import monotonic
 from uuid import uuid4
 
 from core.codev.approvals import PLANS
 from core.codev.contracts import Actor, ChangePlan, OperationReceipt
 from core.codev.grants import GRANTS, GrantDenied, iso_now, utc_now
 from core.codev.identity import bind_client
-from core.codev.runtime_scope import DevelopmentContext, development_context
+from core.codev.runtime_scope import CHAT_BUDGET_SECONDS, DevelopmentContext, development_context
 from core.codev.workspaces import get_workspace, _refresh, _scope, _remember
 
 _CHAT_OWNERS: dict[str, tuple[Actor, str | None]] = {}
@@ -113,6 +114,7 @@ def _governed_chat(actor: Actor, *, workspace_id: str | None, message: str, requ
                    requested_gear: str, handoff: str = "", selected=(), grant=None,
                    authority_check=None, remember=None) -> dict:
     """One governed runtime for native and explicitly shared browser snapshots."""
+    deadline = monotonic() + CHAT_BUDGET_SECONDS
     from app.api.runtime_bridge import send_chat_request
     from app.cognition.emergency_control import bind_request_owner, request_cancel_event, release_request
     from app.api.account_service import get_authenticated_principal, AccountServiceError
@@ -156,12 +158,15 @@ def _governed_chat(actor: Actor, *, workspace_id: str | None, message: str, requ
     watcher.start()
     try:
         still_authorized()
-        with bind_client(actor.client_id), development_context(DevelopmentContext(workspace_id or "no-workspace", selected, handoff)):
+        with bind_client(actor.client_id), development_context(DevelopmentContext(
+            workspace_id or "no-workspace", selected, handoff, deadline_monotonic=deadline
+        )):
             response = send_chat_request({"message": message, "request_id": request_id, "requested_mode": "coder",
                 "requested_gear": requested_gear, "ui_surface": "codev_" + actor.surface})
         still_authorized()
         data = response.get("data") or {}
-        live = not cancelled.is_set() and data.get("invocation_status") == "ok" and data.get("response_source") == "live_invoker"
+        live = (monotonic() < deadline and not cancelled.is_set()
+                and data.get("invocation_status") == "ok" and data.get("response_source") == "live_invoker")
         receipt = OperationReceipt(operation_id=request_id, request_id=request_id, workspace_id=workspace_id,
             status="cancelled" if cancelled.is_set() else "completed" if live else "blocked", summary="Governed local Codev response." if live else "The local model did not complete this request.",
             files_inspected=[item.path for item in selected], warnings=data.get("caveats") or [],

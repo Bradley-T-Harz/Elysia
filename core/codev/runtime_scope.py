@@ -10,12 +10,18 @@ from hashlib import sha256
 
 from core.codev.contracts import WorkspaceFile
 
+# Both clients allow 240 seconds for transport. Reserve time for final
+# authority checks and delivery; planning and provider preflight share this
+# deadline with generation. No HTTP field can extend it.
+CHAT_BUDGET_SECONDS = 210.0
+
 
 @dataclass(frozen=True)
 class DevelopmentContext:
     workspace_id: str
     files: tuple[WorkspaceFile, ...] = ()
     handoff: str = ""
+    deadline_monotonic: float | None = None
 
     def candidates(self, owner_user_id):
         from app.cognition.models import CognitionCandidate, estimate_tokens

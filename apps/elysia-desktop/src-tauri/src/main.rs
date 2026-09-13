@@ -443,6 +443,12 @@ fn emergency_stop_owned(
     })
 }
 
+fn local_api_read_timeout(method: &str, path: &str) -> Duration {
+    // Codev's governed request owns a 210-second total deadline, leaving
+    // transport time for final authority checks and response delivery.
+    Duration::from_secs(if method == "POST" && path == "/codev/chat" { 240 } else { 120 })
+}
+
 #[tauri::command]
 fn local_api_request(
     state: tauri::State<'_, LocalApiLifecycle>,
@@ -492,7 +498,7 @@ fn local_api_request(
     let mut stream = TcpStream::connect_timeout(&state.api_address, Duration::from_secs(5))
         .map_err(|_| "The packaged local API request could not connect.".to_string())?;
     stream
-        .set_read_timeout(Some(Duration::from_secs(120)))
+        .set_read_timeout(Some(local_api_read_timeout(&method, &path)))
         .map_err(|_| "The packaged local API timeout could not be configured.".to_string())?;
     stream
         .set_write_timeout(Some(Duration::from_secs(10)))
@@ -580,6 +586,7 @@ fn local_api_session(state: tauri::State<'_, LocalApiLifecycle>) -> LocalApiSess
 
 #[cfg(test)]
 mod tests {
+    use super::local_api_read_timeout;
     use super::{
         classify_distribution_form, parse_api_port, select_api_port,
         write_native_emergency_marker_at, LocalApiLifecycle, DEFAULT_API_PORT,
@@ -634,6 +641,14 @@ mod tests {
     #[test]
     fn packaged_core_restart_window_is_bounded_and_one_file_safe() {
         assert_eq!(LOCAL_API_STARTUP_TIMEOUT, Duration::from_secs(60));
+    }
+
+    #[test]
+    fn codev_chat_transport_outlives_its_governed_deadline_only_on_the_exact_route() {
+        assert_eq!(local_api_read_timeout("POST", "/codev/chat"), Duration::from_secs(240));
+        for (method, path) in [("GET", "/codev/chat"), ("POST", "/chat"), ("POST", "/codev/chat/cancel")] {
+            assert_eq!(local_api_read_timeout(method, path), Duration::from_secs(120));
+        }
     }
 
     #[test]

@@ -87,6 +87,39 @@ def test_invoker_fallback_shares_one_deadline(monkeypatch, base_configs, prompt_
     assert attempts == [5], "An exhausted budget must not launch another model"
 
 
+@pytest.mark.parametrize("scope_deadline,explicit_timeout,expected", [
+    (310, None, 203), (310, 400, 203), (310, 20, 13), (None, None, 173),
+])
+def test_trusted_codev_deadline_includes_prior_planning_and_preflight(
+    monkeypatch, base_configs, prompt_environment, routing_decision, scope_deadline, explicit_timeout, expected
+):
+    from core.codev.runtime_scope import DevelopmentContext, development_context
+    now = [100.0]
+    monkeypatch.setattr(invoker.time, "monotonic", lambda: now[0])
+    def preflight(**_kw):
+        now[0] += 7
+        return None
+    monkeypatch.setattr(invoker, "_list_ollama_models", preflight)
+    budgets = []
+    def provider(**kwargs):
+        budgets.append(kwargs["timeout_s"])
+        return {"ok": True, "response_text": "Complete", "latency_ms": 1}
+    monkeypatch.setattr(invoker, "_call_ollama_chat", provider)
+    with development_context(DevelopmentContext("bounded", deadline_monotonic=scope_deadline)):
+        result = invoker.invoke_model("hello", routing_decision, base_configs, timeout_s=explicit_timeout)
+    assert result["status"] == "ok"
+    assert budgets == [expected]
+
+
+def test_expired_codev_planning_budget_never_contacts_provider(monkeypatch, base_configs, prompt_environment, routing_decision):
+    from core.codev.runtime_scope import DevelopmentContext, development_context
+    monkeypatch.setattr(invoker.time, "monotonic", lambda: 211.0)
+    monkeypatch.setattr(invoker, "_list_ollama_models", lambda **_kw: pytest.fail("Expired request contacted provider"))
+    with development_context(DevelopmentContext("expired", deadline_monotonic=210.0)):
+        result = invoker.invoke_model("hello", routing_decision, base_configs)
+    assert "local_invocation_cancelled_or_expired" in result["block_reasons"]
+
+
 def test_codev_failure_cannot_spend_one_models_compute_admission_on_another(monkeypatch, base_configs, prompt_environment, routing_decision):
     from core.codev.runtime_scope import DevelopmentContext, development_context
     monkeypatch.setattr(invoker, "_list_ollama_models", lambda **_kw: ["qwen3:8b", "llama3.1:8b"])

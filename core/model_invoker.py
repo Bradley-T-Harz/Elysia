@@ -774,7 +774,7 @@ def invoke_model(
     task_type: str = "",
     context_summary: str = "",
     conversation_messages: Optional[Sequence[Dict[str, Any]]] = None,
-    timeout_s: float = 180.0,
+    timeout_s: float | None = None,
     ollama_base_url: str = DEFAULT_OLLAMA_BASE_URL,
     cancel_check: Callable[[], bool] | None = None,
     stream_transport: bool = True,
@@ -793,7 +793,15 @@ def invoke_model(
     del mode
     del task_type
     invocation_started = time.monotonic()
-    deadline = invocation_started + max(0, timeout_s)
+    from core.codev.runtime_scope import current_context
+    scope = current_context()
+    scoped_deadline = scope.deadline_monotonic if scope is not None else None
+    if scoped_deadline is not None:
+        deadline = scoped_deadline
+        if timeout_s is not None:
+            deadline = min(deadline, invocation_started + max(0, timeout_s))
+    else:
+        deadline = invocation_started + max(0, 180.0 if timeout_s is None else timeout_s)
 
     routing = _as_mapping(model_routing_decision)
 
@@ -921,7 +929,6 @@ def invoke_model(
     # provider fallback.  Only moving away from the routed target after an
     # unavailable/failed attempt is a fallback.
     requested_runtime_tag = routed_runtime_tag or first_runtime_tag
-    from core.codev.runtime_scope import current_context
     if current_context() is not None:
         # The runtime admitted compute for this concrete model. A provider
         # failure cannot reuse that lease to launch a different (possibly

@@ -41,10 +41,12 @@ def test_chat_uses_only_selected_context_and_whitelists_response(tmp_path, monke
     root, actor, workspace_id = fixture(tmp_path)
     authenticated(monkeypatch, actor)
     share(actor, workspace_id)
+    begin = monotonic()
     def respond(payload):
         assert payload["requested_mode"] == "coder"
         assert [item.path for item in current_context().files] == ["main.py"]
         assert current_context().handoff == "Explicit context"
+        assert begin < current_context().deadline_monotonic <= monotonic() + actions.CHAT_BUDGET_SECONDS
         return {"data": {"invocation_status": "ok", "response_source": "live_invoker", "response_text": "Answer",
                          "personal_canary": "PRIVATE", "selected_model_runtime_tag": "fixture-local"}}
     monkeypatch.setattr(runtime_bridge, "send_chat_request", respond)
@@ -54,6 +56,24 @@ def test_chat_uses_only_selected_context_and_whitelists_response(tmp_path, monke
     assert result["receipt"]["files_inspected"] == ["main.py"]
     assert not result["receipt"]["network_used"] and result["receipt"]["tests_run"] == []
     assert current_context() is None
+
+
+def test_completed_provider_content_is_withheld_after_whole_request_deadline(tmp_path, monkeypatch):
+    from app.api import runtime_bridge
+    root, actor, workspace_id = fixture(tmp_path)
+    authenticated(monkeypatch, actor)
+    share(actor, workspace_id)
+    now = [100.0]
+    monkeypatch.setattr(actions, "monotonic", lambda: now[0])
+    def respond(payload):
+        assert current_context().deadline_monotonic == 310.0
+        now[0] = 311.0
+        return {"data": {"invocation_status": "ok", "response_source": "live_invoker", "response_text": "LATE"}}
+    monkeypatch.setattr(runtime_bridge, "send_chat_request", respond)
+    result = actions.chat(actor, workspace_id=workspace_id, message="Explain", request_id="codev_" + uuid4().hex)
+    assert result["receipt"]["status"] == "blocked"
+    assert "LATE" not in str(result)
+    assert not actions._CHAT_OWNERS
 
 
 @pytest.mark.parametrize("change", ["logout", "revoke"])
