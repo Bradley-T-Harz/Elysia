@@ -1928,7 +1928,11 @@ def handle_user_message(
         ),
         managed_profile=_coerce_bool(context.get("managed_profile"), False),
         stop_active=stop_active,
-        tool_required=primary_intent in {
+        # Codev chat is proposal-only cognition over an explicit snapshot. Its
+        # separate action endpoints own tool approval/execution. A coding noun
+        # must not falsely demand tools and override the user's effort budget.
+        # All other uncertainty, stakes, verification and compute floors apply.
+        tool_required=codev_context() is None and primary_intent in {
             "coding", "debugging", "sysadmin", "operations"
         },
         research_required=primary_intent == "research" or mode == "researcher",
@@ -1970,6 +1974,7 @@ def handle_user_message(
         ),
         model_health=measured_model_health,
         ram_mb_ceiling=int(context.get("ram_mb_ceiling") or 16384),
+        interactive_latency_budget=codev_context() is not None,
     )
     invocation_target = resolve_invocation_target(model_routing, configs)
     selected_context_window = int(invocation_target.get("context_window") or 32768)
@@ -2027,6 +2032,7 @@ def handle_user_message(
             ),
             model_health=measured_model_health,
             ram_mb_ceiling=int(context.get("ram_mb_ceiling") or 16384),
+            interactive_latency_budget=codev_context() is not None,
         )
         invocation_target = resolve_invocation_target(model_routing, configs)
         workspace = build_global_working_workspace(
@@ -2246,6 +2252,7 @@ def handle_user_message(
         ),
         model_health=measured_model_health,
         ram_mb_ceiling=int(context.get("ram_mb_ceiling") or 16384),
+        interactive_latency_budget=codev_context() is not None,
     )
     invocation_target = resolve_invocation_target(model_routing, configs)
     final_runtime_tag = str(invocation_target.get("runtime_tag") or model_routing.get("selected_target") or "unknown-local-model")

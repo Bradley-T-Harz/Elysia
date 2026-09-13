@@ -631,8 +631,12 @@ def test_runtime_verification_still_runs_and_surfaces_verification_caveat_when_i
     assert captured["journal_payload"]["invoker_note"] == ""
 
 
+@pytest.mark.parametrize("message,gear", [
+    ("Explain this Python function.", "standard"),
+    ("Increase the exported answer by one in the selected file. Return a JSON proposal.", "quick"),
+])
 def test_codev_runtime_scope_preserves_governed_routing_without_ambient_context(
-    monkeypatch, base_configs, runtime_skills,
+    monkeypatch, base_configs, runtime_skills, message, gear,
 ):
     from hashlib import sha256
     from core.codev.contracts import WorkspaceFile
@@ -652,10 +656,11 @@ def test_codev_runtime_scope_preserves_governed_routing_without_ambient_context(
     file = WorkspaceFile(path="answer.py", text=content, content_hash=sha256(content.encode()).hexdigest(),
                          size_bytes=len(content), availability="text", provenance="local_file")
     with development_context(DevelopmentContext("workspace-a", (file,))):
-        result = runtime.handle_user_message("Explain this Python function.", runtime.SessionState(active_mode="coder"),
+        result = runtime.handle_user_message(message, runtime.SessionState(active_mode="coder"),
             request_context={"internet_master_enabled": True, "explicit_sealed_memory": True,
-                             "profile_context": {"name": "PRIVATE_PROFILE_CANARY"}, "requested_gear": "standard"})
+                             "profile_context": {"name": "PRIVATE_PROFILE_CANARY"}, "requested_gear": gear})
     assert result["model_routing"]["stayed_local"]
+    assert result["model_routing"]["reasoning_gear"] == gear
     assert content.strip() in call["context_summary"]
     assert "PRIVATE_PROFILE_CANARY" not in call["context_summary"]
     assert not result["retrieval_policy"]["retrieval_enabled"]

@@ -8,6 +8,101 @@ import pytest
 from core import model_invoker as invoker
 
 
+@pytest.mark.parametrize("phase", ["before_headers", "between_tokens"])
+@pytest.mark.parametrize("stop", ["cancel", "deadline"])
+def test_codev_provider_interrupts_stalled_socket_without_returning_partial_content(monkeypatch, phase, stop):
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Event, Thread
+    import time
+    from urllib.request import build_opener, ProxyHandler
+    from core.codev.provider_transport import ControlledHTTPHandler
+    from core.codev.runtime_scope import DevelopmentContext, development_context
+
+    started, disconnected, cancel = Event(), Event(), Event()
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *_args):
+            pass
+        def do_POST(self):
+            self.rfile.read(int(self.headers["Content-Length"]))
+            if phase == "between_tokens":
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'{"message":{"content":"UNFINISHED"},"done":false}\n')
+                self.wfile.flush()
+            started.set()
+            self.connection.settimeout(3)
+            if self.connection.recv(1) == b"":
+                disconnected.set()
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    # The synthetic stall server uses an ephemeral test port; production's
+    # separate destination guard is covered by the Codev cognition tests.
+    opener = build_opener(ProxyHandler({}), ControlledHTTPHandler())
+    monkeypatch.setattr(invoker, "_provider_open", lambda req, *, timeout: opener.open(req, timeout=timeout))
+    if stop == "cancel":
+        def cancel_after_request():
+            assert started.wait(2)
+            cancel.set()
+        canceller = Thread(target=cancel_after_request, daemon=True)
+        canceller.start()
+    begin = time.monotonic()
+    try:
+        with development_context(DevelopmentContext("socket-test")):
+            result = invoker._call_ollama_chat(
+                "synthetic:local", "system", "hello", timeout_s=0.3 if stop == "deadline" else 5,
+                cancel_check=cancel.is_set, ollama_base_url=f"http://127.0.0.1:{server.server_port}",
+            )
+        assert time.monotonic() - begin < 1.5
+        assert result["ok"] is False
+        assert "response_text" not in result
+        if stop == "cancel":
+            assert result["cancelled"] is True
+        else:
+            assert result["provider_metadata"]["timeout"] is True
+        assert disconnected.wait(1), "Cancelling must close only this provider request"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(2)
+
+
+def test_invoker_fallback_shares_one_deadline(monkeypatch, base_configs, prompt_environment, routing_decision):
+    now = [100.0]
+    monkeypatch.setattr(invoker.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(invoker, "_list_ollama_models", lambda **_kw: None)
+    attempts = []
+    def provider(**kwargs):
+        attempts.append(kwargs["timeout_s"])
+        now[0] += 7
+        return {"ok": False, "error": "synthetic slow failure", "latency_ms": 7000}
+    monkeypatch.setattr(invoker, "_call_ollama_chat", provider)
+    result = invoker.invoke_model("hello", routing_decision, base_configs, timeout_s=10)
+    assert attempts == [10, 3]
+    assert result["latency_ms"] == 14000
+    attempts.clear()
+    now[0] = 100
+    invoker.invoke_model("hello", routing_decision, base_configs, timeout_s=5)
+    assert attempts == [5], "An exhausted budget must not launch another model"
+
+
+def test_codev_failure_cannot_spend_one_models_compute_admission_on_another(monkeypatch, base_configs, prompt_environment, routing_decision):
+    from core.codev.runtime_scope import DevelopmentContext, development_context
+    monkeypatch.setattr(invoker, "_list_ollama_models", lambda **_kw: ["qwen3:8b", "llama3.1:8b"])
+    attempts = []
+    def provider(**kwargs):
+        attempts.append(kwargs["runtime_tag"])
+        return {"ok": False, "error": "synthetic failure", "latency_ms": 1}
+    monkeypatch.setattr(invoker, "_call_ollama_chat", provider)
+    routing_decision["selected_runtime_tag"] = "llama3.1:8b"
+    with development_context(DevelopmentContext("governed-test")):
+        result = invoker.invoke_model("hello", routing_decision, base_configs)
+    assert attempts == ["llama3.1:8b"]
+    assert result["selected_model_runtime_tag"] == "llama3.1:8b"
+    assert "codev_fallback_requires_new_compute_admission" in result["block_reasons"]
+
+
 @pytest.fixture
 def base_configs():
     return {
@@ -786,7 +881,7 @@ def test_invoke_model_errors_when_all_candidates_fail(
     )
 
     assert result["status"] == "error"
-    assert result["selected_model_runtime_tag"] == "qwen3:8b"
+    assert result["selected_model_runtime_tag"] == "llama3.1:8b"
     assert result["selected_runtime"] == "ollama"
     assert result["error"] == "Provider failure"
     assert "local_invocation_attempt_failed" in result["block_reasons"]

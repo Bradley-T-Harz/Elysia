@@ -20,6 +20,7 @@ It does not:
 """
 
 from copy import deepcopy
+from http.client import HTTPException
 import json
 from pathlib import Path
 import time
@@ -412,7 +413,10 @@ def _provider_open(request, *, timeout):
         def redirect_request(self, *_args, **_kwargs):
             raise GrantDenied("codev_model_provider_redirect_denied")
 
-    return urllib_request.build_opener(urllib_request.ProxyHandler({}), NoRedirect()).open(request, timeout=timeout)
+    from core.codev.provider_transport import ControlledHTTPHandler
+    return urllib_request.build_opener(
+        urllib_request.ProxyHandler({}), NoRedirect(), ControlledHTTPHandler(),
+    ).open(request, timeout=timeout)
 
 
 def _post_json(
@@ -475,7 +479,7 @@ def _list_ollama_models(
 
         return _dedupe_string_list(names)
 
-    except (urllib_error.URLError, urllib_error.HTTPError, json.JSONDecodeError, ValueError):
+    except (urllib_error.URLError, urllib_error.HTTPError, OSError, json.JSONDecodeError, ValueError):
         return None
 
 
@@ -605,8 +609,13 @@ def _call_ollama_chat(
         payload["options"] = options
 
     start_time = time.perf_counter()
+    from core.codev.runtime_scope import current_context
+    from core.codev.provider_transport import ProviderCancelled, ProviderControl
+    control = ProviderControl(timeout_s, cancel_check) if current_context() is not None else None
 
     try:
+        if control:
+            control.check()
         if not stream_transport:
             response = _post_json(url, payload, timeout_s=timeout_s)
         else:
@@ -645,11 +654,19 @@ def _call_ollama_chat(
                             first_token_ms = int((time.perf_counter() - start_time) * 1000)
                         chunks.append(content)
                     final = item
+                    if item.get("done") is True:
+                        break
+                if control:
+                    control.check()
+                if final.get("done") is not True:
+                    raise ValueError("Ollama stream ended before its completion receipt")
             response = dict(final)
             response["message"] = {"role": "assistant", "content": "".join(chunks)}
             response["first_token_ms"] = first_token_ms
             response["stream_transport"] = True
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+        if control:
+            control.check()
 
         response_message = _as_mapping(response.get("message", {}))
         response_text = _coerce_string(response_message.get("content"), "")
@@ -685,27 +702,16 @@ def _call_ollama_chat(
             "provider_metadata": {},
         }
 
-    except urllib_error.URLError as exc:
+    except (urllib_error.URLError, OSError, HTTPException) as exc:
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
-
+        cancelled = isinstance(exc, ProviderCancelled) or bool(control and control.reason == "cancelled")
+        timed_out = isinstance(exc, TimeoutError) or bool(control and control.reason == "timeout")
         return {
             "ok": False,
-            "error": f"Ollama unavailable: {exc}",
+            **({"cancelled": True} if cancelled else {}),
+            "error": "operator_cancelled" if cancelled else "Ollama request timed out." if timed_out else f"Ollama unavailable: {exc}",
             "latency_ms": elapsed_ms,
-            "provider_metadata": {},
-        }
-
-    except TimeoutError:
-        elapsed_ms = int((time.perf_counter() - start_time) * 1000)
-
-        return {
-            "ok": False,
-            "error": "Ollama request timed out.",
-            "latency_ms": elapsed_ms,
-            "provider_metadata": {
-                "timeout": True,
-                "stream_transport": bool(stream_transport),
-            },
+            "provider_metadata": {"timeout": True, "stream_transport": bool(stream_transport)} if timed_out else {},
         }
 
     except (json.JSONDecodeError, ValueError) as exc:
@@ -717,6 +723,9 @@ def _call_ollama_chat(
             "latency_ms": elapsed_ms,
             "provider_metadata": {},
         }
+    finally:
+        if control:
+            control.close()
 
 
 def _build_base_result(
@@ -783,6 +792,8 @@ def invoke_model(
     """
     del mode
     del task_type
+    invocation_started = time.monotonic()
+    deadline = invocation_started + max(0, timeout_s)
 
     routing = _as_mapping(model_routing_decision)
 
@@ -892,9 +903,13 @@ def invoke_model(
         )
         return result
 
+    if (cancel_check is not None and cancel_check()) or time.monotonic() >= deadline:
+        result["error"] = "Local model invocation cancelled or its time budget expired before provider access."
+        result["block_reasons"].append("local_invocation_cancelled_or_expired")
+        return result
     available_models = _list_ollama_models(
         ollama_base_url=ollama_base_url,
-        timeout_s=min(timeout_s, 15.0),
+        timeout_s=min(deadline - time.monotonic(), 15.0),
     )
 
     prompt_source = str(prompt_path.relative_to(PROJECT_ROOT))
@@ -906,11 +921,31 @@ def invoke_model(
     # provider fallback.  Only moving away from the routed target after an
     # unavailable/failed attempt is a fallback.
     requested_runtime_tag = routed_runtime_tag or first_runtime_tag
+    from core.codev.runtime_scope import current_context
+    if current_context() is not None:
+        # The runtime admitted compute for this concrete model. A provider
+        # failure cannot reuse that lease to launch a different (possibly
+        # larger) model. A new request re-routes using updated model health and
+        # must pass compute admission again. Ordinary legacy fallback is intact.
+        runtime_candidates = [
+            item for item in runtime_candidates
+            if item["runtime_tag"] == requested_runtime_tag
+        ]
 
     last_error = ""
+    last_attempt = None
     accumulated_block_reasons: List[str] = list(result["block_reasons"])
 
     for candidate in runtime_candidates:
+        if cancel_check is not None and cancel_check():
+            last_error = "operator_cancelled"
+            accumulated_block_reasons.append("operator_cancelled")
+            break
+        remaining_s = deadline - time.monotonic()
+        if remaining_s <= 0:
+            last_error = "Local model invocation exhausted its total time budget."
+            accumulated_block_reasons.append("local_invocation_deadline_exceeded")
+            break
         runtime_tag = _coerce_string(candidate.get("runtime_tag"), "")
         canonical_model = _coerce_string(candidate.get("canonical_model"), "")
 
@@ -925,13 +960,14 @@ def invoke_model(
             message=message,
             context_summary=context_summary,
             conversation_messages=conversation_messages,
-            timeout_s=timeout_s,
+            timeout_s=remaining_s,
             ollama_base_url=ollama_base_url,
             cancel_check=cancel_check,
             stream_transport=stream_transport,
             num_gpu=num_gpu,
             max_output_tokens=max_output_tokens,
         )
+        last_attempt = candidate
 
         try:
             from app.cognition.model_registry import ModelRegistry
@@ -960,6 +996,7 @@ def invoke_model(
                     "prompt_source": prompt_source,
                     "response_text": _coerce_string(call_result.get("response_text"), ""),
                     "latency_ms": int(call_result.get("latency_ms", 0) or 0),
+                    "total_latency_ms": int((time.monotonic() - invocation_started) * 1000),
                     "provider_metadata": deepcopy(
                         _as_mapping(call_result.get("provider_metadata", {}))
                     ),
@@ -978,13 +1015,16 @@ def invoke_model(
             accumulated_block_reasons.append("operator_cancelled")
             break
         accumulated_block_reasons.append("local_invocation_attempt_failed")
+        if current_context() is not None:
+            accumulated_block_reasons.append("codev_fallback_requires_new_compute_admission")
 
     result["status"] = "error"
-    result["selected_model"] = first_canonical_model
-    result["selected_model_runtime_tag"] = first_runtime_tag
+    result["selected_model"] = (last_attempt or {}).get("canonical_model", first_canonical_model)
+    result["selected_model_runtime_tag"] = (last_attempt or {}).get("runtime_tag", requested_runtime_tag)
     result["selected_runtime"] = "ollama"
     result["prompt_source"] = prompt_source
     result["error"] = last_error or "No local invocation candidate succeeded."
+    result["latency_ms"] = int((time.monotonic() - invocation_started) * 1000)
     result["block_reasons"] = _dedupe_string_list(accumulated_block_reasons)
     result["note"] = (
         "Local Ollama invocation failed and no allowed local fallback succeeded."
