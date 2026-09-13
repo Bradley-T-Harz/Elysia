@@ -4096,7 +4096,7 @@ async function buildRequestHeaders(init?: RequestInit): Promise<HeadersInit> {
   };
 }
 
-async function requestEnvelope<T>(
+export async function requestEnvelope<T>(
   path: string,
   init?: RequestInit
 ): Promise<EnvelopeResult<T>> {

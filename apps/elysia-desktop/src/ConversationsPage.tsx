@@ -126,7 +126,10 @@ import {
   type ResponseTruth
 } from "./api/bridgeClient";
 
+import type { CodevHandoff } from "./api/codevNative";
+
 type ConversationsPageProps = {
+  onOpenCodev?: (handoff: CodevHandoff) => void;
   startupReady: boolean;
   onRightDrawerSectionsChange: (sections: DrawerSection[]) => void;
   onOpenProjects?: () => void;
@@ -2181,7 +2184,8 @@ export default function ConversationsPage({
   startupReady,
   onRightDrawerSectionsChange,
   onOpenProjects,
-  initialConversationId = null
+  initialConversationId = null,
+  onOpenCodev
 }: ConversationsPageProps) {
   const [conversationList, setConversationList] = useState<UiConversationSummary[]>([]);
   const [conversationListState, setConversationListState] = useState<LoadState>("idle");
@@ -5977,6 +5981,10 @@ export default function ConversationsPage({
           >
             Speak inside the first working room.
           </h1>
+          {onOpenCodev && draftMessage.trim() && <button type="button"
+            title="Share this draft instruction with Codev. Workspace access is granted separately."
+            style={{ marginTop: "0.65rem", border: "1px solid #496A69", borderRadius: "8px", padding: "0.5rem 0.8rem", background: "#173031", color: "#B6E2DB", cursor: "pointer" }}
+            onClick={() => onOpenCodev({ conversationId: activeConversationId, requestId: activeThread?.messages[activeThread.messages.length - 1]?.requestId ?? null, instruction: draftMessage })}>Open this instruction in Codev</button>}
           <div
             style={{
               marginTop: "0.45rem",

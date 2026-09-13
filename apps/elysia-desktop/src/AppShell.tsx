@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import TopBar from "./TopBar";
 import HomePage from "./HomePage";
+import CodevWorkroom from "./CodevWorkroom";
+import { useCodevInstallation } from "./hooks/useCodevInstallation";
+import type { CodevHandoff } from "./api/codevNative";
 import LeftRail, { type LeftRailRoom } from "./LeftRail";
 import RightDrawer, { type DrawerSection } from "./RightDrawer";
 import BottomStatusBar from "./BottomStatusBar";
@@ -370,6 +373,9 @@ function buildBottomStatusBadges(
 }
 
 export default function AppShell({ accountState = null }: { accountState?: AccountStateData | null }) {
+  const codevInstallation = useCodevInstallation(accountState?.active_user_id ?? "");
+  const [codevOpened, setCodevOpened] = useState(false);
+  const [codevHandoff, setCodevHandoff] = useState<CodevHandoff | null>(null);
   const showAdmin = accountState?.active_role === "installation_owner" || accountState?.active_role === "admin";
   const [desktopPreferences, setDesktopPreferences] =
     useState<DesktopPreferences>(readDesktopPreferences);
@@ -437,7 +443,20 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
     [invokerTruth, runtimeTruth, startupTruthState]
   );
 
+  useEffect(() => {
+    if (!codevInstallation) {
+      if (activeRoom === "codev") setActiveRoom("home");
+      if (lastRailRoom === "codev") setLastRailRoom("home");
+      setCodevOpened(false);
+      setCodevHandoff(null);
+    }
+  }, [codevInstallation, activeRoom, lastRailRoom]);
+
   function handleSelectRoom(room: LeftRailRoom) {
+    if (room === "codev") {
+      if (!codevInstallation) return;
+      setCodevOpened(true);
+    }
     setActiveRoom(room);
     setLastRailRoom(room);
     setConversationToOpenId(null);
@@ -622,6 +641,7 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
             onSelectRoom={handleSelectRoom}
             defaultGroupBehavior={desktopPreferences.leftRailDefaultBehavior}
             showAdmin={showAdmin}
+            showCodev={!!codevInstallation}
           />
 
           <section
@@ -663,7 +683,8 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
                 overflow: "hidden"
               }}
             >
-              {activeRoom === "home" ? (
+              {codevInstallation && codevOpened && <CodevWorkroom key={accountState?.active_user_id ?? "native"} installation={codevInstallation} active={activeRoom === "codev"} handoff={codevHandoff} onRightDrawerSectionsChange={setRightDrawerSections} />}
+              {activeRoom === "codev" ? null : activeRoom === "home" ? (
                 <HomePage
                   startupTruthState={startupTruthState}
                   startupTruthMessage={startupTruthMessage}
@@ -680,6 +701,7 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
                   onRightDrawerSectionsChange={setRightDrawerSections}
                   onOpenProjects={handleReturnToProjects}
                   initialConversationId={conversationToOpenId}
+                  onOpenCodev={codevInstallation ? (handoff) => { setCodevHandoff(handoff); handleSelectRoom("codev"); } : undefined}
                 />
               ) : activeRoom === "project_detail" && selectedProjectId ? (
                 <ProjectDetailPage
