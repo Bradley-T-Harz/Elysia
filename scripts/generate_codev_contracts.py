@@ -6,7 +6,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
-from core.codev.contracts import CodevContracts
+from core.codev.contracts import BROWSER_SUPPORTED_CORE_VERSIONS, CodevContracts
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -48,6 +48,8 @@ def generated_files() -> tuple[str, str]:
     package = schema["$defs"]["CorePackageManifest"]["properties"]
     ts += f'export const CORE_CONTRACT = {json.dumps(package["contract"]["const"])} as const;\n'
     ts += f'export const RUNTIME_CONTRACT = {json.dumps(package["runtime_contract"]["const"])} as const;\n\n'
+    ts += f'export const CODEV_PRODUCT_VERSION = {json.dumps(package["version"]["const"])} as const;\n'
+    ts += f'export const BROWSER_SUPPORTED_CORE_VERSIONS: readonly string[] = {json.dumps(BROWSER_SUPPORTED_CORE_VERSIONS)};\n\n'
     for name, definition in sorted(schema["$defs"].items()):
         ts += f"export type {name} = {typescript_type(definition)};\n\n"
     return canonical, ts.rstrip() + "\n"

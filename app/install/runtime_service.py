@@ -255,7 +255,7 @@ def serve_runtime() -> int:
         import uvicorn
         from app.api.main import create_app
         app = create_app(auth_policy=policy, private_unix_socket=True)
-        identity = {"contract": RUNTIME_CONTRACT, "product_version": "1.0.0", "pid": os.getpid(),
+        identity = {"contract": RUNTIME_CONTRACT, "product_version": "1.1.0", "pid": os.getpid(),
                     "uid": os.getuid(), "instance_id": secrets.token_hex(24), "transport": "unix",
                     "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
                     "process_start_ticks": Path("/proc/self/stat").read_text().rsplit(")", 1)[1].split()[19],

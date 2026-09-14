@@ -82,7 +82,7 @@ def qualify(binary: Path, *, runtime_fallback: bool) -> dict:
             status, identity, peer = request(directory, "GET", "/runtime/identity")
             assert status == 200 and identity["pid"] == peer == starts[0]["pid"]
             pidfd = pidfd_open(peer)
-            assert identity["contract"] == "elysia-local-runtime-1" and identity["product_version"] == "1.0.0"
+            assert identity["contract"] == "elysia-local-runtime-1" and identity["product_version"] == "1.1.0"
             assert identity["executable_sha256"] == hashlib.sha256(binary.read_bytes()).hexdigest()
             assert stat.S_IMODE(directory.stat().st_mode) == 0o700
             assert stat.S_IMODE((directory / "core.sock").stat().st_mode) == 0o600

@@ -22,15 +22,15 @@ def check_package(root: Path) -> dict:
     if manifest.is_symlink() or manifest.stat().st_size > 16384:
         raise CodevInstallError("Invalid Codev package manifest.")
     identity = CorePackageManifest.model_validate_json(manifest.read_text())
-    for filename, digest in [("codev-core", identity.core_sha256), ("elysia-codev-1.0.0.vsix", identity.adapter_sha256)]:
+    for filename, digest in [("codev-core", identity.core_sha256), ("elysia-codev-1.1.0.vsix", identity.adapter_sha256)]:
         target = payload / filename
         info = target.lstat()
         if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_mode & 0o022:
             raise CodevInstallError("Invalid Codev package payload permissions.")
         if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
             raise CodevInstallError("Codev package digest mismatch.")
-    inspect_codev_vsix(payload / "elysia-codev-1.0.0.vsix")
-    return {"status": "verified", "version": "1.0.0", "package_contract": identity.contract, "workspace_grants": []}
+    inspect_codev_vsix(payload / "elysia-codev-1.1.0.vsix")
+    return {"status": "verified", "version": "1.1.0", "package_contract": identity.contract, "workspace_grants": []}
 
 
 def install_adapter(editor: str | None, profile: str | None) -> dict:
@@ -47,7 +47,7 @@ def install_adapter(editor: str | None, profile: str | None) -> dict:
     completed = subprocess.run(command, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=180, check=False)
     if completed.returncode != 0:
         raise CodevInstallError("The editor did not accept the bundled adapter. Core remains installed.")
-    return {"status": "adapter_installed", "version": "1.0.0", "workspace_grants": [], "profile_authority_changed": False}
+    return {"status": "adapter_installed", "version": "1.1.0", "workspace_grants": [], "profile_authority_changed": False}
 
 
 def write_user_autostart() -> dict:

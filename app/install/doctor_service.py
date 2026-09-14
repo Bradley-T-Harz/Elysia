@@ -42,7 +42,7 @@ from .schemas import DependencyStatus, DoctorCheck, DoctorStatusData
 
 
 API_VERSION = "1.0.0"
-DESKTOP_VERSION = "1.0.0"
+DESKTOP_VERSION = "1.1.0"
 CONTRACT_VERSION = "elysia-install-doctor-1.0"
 DOCTOR_VERSION = "1"
 LAST_RUN_FILENAME = "last-run.json"

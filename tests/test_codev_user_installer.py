@@ -21,7 +21,7 @@ def package(tmp_path):
     root = tmp_path / "fixture"
     (root / "DEBIAN").mkdir(parents=True)
     (root / "DEBIAN/control").write_text(
-        "Package: codev-core\nVersion: 1.0.0\nArchitecture: amd64\n"
+        "Package: codev-core\nVersion: 1.1.0\nArchitecture: amd64\n"
         "Maintainer: Qualification\nDescription: inert installer fixture\n"
     )
     payload = root / "usr/lib/codev"

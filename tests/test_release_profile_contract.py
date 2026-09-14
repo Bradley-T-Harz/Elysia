@@ -21,7 +21,7 @@ def _load_yaml(path: Path) -> dict:
 
 def test_release_profiles_define_canonical_and_semantic_optional_profiles() -> None:
     payload = _load_yaml(PROFILES_PATH)
-    assert payload["target_product_version"] == "1.0.0"
+    assert payload["target_product_version"] == "1.1.0"
     assert payload["current_channel"] == "stable"
     assert set(payload["profiles"]) == {
         "core", "workstation", "creator", "developer", "semantic_local",

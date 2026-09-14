@@ -10,7 +10,7 @@ import LeftRail from "../src/LeftRail";
 import { useCodevInstallation } from "../src/hooks/useCodevInstallation";
 
 const actor: Actor = { client_id: "native_fixture_client", local_profile_id: "profile-fixture", client_kind: "native", surface: "local" };
-const installed: Installation = { state: "installed_ready", installed: true, runtime_state: "ready", usable: true, version: "1.0.0", note: "Fixture" };
+const installed: Installation = { state: "installed_ready", installed: true, runtime_state: "ready", usable: true, version: "1.1.0", note: "Fixture" };
 const base: WorkspaceDescriptor = { workspace_id: "workspace_fixture_id", workspace_type: "local_repository", label: "example-addon", owner: actor,
   current_revision: 0, base_revision: 0, content_hash: "a".repeat(64), base_hash: "a".repeat(64), grant_epoch: 0, files: [] };
 let current: WorkspaceDescriptor;

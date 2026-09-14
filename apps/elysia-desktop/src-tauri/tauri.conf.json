@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Elysia",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "identifier": "llc.ecosyneva.elysia",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -66,7 +66,7 @@
       "../../../docs/release/DEPENDENCY_ACQUISITION_AND_MANUAL_ACTIONS.md": "docs/DEPENDENCY_ACQUISITION_AND_MANUAL_ACTIONS.md",
       "../../../docs/release/INSTALL_PROFILES.md": "docs/INSTALL_PROFILES.md",
       "../../../docs/release/INSTALLER_DOCTOR_RUNTIME.md": "docs/INSTALLER_DOCTOR_RUNTIME.md",
-      "../../../docs/release/SYSTEM_REQUIREMENTS_v1.0.0.md": "docs/SYSTEM_REQUIREMENTS_v1.0.0.md",
+      "../../../docs/release/SYSTEM_REQUIREMENTS_v1.1.0.md": "docs/SYSTEM_REQUIREMENTS_v1.1.0.md",
       "../../../docs/release/CODEV_DEVELOPER_PROFILE_INSTALL.md": "docs/CODEV_DEVELOPER_PROFILE_INSTALL.md"
     },
     "externalBin": [

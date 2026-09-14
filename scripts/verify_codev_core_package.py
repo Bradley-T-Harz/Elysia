@@ -79,7 +79,7 @@ def qualify(artifact: Path, installer: Path, uninstaller: Path) -> dict:
             assert installed["installed"] and installed["installation_id"] != repaired["installation_id"]
             assert not installed["usable"] and private.read_text() == "preserved local state"
             return {"passed": True, "artifact_sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
-                    "core_sha256": identity["executable_sha256"], "version": "1.0.0",
+                    "core_sha256": identity["executable_sha256"], "version": "1.1.0",
                     "source_environment": False, "editor_required": False,
                     "checks": ["dry_run", "install", "private_runtime", "no_account_authority",
                                "no_implicit_workspace", "unsafe_mode_degraded", "permission_repair",

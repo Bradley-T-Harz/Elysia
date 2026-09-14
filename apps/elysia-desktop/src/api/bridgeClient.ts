@@ -4091,7 +4091,7 @@ async function resolveNativeLocalApiSession(): Promise<NativeLocalApiSession | n
 async function buildRequestHeaders(init?: RequestInit): Promise<HeadersInit> {
   return {
     Accept: "application/json",
-    "X-Elysia-Client": "elysia-desktop/1.0.0",
+    "X-Elysia-Client": "elysia-desktop/1.1.0",
     ...(init?.body ? { "Content-Type": "application/json" } : {}),
     ...(init?.headers ?? {})
   };

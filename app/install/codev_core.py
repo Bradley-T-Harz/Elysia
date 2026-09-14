@@ -96,14 +96,15 @@ def inspect_core(paths: ElysiaPaths | None = None) -> CoreIdentity:
                 raise ValueError("invalid_core_manifest")
             version = payload.get("version")
             if version != PRODUCT_VERSION or payload.get("contract") != CORE_CONTRACT or payload.get("runtime_contract") != RUNTIME_CONTRACT:
-                return CoreIdentity("incompatible", installed=True, note="The installed Codev Core contract is incompatible.")
+                return CoreIdentity("incompatible", installed=True, version=version if isinstance(version, str) else None,
+                                    note=f"Install Codev Core {PRODUCT_VERSION} to match this Elysia release. Workspace grants remain separate.")
             if payload.get("architecture") != "amd64" or platform.machine() not in {"x86_64", "AMD64"}:
                 return CoreIdentity("incompatible", installed=True, version=version, note="This Codev Core artifact requires an amd64 Linux system.")
             executable = root / "codev-core"
             metadata = _metadata(executable, owner)
             if not os.access(executable, os.X_OK) or _digest(executable, metadata, owner) != payload.get("core_sha256"):
                 raise ValueError("core_integrity_failed")
-            adapter = root / "elysia-codev-1.0.0.vsix"
+            adapter = root / "elysia-codev-1.1.0.vsix"
             # The adapter is optional and cannot affect Core installation truth.
             try:
                 if _digest(adapter, _metadata(adapter, owner), owner) != payload.get("adapter_sha256"):

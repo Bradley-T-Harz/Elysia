@@ -6,18 +6,18 @@
       "name": "Codev",
       "publisher": "EcoSyneva Commons LLC",
       "version_channel": "stable",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "extension_id": "ecosyneva-commons.elysia-codev",
       "coding_contract_version": "vscode-coding-agent-contract-0.1",
-      "listing_state": "official_v1_release",
+      "listing_state": "coordinated_release_candidate",
       "required_profile": "developer",
       "purpose": "Governed local coding companion with approved repository context, patch proposals, exact approved mutation, bounded checks, and request traceability.",
       "requested_permissions": [
         "filesystem.read_project",
         "filesystem.write_project"
       ],
-      "local_install_contract": "scripts/install_codev.sh",
-      "local_package_format": "vsix",
+      "local_install_contract": "scripts/install_codev_core_user.sh",
+      "local_package_format": "deb",
       "install_action_live": true,
       "public_distribution_supported": true,
       "canonical_marketplace_url": "https://elysiaecobotics.com/marketplace/browse",
@@ -25,7 +25,7 @@
       "in_app_install_control_live": false,
       "admin_reviewed": true,
       "notes": [
-        "Developer profile uses an explicit user-local VSIX installer and XDG receipt; public distribution is through the canonical Elysia Ecobotics Marketplace.",
+        "Codev Core is installed independently of VS Code. The matching VSIX is an optional adapter. Installation grants no workspace or website authority.",
         "No hidden shell, silent push, silent publish, or arbitrary repository authority."
       ]
     }

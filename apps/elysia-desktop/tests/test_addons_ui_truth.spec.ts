@@ -138,7 +138,7 @@ describe("Add-ons UI truth", () => {
     expect(screen.getByRole("button", { name: "Plan registry removal · retain files" })).toBeInTheDocument();
     expect(screen.getByText("Disabled")).toBeInTheDocument();
     expect(screen.getByText(/Installed does not mean enabled/)).toBeInTheDocument();
-    expect(screen.getByText(/Codev is the official stable v1.0.0 Developer-profile add-on/)).toBeInTheDocument();
+    expect(screen.getByText(/Codev Core is the optional local development runtime/)).toBeInTheDocument();
     expect(screen.getByText("Reviewed VSIX CLI contract live")).toBeInTheDocument();
     expect(screen.getByText("Public distribution")).toBeInTheDocument();
     expect(screen.getByText(/No upload action is available/)).toBeInTheDocument();

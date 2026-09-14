@@ -13,7 +13,7 @@ rules:
 components:
   core_python_runtime:
     method: package_bound
-    source: exact Elysia v1.0.0 release package
+    source: exact Elysia v1.1.0 release package
     publisher: EcoSyneva Commons LLC
     identity: config/install/locks/core-py312.lock.txt
     digest: sha256:d009afa72031c7377b04114218f364d4bae3319d6f3f320e41ca4acd0a787214
@@ -28,7 +28,7 @@ components:
 
   desktop_shell:
     method: package_bound
-    source: exact Elysia v1.0.0 release package
+    source: exact Elysia v1.1.0 release package
     publisher: EcoSyneva Commons LLC
     identity: Tauri desktop bound to package receipt
     digest: exact_release_artifact_bound
@@ -43,7 +43,7 @@ components:
 
   identity_memory_fabric:
     method: package_bound
-    source: exact Elysia v1.0.0 release package
+    source: exact Elysia v1.1.0 release package
     publisher: EcoSyneva Commons LLC
     identity: canonical-memory-schema-v4 + identity-schema-v1
     digest: exact_release_artifact_bound
@@ -58,7 +58,7 @@ components:
 
   personal_onboarding:
     method: package_bound
-    source: exact Elysia v1.0.0 release package
+    source: exact Elysia v1.1.0 release package
     publisher: EcoSyneva Commons LLC
     identity: elysia-personal-onboarding-1.0
     digest: exact_release_artifact_bound
@@ -150,7 +150,7 @@ components:
     method: independently_installed_verified_codev_core_package
     source: https://github.com/Bradley-T-Harz/Elysia
     publisher: EcoSyneva Commons LLC
-    identity: codev-core 1.0.0 amd64 with codev-core-1 manifest and optional matching VS Code adapter
+    identity: codev-core 1.1.0 amd64 with codev-core-1 manifest and optional matching VS Code adapter
     digest: exact_artifact_sha256_verified_by_package_installer_then_manifest_payload_digests
     size_state: exact_selected_debian_artifact_size_verified_before_installation
     estimated_download_bytes: 0
@@ -178,7 +178,7 @@ components:
 
   local_connectors:
     method: package_bound
-    source: exact Elysia v1.0.0 release package
+    source: exact Elysia v1.1.0 release package
     publisher: EcoSyneva Commons LLC
     identity: source-contract-v1 connectors
     digest: exact_release_artifact_bound

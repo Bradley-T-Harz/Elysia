@@ -291,7 +291,7 @@ def test_developer_profile_uses_core_truth_with_optional_editor(monkeypatch):
         lambda: {
             "compatible": True,
             "installed": True,
-            "version": "1.0.0",
+            "version": "1.1.0",
             "state": "installed",
         },
     )
@@ -317,7 +317,7 @@ def test_developer_profile_uses_core_truth_with_optional_editor(monkeypatch):
     assert status["dependencies"]["vscode"]["status"] == "present"
     assert status["dependencies"]["vscode"]["required"] is False
     assert status["dependencies"]["codev_core"]["status"] == "present"
-    assert status["dependencies"]["codev_core"]["version"] == "1.0.0"
+    assert status["dependencies"]["codev_core"]["version"] == "1.1.0"
     assert status["dependencies"]["codev_core"]["required"] is True
 
 

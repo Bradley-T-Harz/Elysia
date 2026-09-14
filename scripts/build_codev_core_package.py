@@ -25,7 +25,7 @@ def build(core: Path, adapter: Path, output: Path) -> dict:
         raise ValueError("An absolute compiled Core artifact is required.")
     inspection = inspect_codev_vsix(adapter)
     result = subprocess.run([str(core), "version"], check=True, capture_output=True, text=True, timeout=30)
-    if result.stdout.strip() != "Elysia 1.0.0":
+    if result.stdout.strip() != "Elysia 1.1.0":
         raise ValueError("The compiled Core version is incompatible.")
     if "runtime" not in subprocess.run([str(core), "--help"], check=True, capture_output=True, text=True, timeout=30).stdout:
         raise ValueError("The compiled Core lacks the installed runtime contract.")
@@ -39,8 +39,8 @@ def build(core: Path, adapter: Path, output: Path) -> dict:
         payload.mkdir(parents=True)
         shutil.copyfile(core, payload / "codev-core")
         (payload / "codev-core").chmod(0o755)
-        shutil.copyfile(adapter, payload / "elysia-codev-1.0.0.vsix")
-        (payload / "elysia-codev-1.0.0.vsix").chmod(0o644)
+        shutil.copyfile(adapter, payload / "elysia-codev-1.1.0.vsix")
+        (payload / "elysia-codev-1.1.0.vsix").chmod(0o644)
         manifest = {"product": "codev-core", "version": PRODUCT_VERSION, "contract": CORE_CONTRACT,
                     "runtime_contract": RUNTIME_CONTRACT, "architecture": "amd64",
                     "core_sha256": hashlib.sha256(core.read_bytes()).hexdigest(),
@@ -59,10 +59,10 @@ def build(core: Path, adapter: Path, output: Path) -> dict:
         shutil.copyfile(source / "LICENSE", docs / "copyright")
         for name in ("NOTICE", "THIRD_PARTY_NOTICES.md", "requirements/THIRD_PARTY_NOTICES.txt"):
             shutil.copyfile(source / name, docs / Path(name).name)
-        (docs / "README").write_text('Codev Core 1.0.0\n\nInstall this Debian package with your software installer. VS Code is optional.\nOpen Elysia to use the Codev workroom. Workspace and website access start ungranted.\nInstall the bundled adapter later with: codev codev-adapter --editor code [--profile PROFILE]\nInspect or start the runtime with: codev runtime status / codev runtime ensure\nRepair/reinstall with your package manager. Uninstall with apt remove codev-core.\nUninstall preserves local account data, conversations, models, and repositories.\nNo models or cloud access are enabled by installation.\n')
+        (docs / "README").write_text('Codev Core 1.1.0\n\nInstall this Debian package with your software installer. VS Code is optional.\nOpen Elysia to use the Codev workroom. Workspace and website access start ungranted.\nInstall the bundled adapter later with: codev codev-adapter --editor code [--profile PROFILE]\nInspect or start the runtime with: codev runtime status / codev runtime ensure\nRepair/reinstall with your package manager. Uninstall with apt remove codev-core.\nUninstall preserves local account data, conversations, models, and repositories.\nNo models or cloud access are enabled by installation.\n')
         control = root / "DEBIAN"
         control.mkdir()
-        (control / "control").write_text('Package: codev-core\nVersion: 1.0.0\nArchitecture: amd64\nMaintainer: EcoSyneva Commons LLC\nSection: devel\nPriority: optional\nDepends: libc6 (>= 2.39), libstdc++6, libgcc-s1, zlib1g\nRecommends: git\nDescription: Governed local Codev runtime shared by Elysia and optional native clients\n Includes the private installed Core service and optional VS Code adapter.\n Installation grants no workspace, command, network, or website authority.\n')
+        (control / "control").write_text('Package: codev-core\nVersion: 1.1.0\nArchitecture: amd64\nMaintainer: EcoSyneva Commons LLC\nSection: devel\nPriority: optional\nDepends: libc6 (>= 2.39), libstdc++6, libgcc-s1, zlib1g\nRecommends: git\nDescription: Governed local Codev runtime shared by Elysia and optional native clients\n Includes the private installed Core service and optional VS Code adapter.\n Installation grants no workspace, command, network, or website authority.\n')
         lines = []
         for path in sorted(root.rglob("*")):
             if path.is_dir(): path.chmod(0o755)

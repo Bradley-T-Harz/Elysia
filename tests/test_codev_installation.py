@@ -21,7 +21,7 @@ def core_package(tmp_path, monkeypatch, **updates):
     core = payload / 'codev-core'
     core.write_bytes(b'isolated package identity fixture; never executed')
     core.chmod(0o755)
-    manifest = {'product': 'codev-core', 'version': '1.0.0', 'contract': 'codev-core-1',
+    manifest = {'product': 'codev-core', 'version': '1.1.0', 'contract': 'codev-core-1',
                 'runtime_contract': 'elysia-local-runtime-1', 'architecture': 'amd64',
                 'core_sha256': hashlib.sha256(core.read_bytes()).hexdigest(), 'adapter_sha256': 'a'*64}
     manifest.update(updates)
@@ -73,7 +73,7 @@ def test_service_outage_is_not_an_uninstall(tmp_path, monkeypatch):
     assert status.runtime_state == 'disconnected'
 
 
-@pytest.mark.parametrize('change,expected', [({'version': '2.0.0'}, 'incompatible'),
+@pytest.mark.parametrize('change,expected', [({'version': '1.0.0'}, 'incompatible'), ({'version': '2.0.0'}, 'incompatible'),
     ({'contract': 'unknown'}, 'incompatible'), ({'core_sha256': 'a'*64}, 'degraded'),
     ({'architecture': 'arm64'}, 'incompatible'), ({'product': 'other'}, 'degraded')])
 def test_incompatible_or_damaged_core_never_grants_actions(tmp_path, monkeypatch, change, expected):

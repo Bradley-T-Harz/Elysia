@@ -1,10 +1,12 @@
-"""Canonical multi-client contracts; product and legacy API versions stay 1.0.0."""
+"""Canonical Codev 1.1.0 product contracts; legacy API remains 1.0.0."""
 from __future__ import annotations
 
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 CLIENT_CONTRACT = "codev-client-1"
+# Browser protocol compatibility is deliberately narrower than arbitrary SemVer.
+BROWSER_SUPPORTED_CORE_VERSIONS = ("1.0.0", "1.1.0")
 
 
 class Contract(BaseModel):
@@ -24,7 +26,7 @@ class Installation(Contract):
     installed: bool = False
     usable: bool = False
     version: str | None = None
-    expected_version: Literal["1.0.0"] = "1.0.0"
+    expected_version: Literal["1.1.0"] = "1.1.0"
     contract_versions: list[str] = Field(default_factory=list)
     source: Literal["none", "legacy_install_receipt", "installed_core_manifest"] = "none"
     installation_state: Literal["absent", "installed", "incompatible"] = "absent"
@@ -46,7 +48,7 @@ class ClientLifecycle(Contract):
 
 class CorePackageManifest(Contract):
     product: Literal["codev-core"] = "codev-core"
-    version: Literal["1.0.0"] = "1.0.0"
+    version: Literal["1.1.0"] = "1.1.0"
     contract: Literal["codev-core-1"] = "codev-core-1"
     runtime_contract: Literal["elysia-local-runtime-1"] = "elysia-local-runtime-1"
     architecture: Literal["amd64"] = "amd64"
@@ -56,7 +58,7 @@ class CorePackageManifest(Contract):
 
 class NativeRuntimeIdentity(Contract):
     contract: Literal["elysia-local-runtime-1"] = "elysia-local-runtime-1"
-    product_version: Literal["1.0.0"] = "1.0.0"
+    product_version: Literal["1.1.0"] = "1.1.0"
     pid: int = Field(ge=2)
     uid: int = Field(ge=0)
     instance_id: str = Field(pattern=r"^[a-f0-9]{48}$")

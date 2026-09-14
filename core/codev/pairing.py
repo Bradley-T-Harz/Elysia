@@ -38,7 +38,7 @@ def _online(origin: str, route: str, payload: dict) -> dict:
     request = Request(origin + "/api/codev/" + route, method="POST",
         data=json.dumps(payload, separators=(",", ":")).encode(),
         headers={"Content-Type": "application/json", "X-Codev-Native": "pairing-1", "Accept": "application/json",
-                 "User-Agent": "Elysia-Codev/1.0.0 (codev-pairing-1; +https://github.com/Bradley-T-Harz/Elysia)"})
+                 "User-Agent": "Elysia-Codev/1.1.0 (codev-pairing-1; +https://github.com/Bradley-T-Harz/Elysia)"})
     try:
         # Do not inherit environment HTTP proxies or follow credential-bearing redirects.
         with build_opener(ProxyHandler({}), HTTPSHandler(), _NoRedirect()).open(request, timeout=5) as response:

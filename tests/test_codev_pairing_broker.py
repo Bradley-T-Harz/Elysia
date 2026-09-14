@@ -20,7 +20,7 @@ from core.codev.revisions import workspace_hash
 @pytest.fixture
 def fixture(monkeypatch):
     principal = {"user_id": "synthetic-local-account", "session_id": "local-login-a"}
-    install = Installation(state="installed_ready", installed=True, usable=True, version="1.0.0", note="Synthetic installed adapter.")
+    install = Installation(state="installed_ready", installed=True, usable=True, version="1.1.0", note="Synthetic installed adapter.")
     monkeypatch.setattr(sessions, "_principal", lambda: principal.copy())
     monkeypatch.setattr(pairing, "_principal", lambda: principal.copy())
     monkeypatch.setattr(account_service, "get_authenticated_principal", lambda: principal.copy())

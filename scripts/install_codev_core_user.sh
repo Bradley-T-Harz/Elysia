@@ -9,7 +9,7 @@ while (($#)); do
     --apply) CODEV_INSTALL_MODE=apply; shift ;;
     --dry-run) CODEV_INSTALL_MODE=dry-run; shift ;;
     --deb) CODEV_DEB="${2:-}"; shift 2 ;;
-    --help|-h) echo 'Usage: install_codev_core_user.sh --deb /absolute/Codev_Core_1.0.0_amd64.deb [--apply]'; exit 0 ;;
+    --help|-h) echo 'Usage: install_codev_core_user.sh --deb /absolute/Codev_Core_1.1.0_amd64.deb [--apply]'; exit 0 ;;
     *) echo 'Unsupported installer argument.' >&2; exit 2 ;;
   esac
 done
@@ -19,10 +19,10 @@ CODEV_CONFIG_BASE="${XDG_CONFIG_HOME:-$CODEV_USER_HOME/.config}"
 [[ "$CODEV_USER_HOME" = /* && "$CODEV_DATA_BASE" = /* && "$CODEV_CONFIG_BASE" = /* ]] || { echo 'Absolute HOME/XDG paths are required.' >&2; exit 2; }
 [[ "$CODEV_DEB" = /* && -f "$CODEV_DEB" && ! -L "$CODEV_DEB" ]] || { echo 'Select one absolute non-symlink Debian artifact.' >&2; exit 2; }
 [[ $(stat -c %s "$CODEV_DEB") -le 209715200 ]] || { echo 'Codev artifact exceeds the package limit.' >&2; exit 2; }
-[[ "$(dpkg-deb -f "$CODEV_DEB" Package)" == codev-core && "$(dpkg-deb -f "$CODEV_DEB" Version)" == 1.0.0 && "$(dpkg-deb -f "$CODEV_DEB" Architecture)" == amd64 ]] || { echo 'Incompatible Codev Core package.' >&2; exit 2; }
+[[ "$(dpkg-deb -f "$CODEV_DEB" Package)" == codev-core && "$(dpkg-deb -f "$CODEV_DEB" Version)" == 1.1.0 && "$(dpkg-deb -f "$CODEV_DEB" Architecture)" == amd64 ]] || { echo 'Incompatible Codev Core package.' >&2; exit 2; }
 [[ $(uname -m) == x86_64 ]] || { echo 'This artifact requires amd64 Linux.' >&2; exit 2; }
 CODEV_PACKAGE_DIGEST="$(sha256sum "$CODEV_DEB" | cut -d ' ' -f1)"
-echo "Codev Core 1.0.0 package: $CODEV_PACKAGE_DIGEST"
+echo "Codev Core 1.1.0 package: $CODEV_PACKAGE_DIGEST"
 echo 'Install/repair the neutral runtime and login startup. VS Code is optional.'
 echo 'No workspace, profile selection, command, network, or website authority is granted.'
 if [[ "$CODEV_INSTALL_MODE" != apply ]]; then echo 'Dry run complete.'; exit 0; fi

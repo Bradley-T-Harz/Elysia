@@ -16,7 +16,7 @@ import sys
 from typing import Sequence
 
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 
 def _enter_packaged_resource_root() -> None:

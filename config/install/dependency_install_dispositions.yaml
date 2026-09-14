@@ -240,7 +240,7 @@ category_e_guidance:
     data_leaving_local_control: Artifact acquisition contacts the chosen official distribution channel. Installation grants no workspace access or website pairing.
     license_privacy_security: Verify the published artifact digest and review its notices. Use a supported amd64 Debian-family package; no source checkout or developer environment is required.
     supported_steps:
-      - Obtain the matching Codev Core 1.0.0 Debian artifact and verify its published digest.
+      - Obtain the matching Codev Core 1.1.0 Debian artifact and verify its published digest.
       - Install through the system package manager or the supplied user installer, first reviewing its dry run.
       - Open Elysia; the Codev workroom appears even without a selected workspace or VS Code.
       - Grant repository or website authority separately when needed.

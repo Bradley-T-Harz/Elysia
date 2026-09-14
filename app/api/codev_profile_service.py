@@ -62,7 +62,7 @@ def build_codev_developer_profile_status() -> dict[str, Any]:
     return {
         "status": "ready" if ready else "profile_gated" if not active else "degraded",
         "official_addon": True,
-        "listing_state": "official_v1_release",
+        "listing_state": "coordinated_release_candidate",
         "public_distribution_supported": True,
         "canonical_marketplace_url": "https://elysiaecobotics.com/marketplace/browse",
         "live_availability_source": "canonical_external_release_surfaces",

@@ -1,6 +1,6 @@
 version: 1
 contract_version: elysia-component-profile-graph-1.0
-release_target: 1.0.0
+release_target: 1.1.0
 authority: authoritative
 legacy_inputs:
   profiles_yaml: compatibility_runtime_projection
@@ -35,7 +35,7 @@ components:
   desktop_shell:
     <<: *lifecycle_defaults
     component_id: desktop_shell
-    exact_version_digest: Elysia Desktop 1.0.0 package-lock sha256:e6babe7cac0b923caa6d38a17e793708a9375e38cc52108c93ef2dde9ac16dfe + Cargo.lock sha256:64f3ebd300852ffc4e6645811b696c1c2b3c5ee9dbfda7f53be91679b42dd86b
+    exact_version_digest: Elysia Desktop 1.1.0 package-lock sha256:0809c9597b13ed8485093ca1903788cb15584b85aed29afad93276b8ab8315ea + Cargo.lock sha256:82861842196f91a348f73994c560abbd515471c58fd249b7e17e2470a5a4f347
     owning_profile: core
     required_components: [core_python_runtime, identity_memory_fabric]
     optional_components: []
@@ -171,7 +171,7 @@ components:
   codev_companion:
     <<: *lifecycle_defaults
     component_id: codev_companion
-    exact_version_digest: Codev Core 1.0.0; codev-core-1 manifest binds exact compiled runtime and optional adapter SHA-256 digests
+    exact_version_digest: Codev Core 1.1.0; codev-core-1 manifest binds exact compiled runtime and optional adapter SHA-256 digests
     owning_profile: developer_codev
     required_components: [core_python_runtime]
     optional_components: []

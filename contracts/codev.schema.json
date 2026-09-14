@@ -788,8 +788,8 @@
           "type": "string"
         },
         "version": {
-          "const": "1.0.0",
-          "default": "1.0.0",
+          "const": "1.1.0",
+          "default": "1.1.0",
           "title": "Version",
           "type": "string"
         }
@@ -967,8 +967,8 @@
           "type": "array"
         },
         "expected_version": {
-          "const": "1.0.0",
-          "default": "1.0.0",
+          "const": "1.1.0",
+          "default": "1.1.0",
           "title": "Expected Version",
           "type": "string"
         },
@@ -1131,8 +1131,8 @@
           "type": "string"
         },
         "product_version": {
-          "const": "1.0.0",
-          "default": "1.0.0",
+          "const": "1.1.0",
+          "default": "1.1.0",
           "title": "Product Version",
           "type": "string"
         },

@@ -58,11 +58,11 @@ def test_public_manifest_and_classification_contract_exist_and_parse() -> None:
     payload = yaml.safe_load(MANIFEST_PATH.read_text(encoding="utf-8"))
     assert payload["schema_version"] == 1
     assert payload["publication"] == {
-        "release_role": "qualified_public_release_payload",
+        "release_role": "coordinated_release_candidate",
         "live_state_source": "canonical_external_release_surfaces",
         "mutable_external_state_not_embedded": True,
         "owner_authorization_required_for_external_mutation": True,
-        "canonical_release_url": "https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.0.0",
+        "canonical_release_url": "https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.1.0",
         "canonical_archive_url": "https://elysiaecobotics.com/archive",
     }
     for relative in payload["reviewed_source"]["required_root_files"]:

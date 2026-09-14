@@ -216,7 +216,7 @@ export default function CodevWorkroom({ installation, active, handoff, onRightDr
   }
 
   return <div className="codev-room" hidden={!active}>
-    <header className="codev-room-header"><div><span className="codev-eyebrow">LOCAL DEVELOPMENT</span><h1>Codev</h1><p>Understand, review, and change your selected workspace.</p></div><span className="codev-status">{installation.runtime_state === "ready" ? "Ready" : "Installed · service unavailable"} · v{installation.version ?? "1.0.0"}</span></header>
+    <header className="codev-room-header"><div><span className="codev-eyebrow">LOCAL DEVELOPMENT</span><h1>Codev</h1><p>Understand, review, and change your selected workspace.</p></div><span className="codev-status">{installation.runtime_state === "ready" ? "Ready" : "Installed · service unavailable"} · v{installation.version ?? installation.expected_version ?? "unknown"}</span></header>
     {!installation.usable && <p className="codev-notice" role="status">{installation.note}</p>}
     <CodevPairing clientId={actor?.client_id ?? null}/>
     {(error || notice) && <div className={`codev-notice ${error ? "codev-error" : ""}`} role={error ? "alert" : "status"}>{error || notice}</div>}

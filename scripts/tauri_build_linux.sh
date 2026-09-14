@@ -65,7 +65,7 @@ python3 "$ROOT_DIR/scripts/validate_desktop_csp_assets.py" \
 case ",$TAURI_BUNDLES," in
   *,deb,*)
     python3 "$ROOT_DIR/scripts/normalize_deb_bundle.py" \
-      "$DESKTOP_DIR/src-tauri/target/release/bundle/deb/Elysia_1.0.0_amd64.deb"
+      "$DESKTOP_DIR/src-tauri/target/release/bundle/deb/Elysia_1.1.0_amd64.deb"
     ;;
 esac
 
@@ -94,8 +94,8 @@ esac
 if [[ ",$TAURI_BUNDLES," == *,deb,* && ",$TAURI_BUNDLES," == *,appimage,* ]]; then
   FAMILY_VERIFY_ROOT="$(mktemp -d /tmp/elysia-package-family.XXXXXXXX)"
   trap 'rm -rf -- "$FAMILY_VERIFY_ROOT"' EXIT
-  DEB_ARTIFACT="$DESKTOP_DIR/src-tauri/target/release/bundle/deb/Elysia_1.0.0_amd64.deb"
-  APPIMAGE_ARTIFACT="$DESKTOP_DIR/src-tauri/target/release/bundle/appimage/Elysia_1.0.0_amd64.AppImage"
+  DEB_ARTIFACT="$DESKTOP_DIR/src-tauri/target/release/bundle/deb/Elysia_1.1.0_amd64.deb"
+  APPIMAGE_ARTIFACT="$DESKTOP_DIR/src-tauri/target/release/bundle/appimage/Elysia_1.1.0_amd64.AppImage"
   dpkg-deb -x "$DEB_ARTIFACT" "$FAMILY_VERIFY_ROOT/deb"
   (
     cd "$FAMILY_VERIFY_ROOT"

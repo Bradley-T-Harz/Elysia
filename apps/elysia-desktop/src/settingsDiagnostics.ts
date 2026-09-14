@@ -4,7 +4,7 @@ import {
 } from "./desktopPreferences";
 
 export const ELYSIA_V1_RELEASE_TRUTH = {
-  targetVersion: "1.0.0",
+  targetVersion: "1.1.0",
   currentChannel: "stable"
 } as const;
 

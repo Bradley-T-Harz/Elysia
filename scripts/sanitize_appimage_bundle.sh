@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APPIMAGE="${ELYSIA_APPIMAGE_PATH:-$ROOT_DIR/apps/elysia-desktop/src-tauri/target/release/bundle/appimage/Elysia_1.0.0_amd64.AppImage}"
+APPIMAGE="${ELYSIA_APPIMAGE_PATH:-$ROOT_DIR/apps/elysia-desktop/src-tauri/target/release/bundle/appimage/Elysia_1.1.0_amd64.AppImage}"
 PLUGIN="${TAURI_APPIMAGE_PLUGIN:-${HOME:-}/.cache/tauri/linuxdeploy-plugin-appimage.AppImage}"
 
 if [[ ! -x "$APPIMAGE" ]]; then

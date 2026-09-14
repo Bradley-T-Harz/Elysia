@@ -11,7 +11,7 @@ from .paths import ElysiaPaths, resolve_elysia_paths
 
 
 CODEV_EXTENSION_ID = "ecosyneva-commons.elysia-codev"
-CODEV_VERSION = "1.0.0"
+CODEV_VERSION = "1.1.0"
 CODEV_CONTRACT_VERSION = "vscode-coding-agent-contract-0.1"
 
 

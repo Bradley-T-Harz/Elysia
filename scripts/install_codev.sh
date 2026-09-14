@@ -5,12 +5,12 @@ MODE="dry-run"
 SELECT_PROFILE="false"
 VSIX_PATH=""
 EDITOR_COMMAND=""
-CODEV_VERSION="1.0.0"
+CODEV_VERSION="1.1.0"
 EXTENSION_ID="ecosyneva-commons.elysia-codev"
 CONTRACT_VERSION="vscode-coding-agent-contract-0.1"
 
 usage() {
-  printf '%s\n' "Usage: scripts/install_codev.sh --vsix /absolute/path/elysia-codev-1.0.0.vsix [--editor code|codium|/absolute/path] [--apply] [--select-profile]"
+  printf '%s\n' "Usage: scripts/install_codev.sh --vsix /absolute/path/elysia-codev-1.1.0.vsix [--editor code|codium|/absolute/path] [--apply] [--select-profile]"
   printf '%s\n' "Default is dry-run. --apply installs only the reviewed local VSIX; it does not download, publish, push, or enable shell/network authority."
 }
 
@@ -111,7 +111,7 @@ grep -Eq '"publisher"[[:space:]]*:[[:space:]]*"ecosyneva-commons"' <<<"$MANIFEST
   exit 2
 }
 grep -Eq '"version"[[:space:]]*:[[:space:]]*"1\.0\.0"' <<<"$MANIFEST" || {
-  printf '%s\n' "The VSIX version does not match the qualified stable v1.0.0 contract." >&2
+  printf '%s\n' "The VSIX version does not match the qualified stable v1.1.0 contract." >&2
   exit 2
 }
 PACKAGE_HASH="$(sha256sum "$VSIX_PATH" | awk '{print $1}')"
