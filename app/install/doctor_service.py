@@ -42,7 +42,9 @@ from .schemas import DependencyStatus, DoctorCheck, DoctorStatusData
 
 
 API_VERSION = "1.0.0"
-DESKTOP_VERSION = "1.1.0"
+# This is the Desktop client's API protocol, not its product release number.
+# Product 1.1.0 intentionally retains API 1.0.0.
+DESKTOP_API_VERSION = "1.0.0"
 CONTRACT_VERSION = "elysia-install-doctor-1.0"
 DOCTOR_VERSION = "1"
 LAST_RUN_FILENAME = "last-run.json"
@@ -924,7 +926,7 @@ def run_doctor(
                 Path("/usr/bin/elysia-desktop"),
             )
         )
-    desktop_compatible = desktop_present and API_VERSION == DESKTOP_VERSION
+    desktop_compatible = desktop_present and API_VERSION == DESKTOP_API_VERSION
 
     checks: list[DoctorCheck] = []
     _, selected_components = _setup_component_selection(resolved_paths)

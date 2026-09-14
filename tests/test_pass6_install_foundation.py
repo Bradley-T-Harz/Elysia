@@ -208,6 +208,29 @@ def test_doctor_is_sanitized_non_repairing_and_records_only_allowlisted_truth(tm
     assert str(tmp_path) not in json.dumps(receipt)
 
 
+@pytest.mark.parametrize("api_version,compatible", [("1.0.0", True), ("2.0.0", False)])
+def test_doctor_checks_protocol_independently_of_product_release(
+    tmp_path: Path, monkeypatch, api_version: str, compatible: bool
+) -> None:
+    # A minor product release need not change the Desktop/API protocol.
+    assert json.loads((ROOT / "apps/elysia-desktop/package.json").read_text())["version"] == "1.1.0"
+    monkeypatch.setattr("app.install.doctor_service.API_VERSION", api_version)
+    values = _environment(tmp_path)
+    paths = resolve_elysia_paths(values)
+    ensure_elysia_directories(paths)
+    policy = build_local_api_auth_policy(paths=paths, environ=values, initialize=True)
+    missing = tmp_path / "missing.yaml"
+    report = run_doctor(
+        paths=paths, auth_policy=policy, profile_override_path=missing,
+        model_override_path=missing, desktop_package_state="present",
+    )
+    assert report.desktop_api_compatible is compatible
+    check = next(c for c in report.checks if c.check_id == "desktop_api_contract")
+    assert (check.status == "present") is compatible
+    if not compatible:
+        assert report.core_ready is False
+
+
 def test_doctor_does_not_claim_core_ready_without_desktop_package_proof(tmp_path: Path) -> None:
     values = _environment(tmp_path)
     paths = resolve_elysia_paths(values)
@@ -387,7 +410,7 @@ def test_csp_and_native_lifecycle_are_local_and_fixed() -> None:
         "../../../docs/release/DEPENDENCY_ACQUISITION_AND_MANUAL_ACTIONS.md": "docs/DEPENDENCY_ACQUISITION_AND_MANUAL_ACTIONS.md",
         "../../../docs/release/INSTALLER_DOCTOR_RUNTIME.md": "docs/INSTALLER_DOCTOR_RUNTIME.md",
         "../../../docs/release/INSTALL_PROFILES.md": "docs/INSTALL_PROFILES.md",
-        "../../../docs/release/SYSTEM_REQUIREMENTS_v1.0.0.md": "docs/SYSTEM_REQUIREMENTS_v1.0.0.md",
+        "../../../docs/release/SYSTEM_REQUIREMENTS_v1.1.0.md": "docs/SYSTEM_REQUIREMENTS_v1.1.0.md",
     }
     native_notices = ROOT / "apps" / "elysia-desktop" / "THIRD_PARTY_NOTICES.native.txt"
     assert native_notices.stat().st_size > 1_000_000

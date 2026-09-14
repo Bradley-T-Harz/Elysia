@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { accountPalette, readEnvelopeError } from "./accountPresentation";
+import { ELYSIA_V1_RELEASE_TRUTH } from "./settingsDiagnostics";
 import {
   applyComponentInstall,
   applySystemPrerequisites,
@@ -254,7 +255,7 @@ export default function ElysiaSetupPage({ error: initialError, initialState, onC
         <header>
           <div style={eyebrowStyle}>Stage A · machine installation</div>
           <h1 style={{ margin: 0 }}>Elysia Setup</h1>
-          <p><strong>Elysia 1.0 Setup</strong> · EcoSyneva Commons LLC · {initialState?.platform_label ?? "Native Linux package"}. Exact package identity and signed updater material are verified through the governed lifecycle.</p>
+          <p><strong>Elysia {ELYSIA_V1_RELEASE_TRUTH.targetVersion} Setup</strong> · EcoSyneva Commons LLC · {initialState?.platform_label ?? "Native Linux package"}. Exact package identity and signed updater material are verified through the governed lifecycle.</p>
           <p style={mutedStyle}>Choose components from the authoritative graph. Setup previews downloads, disk, hardware, network, and privilege effects before any configuration. It does not create a person, biography, Website account, or memory.</p>
           <p style={mutedStyle}>Local Elysia works without a public Commons account. Optional Internet research and selected public exports cross local control only after their own explicit consent.</p>
         </header>
