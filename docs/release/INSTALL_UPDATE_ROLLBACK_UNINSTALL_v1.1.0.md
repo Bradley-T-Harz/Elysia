@@ -1,6 +1,7 @@
 # Elysia / Codev 1.1.0 installation and upgrade
 
-Status: candidate instructions; final artifact matrix and signing are pending.
+Exact-byte qualification and publication status belong to the signed release
+manifest and canonical release pages. Unsigned candidates are not stable updates.
 Obtain Elysia and Codev only from the canonical signed GitHub release family.
 Verify SHA-256, size, and the detached manifest signature with the established
 Ed25519 public trust policy before installing. A checksum alone is not publisher
@@ -16,9 +17,10 @@ authentication. No new trust root or unsigned update bypass is provided.
 | Compatible website + Core | Explicit Sync/native approval/refresh, zero files shared |
 
 Install the Elysia amd64 Debian package through the normal package manager.
-Install the separate `codev-core` amd64 Debian package to enable Codev. Either
-installation order is supported by the architecture; both final artifact orders
-must be qualified. VS Code is optional. The Core package carries the matching
+Install the separate `codev-core` amd64 Debian package to enable Codev. The
+coordinated installation supports either order; the signed release evidence
+identifies the qualified package bytes and installation scenarios. VS Code is
+optional. The Core package carries the matching
 VSIX for explicit later installation using `codev codev-adapter --editor code`
 and an optional chosen profile. Never replace an active test-controller profile.
 

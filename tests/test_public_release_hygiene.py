@@ -58,7 +58,7 @@ def test_public_manifest_and_classification_contract_exist_and_parse() -> None:
     payload = yaml.safe_load(MANIFEST_PATH.read_text(encoding="utf-8"))
     assert payload["schema_version"] == 1
     assert payload["publication"] == {
-        "release_role": "coordinated_release_candidate",
+        "release_role": "coordinated_release_payload",
         "live_state_source": "canonical_external_release_surfaces",
         "mutable_external_state_not_embedded": True,
         "owner_authorization_required_for_external_mutation": True,

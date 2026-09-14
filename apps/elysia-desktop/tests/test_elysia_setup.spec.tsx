@@ -69,6 +69,8 @@ describe("Elysia Setup machine-install authority", () => {
     const configured = vi.fn().mockResolvedValue(undefined);
     render(<ElysiaSetupPage initialState={null} onConfigured={configured} />);
 
+    expect(screen.getByText("Elysia 1.1.0 Setup")).toBeVisible();
+
     expect(screen.getByTestId("elysia-setup-page")).toHaveStyle({
       height: "100vh",
       maxHeight: "100vh",

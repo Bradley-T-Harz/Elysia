@@ -1,8 +1,9 @@
 # Elysia / Codev 1.1.0 target system requirements
 
-Final candidate targets: Linux amd64, Debian 13 and Ubuntu 24.04. Final package
-qualification is pending. Native desktop evidence is GNOME/X11 only. The Core
-package requires glibc >= 2.39, libstdc++6, libgcc-s1, and zlib1g; the Debian
+Release targets: Linux amd64, Debian 13 and Ubuntu 24.04. Consult the signed
+release evidence for exact package qualification. Native snapping evidence is
+GNOME/X11 only. The Core package requires glibc >= 2.39, libstdc++6, libgcc-s1,
+and zlib1g; the Debian
 desktop package additionally declares its exact GTK/WebKit runtime dependencies.
 Use the package manager to resolve those declared dependencies.
 
