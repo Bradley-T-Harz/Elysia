@@ -812,7 +812,7 @@ export function LocalInstallerPanel({
           </div>
         ) : <p style={bodyStyle}>No official add-ons are declared.</p>}
         <p style={privacyNoteStyle}>
-          Codev is the official stable v1.0.0 Developer-profile add-on. A reviewed local VSIX can be installed through the explicit user-local CLI contract; this chamber has no install control. Public availability is authoritative at the canonical Elysia Ecobotics Marketplace.
+          Codev Core is the optional local development runtime. Install the matching 1.1.0 Core package; VS Code is an optional adapter. This chamber has no install control. Verified public availability is authoritative at the canonical Elysia Ecobotics Marketplace.
         </p>
       </details>
       <details style={previewStyle}>

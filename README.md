@@ -10,7 +10,7 @@ Core principles:
 - strong separation between reasoning, tools, and risky execution
 - privacy, inspectability, and recoverability over convenience
 
-Release status: version `1.0.0`, qualified stable release. Canonical availability and exact release downloads are reported by [GitHub Releases](https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.0.0) and the [Elysia Archive](https://elysiaecobotics.com/archive), rather than mutable publication flags embedded in source or package bytes. Release contracts and profile documentation live under [`docs/release/`](docs/release/).
+Release target: version `1.1.0`, coordinated release candidate. Final artifact qualification and signing remain required before publication. Canonical availability and exact release downloads are reported by [GitHub Releases](https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.1.0) and the [Elysia Archive](https://elysiaecobotics.com/archive), rather than mutable publication flags embedded in source or package bytes. Release contracts and profile documentation live under [`docs/release/`](docs/release/).
 
 Public/private hygiene is governed by the [public package manifest](packaging/public_manifest.yaml), [canon classification](docs/release/PUBLIC_CANON_CLASSIFICATION.md), and [risk inventory](docs/release/PUBLIC_RELEASE_RISK_INVENTORY.md). Local model, worker, repository, and machine paths belong in validated XDG user configuration and are never supplied by tracked defaults. Any publication or replacement of release bytes remains an explicit release-steward action.
 
@@ -680,7 +680,7 @@ privacy before convenience
 
 ## License and publication status
 
-Elysia source in this repository is licensed under the [Apache License 2.0](LICENSE), subject to separately identified third-party licenses. Version `1.0.0` is the qualified stable release; exact downloadable artifacts remain authoritative only when their hashes and signatures match the canonical release manifest.
+Elysia source in this repository is licensed under the [Apache License 2.0](LICENSE), subject to separately identified third-party licenses. Version `1.1.0` is the coordinated release target; exact downloadable artifacts remain authoritative only when their hashes and signatures match the canonical release manifest.
 
 The completed release gate in [`V1_RELEASE_GATE.md`](docs/release/V1_RELEASE_GATE.md) covers packaging, authentication, XDG state paths, public/private hygiene, documentation, manual review, and explicit release approval. Optional profiles may download packages/models or contact external services only after their exact boundary is enabled and approved.
 

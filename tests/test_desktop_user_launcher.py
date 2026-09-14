@@ -97,7 +97,7 @@ def test_user_local_installer_converges_every_entry_and_preserves_prior_release(
     first = _make_deb(tmp_path, "first")
     home, entries = _install(tmp_path, first)
     stable_launcher = home / ".local/bin/elysia-desktop"
-    expected_exec = f"Exec={stable_launcher}"
+    expected_exec = f'Exec="{stable_launcher}"'
 
     assert stable_launcher.stat().st_mode & 0o777 == 0o700
     assert "elysia/current/usr/bin/elysia-desktop" in stable_launcher.read_text(

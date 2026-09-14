@@ -461,6 +461,7 @@ def build_model_routing_decision(
     performance_preference: str = "balanced",
     model_health: Optional[Dict[str, Any]] = None,
     ram_mb_ceiling: int | None = None,
+    interactive_latency_budget: bool = False,
 ) -> Dict[str, Any]:
     """
     Build one deterministic model-routing decision from normalized config.
@@ -561,12 +562,23 @@ def build_model_routing_decision(
     _, resolved_role_entry = _get_role_entry(
         model_roles_config, str(resolved["selected_role"] or "")
     )
+    # A bounded interactive client's Quick budget also covers tutoring and
+    # coding. Keep the resolved role/approval boundary: only its declared
+    # local candidates may be selected, using the existing measured selector.
+    # An explicit quality preference still wins.
+    selection_preference = (
+        "latency"
+        if interactive_latency_budget and normalized_gear == "quick" and normalized_preference == "balanced"
+        else normalized_preference
+    )
     selected_runtime_tag, measured_selection_reasons = _select_measured_runtime_tag(
         resolved_role_entry,
         model_health=model_health,
-        performance_preference=normalized_preference,
+        performance_preference=selection_preference,
         ram_mb_ceiling=ram_mb_ceiling,
     )
+    if selection_preference != normalized_preference:
+        measured_selection_reasons.append("quick_gear_latency_budget")
 
     note_parts = [
         "Model routing decision built from normalized model_roles and routing config.",
@@ -594,6 +606,7 @@ def build_model_routing_decision(
         "autonomy_level": max(1, min(5, int(autonomy_level))),
         "reasoning_gear": normalized_gear,
         "performance_preference": normalized_preference,
+        "runtime_selection_preference": selection_preference,
         "measured_model_health": deepcopy(model_health or {}),
         "context_flags": available_flags,
         "applied_layers": route_decision.get("applied_layers", []),

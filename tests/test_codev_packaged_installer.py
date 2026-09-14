@@ -19,7 +19,7 @@ def _vsix(path: Path, *, extra_name: str | None = None) -> Path:
     manifest = {
         "name": "elysia-codev",
         "publisher": "ecosyneva-commons",
-        "version": "1.0.0",
+        "version": "1.1.0",
     }
     with ZipFile(path, "w") as archive:
         archive.writestr("extension/package.json", json.dumps(manifest))
@@ -30,10 +30,10 @@ def _vsix(path: Path, *, extra_name: str | None = None) -> Path:
 
 
 def test_packaged_codev_installer_validates_exact_local_archive(tmp_path: Path) -> None:
-    target = _vsix(tmp_path / "elysia-codev-1.0.0.vsix")
+    target = _vsix(tmp_path / "elysia-codev-1.1.0.vsix")
     result = inspect_codev_vsix(target)
     assert result.extension_id == "ecosyneva-commons.elysia-codev"
-    assert result.version == "1.0.0"
+    assert result.version == "1.1.0"
     assert result.entry_count == 2
     assert len(result.sha256) == 64
 
@@ -52,7 +52,7 @@ def test_packaged_codev_installer_invokes_fixed_editor_and_writes_private_truth(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    target = _vsix(tmp_path / "elysia-codev-1.0.0.vsix")
+    target = _vsix(tmp_path / "elysia-codev-1.1.0.vsix")
     editor = tmp_path / "code"
     editor.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     editor.chmod(0o700)
@@ -88,7 +88,7 @@ def test_explicit_codev_profile_selection_replaces_core_and_preserves_non_core_p
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    target = _vsix(tmp_path / "elysia-codev-1.0.0.vsix")
+    target = _vsix(tmp_path / "elysia-codev-1.1.0.vsix")
     editor = tmp_path / "code"
     editor.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     editor.chmod(0o700)
@@ -129,7 +129,7 @@ def test_invalid_existing_profile_is_refused_before_editor_install(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    target = _vsix(tmp_path / "elysia-codev-1.0.0.vsix")
+    target = _vsix(tmp_path / "elysia-codev-1.1.0.vsix")
     editor = tmp_path / "code"
     editor.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     editor.chmod(0o700)

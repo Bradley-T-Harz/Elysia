@@ -73,6 +73,7 @@ ROUTE_MODULES: tuple[tuple[str, str], ...] = (
     ("app.api.routes.addon_actions", "router"),
     ("app.api.routes.addons", "router"),
     ("app.api.routes.coding", "router"),
+    ("app.api.routes.codev", "router"),
     ("app.api.routes.coding_file_types", "router"),
     ("app.api.routes.coding_files", "router"),
     ("app.api.routes.coding_documents", "router"),
@@ -130,7 +131,9 @@ def _managed_policy_requirements(path: str, method: str) -> tuple[str, ...]:
     verb = method.upper()
     if verb not in MUTATING_METHODS:
         return ()
-    if path.startswith("/coding/") or path == "/coding":
+    if path in {"/coding/command/cancel", "/coding/repo/revoke", "/codev/grants/revoke", "/codev/pairing/revoke", "/codev/commands/cancel", "/codev/chat/cancel", "/codev/commands/status"}:
+        return ()
+    if path.startswith(("/coding/", "/code/", "/codev/")) or path in {"/coding", "/codev"}:
         return ("coding_execution",)
     if path.startswith("/addon-actions/") or path.startswith("/addons/"):
         return ("addons",)
@@ -172,6 +175,7 @@ def _try_include_router(app: FastAPI, module_path: str, router_attr: str) -> Non
 def create_app(
     *,
     auth_policy: LocalApiAuthPolicy | None = None,
+    private_unix_socket: bool = False,
 ) -> FastAPI:
     """
     Create the FastAPI app for Elysia's local API bridge.
@@ -269,6 +273,13 @@ def create_app(
     app.state.pending_route_modules = []
     app.state.local_api_auth_policy = resolved_auth_policy
 
+    @app.get("/runtime/identity", include_in_schema=False)
+    def runtime_identity():
+        identity = getattr(app.state, "runtime_identity", None)
+        if not private_unix_socket or identity is None:
+            raise HTTPException(status_code=404, detail="No installed Unix runtime.")
+        return identity
+
     @app.middleware("http")
     async def enforce_local_only_by_default(
         request: Request,
@@ -278,6 +289,11 @@ def create_app(
         Reject non-local clients by default with a structured envelope response.
         """
         client_host = request.client.host if request.client else None
+        if private_unix_socket and client_host is None:
+            # This instance is served exclusively by a pre-bound 0600 Unix
+            # socket in the verified private runtime directory. AF_UNIX has
+            # no TCP client tuple. Authentication and policy still apply.
+            client_host = "127.0.0.1"
 
         if LOCAL_ONLY_BY_DEFAULT and not _is_local_client(client_host):
             envelope = build_response_envelope(
@@ -337,6 +353,13 @@ def create_app(
             return JSONResponse(status_code=401, content=envelope.to_payload())
 
         if request.method.upper() in MUTATING_METHODS and request.url.path not in {
+            "/coding/command/cancel",
+            "/coding/repo/revoke",
+            "/codev/grants/revoke",
+            "/codev/pairing/revoke",
+            "/codev/commands/cancel",
+            "/codev/chat/cancel",
+            "/codev/commands/status",
             "/emergency/stop",
             "/emergency/reset",
             "/account/login",

@@ -103,37 +103,10 @@ def test_prerequisite_preview_rejects_unknown_component(tmp_path: Path) -> None:
         )
 
 
-def test_external_prerequisite_exposes_complete_user_guidance(
-    tmp_path: Path, monkeypatch,
-) -> None:
-    monkeypatch.setattr(
-        "app.install.system_prerequisite_service._installed_version",
-        lambda _package: "1",
-    )
-    monkeypatch.setattr(
-        "app.install.system_prerequisite_service.shutil.which",
-        lambda _command: None,
-    )
-    preview = SystemPrerequisiteService(_paths(tmp_path)).inspect(
-        ["codev_companion"]
-    )
-    assert preview["external_missing_dependency_ids"] == ["vscode"]
-    assert preview["external_missing_guidance"] == [
-        {
-            "dependency_id": "vscode",
-            "setup_category": "E",
-            "title": "VS Code-family Extension Host",
-            "why": preview["external_missing_guidance"][0]["why"],
-            "official_source": "https://code.visualstudio.com/docs/setup/linux",
-            "signup_required": (
-                "No account is required for a local editor or local VSIX "
-                "installation."
-            ),
-            "data_leaving_local_control": preview["external_missing_guidance"][0]["data_leaving_local_control"],
-            "license_privacy_security": preview["external_missing_guidance"][0]["license_privacy_security"],
-            "supported_steps": preview["external_missing_guidance"][0]["supported_steps"],
-            "doctor_detection": preview["external_missing_guidance"][0]["doctor_detection"],
-            "retry_repair": preview["external_missing_guidance"][0]["retry_repair"],
-        }
-    ]
-    assert len(preview["external_missing_guidance"][0]["supported_steps"]) == 4
+def test_core_never_requires_an_editor_as_a_system_prerequisite(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.install.system_prerequisite_service._installed_version", lambda _package: "1")
+    monkeypatch.setattr("app.install.system_prerequisite_service.shutil.which", lambda _command: None)
+    preview = SystemPrerequisiteService(_paths(tmp_path)).inspect(["codev_companion"])
+    assert preview["external_missing_dependency_ids"] == []
+    assert preview["external_missing_guidance"] == []
+    assert all(row["dependency_id"] != "vscode" for row in preview["dependency_rows"])

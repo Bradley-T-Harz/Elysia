@@ -4,13 +4,14 @@ import type {
   LeftRailDefaultBehavior
 } from "./desktopPreferences";
 
-export type LeftRailRoom = DesktopStartupRoom | "admin";
+export type LeftRailRoom = DesktopStartupRoom | "admin" | "codev";
 
 type LeftRailProps = {
   activeRoom: LeftRailRoom | "status_menu";
   onSelectRoom: (room: LeftRailRoom) => void;
   defaultGroupBehavior?: LeftRailDefaultBehavior;
   showAdmin?: boolean;
+  showCodev?: boolean;
 };
 
 type LeftRailItem = {
@@ -41,6 +42,7 @@ const palette = {
 } as const;
 
 const leftRailItems: LeftRailItem[] = [
+  { kind: "room", room: "codev", label: "Codev", note: "Governed local development workspace.", tone: "teal" },
   {
     kind: "room",
     room: "projects",
@@ -133,7 +135,7 @@ const leftRailGroups: LeftRailGroup[] = [
   {
     id: "workrooms",
     label: "Workrooms",
-    rooms: ["conversations", "projects", "artifacts", "requests"]
+    rooms: ["conversations", "projects", "artifacts", "requests", "codev"]
   },
   {
     id: "memory_identity",
@@ -256,7 +258,8 @@ export default function LeftRail({
   activeRoom,
   onSelectRoom,
   defaultGroupBehavior = "collapsed",
-  showAdmin = false
+  showAdmin = false,
+  showCodev = false
 }: LeftRailProps) {
   const [openGroups, setOpenGroups] = useState<
     Record<LeftRailGroupId, boolean>
@@ -387,7 +390,7 @@ export default function LeftRail({
                   gap: "0.46rem"
                 }}
               >
-                {group.rooms.filter((room) => room !== "admin" || showAdmin).map((room) => {
+                {group.rooms.filter((room) => (room !== "admin" || showAdmin) && (room !== "codev" || showCodev)).map((room) => {
                   const item = getLeftRailItem(room);
 
                   return (

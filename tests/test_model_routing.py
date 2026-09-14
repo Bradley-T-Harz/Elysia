@@ -289,6 +289,31 @@ class TestModelRouting(unittest.TestCase):
         self.assertTrue(result["stayed_local"])
         self.assertTrue(result["allowed"])
 
+    def test_quick_coding_and_tutoring_choose_efficient_candidate_inside_their_role(self):
+        for task, role in (("coding", "primary_code"), ("tutoring", "primary_general")):
+            configs = self._build_configs()
+            entry = configs["models"]["model_roles"]["roles"][role]
+            entry["preferred_model_runtime_tags"] = ["large:local"]
+            entry["fallback_model_runtime_tags"] = ["small:local"]
+            health = {"models": [
+                {"runtime_tag": "large:local", "installed": True, "size_bytes": 15000},
+                {"runtime_tag": "small:local", "installed": True, "size_bytes": 5000},
+                {"runtime_tag": "unapproved:tiny", "installed": True, "size_bytes": 1},
+            ]}
+            for preference, expected in (("balanced", "small:local"), ("quality", "large:local")):
+                result = build_model_routing_decision(
+                    configs, "tutor", task, reasoning_gear="quick",
+                    performance_preference=preference, model_health=health,
+                    interactive_latency_budget=True,
+                )
+                self.assertEqual(result["selected_role"], role)
+                self.assertEqual(result["selected_runtime_tag"], expected)
+                self.assertTrue(result["allowed"] and result["stayed_local"])
+            legacy = build_model_routing_decision(
+                configs, "tutor", task, reasoning_gear="quick", model_health=health,
+            )
+            self.assertEqual(legacy["selected_runtime_tag"], "large:local")
+
     def test_specialist_task_selects_specialist_with_explicit_enablement(self):
         result = build_model_routing_decision(
             configs=self._build_configs(),

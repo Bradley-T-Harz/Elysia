@@ -3,6 +3,10 @@
 This document records the Pass-IV Linux installation and lifecycle contract for
 the Elysia desktop chamber.
 
+The [desktop usability qualification](desktop_usability_qualification.md) records
+the installed v1.0.0 correction candidate, native window/photo checks, and the
+packaged-product gate required for future desktop layout changes.
+
 ## Scope
 
 Machine installation and personal onboarding are separate authorities. A package

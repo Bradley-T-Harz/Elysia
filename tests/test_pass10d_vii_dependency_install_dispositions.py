@@ -21,19 +21,19 @@ def test_every_release_dependency_has_exactly_one_install_disposition() -> None:
     assert summary["contract_version"] == (
         "elysia-dependency-install-dispositions-1.0"
     )
-    assert summary["system_dependency_count"] == 21
+    assert summary["system_dependency_count"] == 20
     assert summary["system_category_counts"] == {
         "A": 0,
         "B": 0,
         "C": 16,
         "D": 1,
-        "E": 4,
+        "E": 3,
     }
     assert summary["category_counts"] == {
         "A": 14,
-        "B": 40,
+        "B": 39,
         "C": 5,
-        "D": 2,
+        "D": 4,
         "E": 4,
     }
     assert summary["dependency_count"] == len(summary["dependencies"])
@@ -75,7 +75,7 @@ def test_complete_profile_owns_every_runtime_dependency_and_selects_one_science_
         row["dependency_id"]
         for row in cpu["dependencies"]
         if row["setup_category"] == "D"
-    } == {"ollama_local_provider", "vscode"}
+    } == {"ollama_local_provider", "vscode", "codev_core", "codev_vsix"}
     action_groups = {
         row["dependency_id"]: row
         for row in cpu["system_category_e_actions"]
@@ -83,7 +83,6 @@ def test_complete_profile_owns_every_runtime_dependency_and_selects_one_science_
     assert set(action_groups) == {
         "ollama_local_provider",
         "optional_supported_nvidia_driver",
-        "vscode",
     }
     assert action_groups["ollama_local_provider"]["dependency_ids"] == [
         "ollama", "ollama_optional",
@@ -103,7 +102,7 @@ def test_core_stays_small_and_has_no_category_e_manual_requirement() -> None:
 
 
 def test_external_prerequisites_have_complete_public_guidance() -> None:
-    for dependency_id in ("ollama", "ollama_optional", "vscode"):
+    for dependency_id in ("ollama", "ollama_optional"):
         guidance = external_prerequisite_guidance(dependency_id)
         assert guidance is not None
         assert guidance["setup_category"] == "E"
@@ -111,3 +110,5 @@ def test_external_prerequisites_have_complete_public_guidance() -> None:
         assert guidance["supported_steps"]
         assert guidance["doctor_detection"]
         assert guidance["retry_repair"]
+    assert external_prerequisite_guidance("vscode") is None
+    assert load_dependency_install_dispositions()["category_e_guidance"]["vscode"]["supported_steps"]

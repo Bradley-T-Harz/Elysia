@@ -1344,7 +1344,7 @@ export default function RequestsPage({
 
   return (
     <div
-      className="elysia-room-scroll-at-narrow"
+      className="elysia-room-page"
       style={{
         display: "flex",
         flexDirection: "column",

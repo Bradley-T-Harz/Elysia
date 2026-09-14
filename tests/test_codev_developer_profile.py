@@ -225,7 +225,7 @@ def test_developer_lab_task_is_checkpoint_only_stoppable_and_receipted(tmp_path,
     assert stopped.continuation_scheduled is False
 
 
-def test_codev_receipt_and_developer_profile_truth_are_sanitized(tmp_path, monkeypatch):
+def test_legacy_editor_receipt_does_not_define_core_installation(tmp_path, monkeypatch):
     _xdg(monkeypatch, tmp_path)
     paths = resolve_elysia_paths(mode=RuntimeMode.TEST)
     assert read_codev_install_status(paths)["state"] == "missing"
@@ -236,7 +236,8 @@ def test_codev_receipt_and_developer_profile_truth_are_sanitized(tmp_path, monke
         encoding="utf-8",
     )
     status = read_codev_install_status(paths)
-    assert status["compatible"] is True
+    assert status["compatible"] is False
+    assert status["installed"] is False
     assert str(tmp_path) not in str(status)
 
     profile = build_codev_developer_profile_status()
@@ -247,7 +248,7 @@ def test_codev_receipt_and_developer_profile_truth_are_sanitized(tmp_path, monke
     assert profile["raw_paths_exposed"] is False
 
 
-def test_developer_profile_uses_effective_editor_and_receipt_truth(monkeypatch):
+def test_developer_profile_uses_core_truth_with_optional_editor(monkeypatch):
     profile = SimpleNamespace(
         available_profiles=[
             SimpleNamespace(
@@ -272,7 +273,7 @@ def test_developer_profile_uses_effective_editor_and_receipt_truth(monkeypatch):
                 version=None,
             ),
             SimpleNamespace(
-                dependency_id="codev_vsix",
+                dependency_id="codev_core",
                 status="unknown",
                 required=True,
                 activation_state="active_profile_truth_only",
@@ -290,7 +291,7 @@ def test_developer_profile_uses_effective_editor_and_receipt_truth(monkeypatch):
         lambda: {
             "compatible": True,
             "installed": True,
-            "version": "1.0.0",
+            "version": "1.1.0",
             "state": "installed",
         },
     )
@@ -314,8 +315,10 @@ def test_developer_profile_uses_effective_editor_and_receipt_truth(monkeypatch):
     assert status["status"] == "ready"
     assert status["profile_readiness"] == "ready"
     assert status["dependencies"]["vscode"]["status"] == "present"
-    assert status["dependencies"]["codev_vsix"]["status"] == "present"
-    assert status["dependencies"]["codev_vsix"]["version"] == "1.0.0"
+    assert status["dependencies"]["vscode"]["required"] is False
+    assert status["dependencies"]["codev_core"]["status"] == "present"
+    assert status["dependencies"]["codev_core"]["version"] == "1.1.0"
+    assert status["dependencies"]["codev_core"]["required"] is True
 
 
 def test_codev_installer_is_dry_run_first_and_binds_a_bounded_local_package():

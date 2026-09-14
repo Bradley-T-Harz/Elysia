@@ -1,0 +1,61 @@
+import React from "react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
+const mocks = vi.hoisted(() => ({ choose: vi.fn(), preview: vi.fn(), create: vi.fn(), select: vi.fn() }));
+vi.mock("../src/api/identityPhoto", () => ({ chooseIdentityPhoto: mocks.choose }));
+vi.mock("../src/api/bridgeClient", async () => ({ ...await vi.importActual("../src/api/bridgeClient"), fetchAccountProfilePhotoPreview: mocks.preview, createAccount: mocks.create, selectAccountProfilePhoto: mocks.select }));
+import { ProfileAvatar } from "../src/UserProfilePage";
+import UserCreatorPage from "../src/UserCreatorPage";
+import type { AccountProfilePrivate } from "../src/api/bridgeClient";
+const color = { id: "teal", label: "Teal", hex: "#7ed7d1" };
+const profile = (asset: string | null) => ({ username: "QA", profile_photo_asset_id: asset, profile_photo_available: !!asset } as AccountProfilePrivate);
+afterEach(() => { cleanup(); vi.resetAllMocks(); });
+it("recovers from a failed image when replaced and forgets previews on removal", async () => {
+  mocks.preview.mockImplementation(async asset => ({ ok: true, payload: { status: "ok", data: { asset_id: asset, data_url: "data:image/png;base64,eA==" } } }));
+  const view = render(<ProfileAvatar profile={profile("one")} color={color}/>);
+  fireEvent.error(await screen.findByRole("img", { name: "Local personal identity" }));
+  expect(screen.getByRole("alert")).toHaveTextContent("could not be displayed");
+  view.rerender(<ProfileAvatar profile={profile("two")} color={color}/>);
+  expect(await screen.findByRole("img")).toBeVisible();
+  view.rerender(<ProfileAvatar profile={profile(null)} color={color}/>);
+  expect(screen.queryByRole("img")).toBeNull();
+});
+it("ignores a late preview from a previous profile/asset", async () => {
+  let finish: (value: unknown) => void = () => {};
+  mocks.preview.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  const view = render(<ProfileAvatar profile={profile("old")} color={color}/>);
+  view.rerender(<ProfileAvatar profile={profile(null)} color={color}/>);
+  finish({ ok: true, payload: { status: "ok", data: { asset_id: "old", data_url: "data:image/png;base64,eA==" } } });
+  await waitFor(() => expect(screen.queryByRole("img")).toBeNull());
+});
+it("previews the chosen setup photo immediately, reports invalid images, and supports removing it", async () => {
+  mocks.choose.mockResolvedValueOnce({ sourcePath: "/user-selected/photo.png", previewUrl: "data:image/png;base64,eA==" });
+  render(<UserCreatorPage colors={[color]} onCreated={vi.fn()}/>);
+  fireEvent.click(screen.getByText("Choose jpg, png, or webp"));
+  expect(await screen.findByAltText("Selected local identity photo")).toBeVisible();
+  expect(mocks.select).not.toHaveBeenCalled(); // No account or sealed copy yet.
+  fireEvent.click(screen.getByText("Remove selected photo"));
+  expect(screen.queryByRole("img")).toBeNull();
+  mocks.choose.mockRejectedValueOnce(new Error("Choose a valid image."));
+  fireEvent.click(screen.getByText("Choose jpg, png, or webp"));
+  expect(await screen.findByText("Choose a valid image.")).toBeVisible();
+});
+it("copies the chosen photo only after creation and keeps copy failure visible without recreating the account", async () => {
+  const created = vi.fn();
+  mocks.choose.mockResolvedValue({ sourcePath: "/chosen/photo.png", previewUrl: "data:image/png;base64,eA==" });
+  mocks.create.mockResolvedValue({ ok: true, payload: { status: "ok" } });
+  mocks.select.mockResolvedValue({ ok: false, payload: { status: "error", errors: ["Image file is no longer available"] } });
+  const view = render(<UserCreatorPage colors={[color]} onCreated={created}/>);
+  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "qa-user" } });
+  for (const label of ["Password", "Password confirmation"]) fireEvent.change(screen.getByLabelText(label), { target: { value: "a-local-test-passphrase" } });
+  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByText("Choose jpg, png, or webp"));
+  await screen.findByRole("img");
+  fireEvent.submit(view.container.querySelector("form")!);
+  expect(await screen.findByText(/Account was created, but the profile photo was not copied/)).toBeVisible();
+  expect(mocks.select).toHaveBeenCalledWith("/chosen/photo.png");
+  expect(created).not.toHaveBeenCalled();
+  fireEvent.submit(view.container.querySelector("form")!);
+  expect(created).toHaveBeenCalledOnce();
+  expect(mocks.create).toHaveBeenCalledOnce();
+});

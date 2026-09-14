@@ -44,6 +44,7 @@ from app.api.artifact_service import (
     create_plot_image_artifact,
 )
 from app.api.file_ingest_service import build_attached_file_context_packet
+from core.codev.runtime_scope import current_context as codev_context
 from app.api.request_trace_service import (
     append_request_trace_event,
     mark_request_trace_blocked,
@@ -1613,13 +1614,13 @@ def send_chat_request(payload_dict: dict[str, Any]) -> dict[str, Any]:
         inbound_request_context = _as_mapping(request_model.request_context)
         if request_model.mode_requested and "mode_requested" not in inbound_request_context:
             inbound_request_context["mode_requested"] = request_model.mode_requested
-        attached_file_ids = _extract_attached_file_ids(inbound_request_context)
+        attached_file_ids = [] if codev_context() is not None else _extract_attached_file_ids(inbound_request_context)
         attached_context_packet = (
             build_attached_file_context_packet(attached_file_ids)
             if attached_file_ids
             else None
         )
-        profile_context = _load_visible_profile_context()
+        profile_context = None if codev_context() is not None else _load_visible_profile_context()
         runtime_request_context = _build_runtime_request_context(
             is_quick_invoke=is_quick_invoke,
             ui_surface_hint=ui_surface_hint,
@@ -1660,6 +1661,8 @@ def send_chat_request(payload_dict: dict[str, Any]) -> dict[str, Any]:
             autonomy_level=authoritative_autonomy_level(default=1),
             memory_layers=memory_layers,
         )
+        if codev_context() is not None:
+            session_state.memory_layers = []
         active_mode = _extract_session_mode(session_state, selected_mode_hint)
         memory_classes = _extract_session_memory_classes(session_state)
 

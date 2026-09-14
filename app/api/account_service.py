@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import io
+import warnings
 import json
 import mimetypes
 import os
@@ -68,6 +70,21 @@ class AccountBlockedError(AccountServiceError):
 
 class AccountAuthError(AccountServiceError):
     """Raised when authentication is required or failed."""
+
+
+def _validated_photo_image(data: bytes):
+    """Validate decoded pixels, not a filename; never retain source metadata in previews."""
+    from PIL import Image, UnidentifiedImageError
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            image = Image.open(io.BytesIO(data))
+            if image.format not in {"JPEG", "PNG", "WEBP"} or image.width * image.height > 40_000_000:
+                raise ValueError("unsupported image")
+            image.load()
+            return image
+    except (OSError, ValueError, UnidentifiedImageError, Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
+        raise AccountBlockedError("Choose a valid JPG, PNG, or WebP photo up to 10 MB and 40 megapixels.") from exc
 
 
 def _utc_now() -> str:
@@ -1105,6 +1122,23 @@ class AccountStore:
             raise AccountServiceError("Profile photo file is missing.")
         return path, str(row["mime_type"] or "application/octet-stream")
 
+    def profile_photo_preview_data(self, asset_id: str) -> dict[str, str]:
+        # Ownership and session checks are identical to the existing private file
+        # preview. Only a bounded raster thumbnail crosses authenticated IPC.
+        from PIL import Image, ImageOps
+        path, _ = self.profile_photo_preview(asset_id)
+        with path.open("rb") as stream:
+            data = stream.read(MAX_PROFILE_PHOTO_BYTES + 1)
+        if len(data) > MAX_PROFILE_PHOTO_BYTES:
+            raise AccountBlockedError("Stored identity photo exceeds the preview limit.")
+        with _validated_photo_image(data) as source:
+            image = ImageOps.exif_transpose(source)
+            image.thumbnail((512, 512))
+            output = io.BytesIO()
+            clean = Image.frombytes("RGBA", image.size, image.convert("RGBA").tobytes())
+            clean.save(output, format="PNG")
+        return {"asset_id": asset_id, "data_url": "data:image/png;base64," + base64.b64encode(output.getvalue()).decode("ascii")}
+
     def _private_profile_for_user(self, user_id: str) -> AccountProfilePrivate:
         row = self._profile_row(user_id)
         asset = self._photo_asset(row["profile_photo_asset_id"])
@@ -1491,14 +1525,21 @@ class AccountStore:
         size = source.stat().st_size
         if size > MAX_PROFILE_PHOTO_BYTES:
             raise AccountBlockedError("Profile photo exceeds the 10 MB size limit.")
-        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        with source.open("rb") as stream:
+            data = stream.read(MAX_PROFILE_PHOTO_BYTES + 1)
+        if len(data) > MAX_PROFILE_PHOTO_BYTES:
+            raise AccountBlockedError("Profile photo exceeds the 10 MB size limit.")
+        image = _validated_photo_image(data)
+        mime_type = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp"}[image.format]
+        image.close()
+        size = len(data)
+        digest = hashlib.sha256(data).hexdigest()
         asset_id = new_id("profile_photo")
         stored_filename = f"{asset_id}.{extension}"
         destination = self.paths.profile_photo_dir / stored_filename
         self.paths.profile_photo_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source, destination)
+        destination.write_bytes(data)
         _ensure_private_path(destination)
-        mime_type = mimetypes.guess_type(destination.name)[0] or "application/octet-stream"
         now = _utc_now()
         with self._connect() as conn:
             old = conn.execute(
@@ -1618,6 +1659,10 @@ def get_elysia_visible_profile() -> ElysiaVisibleProfile | None:
 
 def select_profile_photo(source_path: str | Path) -> ProfilePhotoAsset:
     return _default_store().copy_profile_photo(source_path)
+
+
+def get_profile_photo_preview_data(asset_id: str) -> dict[str, str]:
+    return _default_store().profile_photo_preview_data(asset_id)
 
 
 def get_profile_photo_preview(asset_id: str) -> tuple[Path, str]:

@@ -139,6 +139,7 @@ PY
 install -m 0755 "$DIST_DIR/elysia" "$TARGET_BINARY"
 
 "$PACKAGE_PYTHON" "$ROOT_DIR/scripts/verify_packaged_core_routes.py" "$TARGET_BINARY"
+"$PACKAGE_PYTHON" "$ROOT_DIR/scripts/verify_packaged_native_runtime.py" "$TARGET_BINARY"
 
 "$PACKAGE_PYTHON" - "$TARGET_BINARY" "$ROOT_DIR" "${HOME:-}" <<'PY'
 from pathlib import Path

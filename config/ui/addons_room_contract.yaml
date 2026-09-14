@@ -104,7 +104,7 @@ review:
 
 official_candidates:
   codev:
-    listing_state: official_v1_release
+    listing_state: coordinated_release_candidate
     developer_profile_required: true
     local_vsix_install_action_live: true
     public_distribution_supported: true

@@ -6,10 +6,12 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Body
+from starlette.concurrency import run_in_threadpool
 
 from app.api.coding_command_plan_service import plan_command
 from app.api.coding_command_allowlist_service import public_command_catalog
-from app.api.coding_process_service import cancel_command, get_command_status, run_approved_command
+from app.api.coding_process_service import cancel_command, get_command_status, start_approved_command, get_command_result
+from core.codev.service import run_approved_command
 from app.api.schemas.coding_commands import (
     CodingCommandCancelRequest,
     CodingCommandPlanRequest,
@@ -74,7 +76,7 @@ async def get_command_catalog() -> dict[str, Any]:
 async def post_command_run_approved(
     payload: CodingCommandRunApprovedRequest = Body(...),
 ) -> dict[str, Any]:
-    result = run_approved_command(payload)
+    result = await run_in_threadpool(run_approved_command, payload)
     return _envelope(
         "command_run",
         {"command_run": result.to_payload()},
@@ -82,6 +84,19 @@ async def post_command_run_approved(
             ApprovalState.APPROVED if result.execution_performed else ApprovalState.NEEDED
         ),
     )
+
+
+@router.post("/start-approved")
+async def post_command_start(payload: CodingCommandRunApprovedRequest = Body(...)) -> dict[str, Any]:
+    result = start_approved_command(payload)
+    return _envelope("command_status", {"command_status": result.to_payload()})
+
+
+@router.get("/result/{run_id}")
+async def get_command_run_result(run_id: str) -> dict[str, Any]:
+    result = get_command_result(run_id)
+    return _envelope("command_run", {"command_run": result.to_payload() if result else None},
+                     approval_state=ApprovalState.NOT_NEEDED)
 
 
 @router.get("/status/{run_id}")

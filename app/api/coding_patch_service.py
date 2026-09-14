@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from app.api.coding_audit_service import write_coding_audit_record
 from app.api.coding_backup_service import create_coding_backup
+from core.codev.filesystem import atomic_write, read_bytes, WorkspaceConflict, WorkspaceWriteUncertain
 from app.api.coding_approval_modes import approval_mode_policy, mode_required_message
 from app.api.coding_file_adapter_service import validate_patch_for_descriptor
 from app.api.coding_file_type_registry import detect_file_type
@@ -84,7 +85,14 @@ def _hash_text(text: str) -> str:
 
 def _apply_unified_diff(original: str, diff_text: str) -> str:
     original_lines = original.splitlines(keepends=True)
-    diff_lines = diff_text.splitlines(keepends=True)
+    diff_lines = []
+    for line in diff_text.splitlines(keepends=True):
+        if line.startswith("\\ No newline at end of file"):
+            if not diff_lines or diff_lines[-1][:1] not in {" ", "+", "-"}:
+                raise ValueError("invalid_no_newline_marker")
+            diff_lines[-1] = diff_lines[-1].removesuffix("\n")
+        else:
+            diff_lines.append(line)
     result: list[str] = []
     original_index = 0
     diff_index = 0
@@ -175,18 +183,14 @@ def apply_patch_with_approval(payload: CodingPatchApplyRequest) -> CodingPatchAp
 
     policy = load_coding_policy()
     max_text_bytes = int((policy.get("limits") or {}).get("max_text_file_bytes", 1024 * 1024))
-    if guarded.target_path.stat().st_size > max_text_bytes:
-        return CodingPatchApplyResult(
-            status="blocked",
-            target_relative_path=guarded.relative_path,
-            patch_hash=payload.patch_hash,
-            expected_content_hash=payload.expected_content_hash,
-            blocked_reason="text_file_too_large",
-            rollback_note="No files were changed.",
-        )
-    current = guarded.target_path.read_text(encoding="utf-8")
-    with guarded.target_path.open("rb") as stream:
-        raw_sample = stream.read(4096)
+    try:
+        current_bytes = read_bytes(guarded.workspace_root, guarded.relative_path, limit=max_text_bytes)
+        current = current_bytes.decode("utf-8")
+    except (OSError, ValueError) as exc:
+        return CodingPatchApplyResult(status="blocked", blocked_reason="unsafe_or_unreadable_source",
+                                      patch_hash=payload.patch_hash, expected_content_hash=payload.expected_content_hash,
+                                      rollback_note="No files were changed.", warnings=[type(exc).__name__])
+    raw_sample = current_bytes[:4096]
     descriptor = detect_file_type(guarded.target_path, raw_sample)
     descriptor_ok, descriptor_reason = validate_patch_for_descriptor(descriptor)
     if not descriptor_ok:
@@ -283,32 +287,55 @@ def apply_patch_with_approval(payload: CodingPatchApplyRequest) -> CodingPatchAp
             rollback_note="No files were changed.",
             warnings=["A matching, unexpired, one-time patch approval is required."],
         )
-    backup = create_coding_backup(
-        workspace_root=guarded.workspace_root,
-        source_path=guarded.target_path,
-        source_relative_path=guarded.relative_path or guarded.target_path.name,
-        operation_kind="patch_apply",
-        session_id=payload.session_id,
-    )
-    guarded.target_path.write_text(updated, encoding="utf-8")
-    audit_written = write_coding_audit_record(
-        "patch_apply",
-        f"{uuid4().hex[:16]}",
-        {
-            "session_id": payload.session_id,
-            "target_relative_path": guarded.relative_path,
-            "file_type": descriptor.type_id,
-            "adapter": descriptor.adapter,
-            "patch_hash": payload.patch_hash,
-            "previous_content_hash": current_hash,
-            "new_content_hash": new_hash,
-            "operator_approved": True,
-            "approval_phrase_present": bool(payload.approval_phrase),
-            "approval_id": payload.approval_id,
-            "backup_relative_path": backup.backup_relative_path,
-            "rollback_receipt_id": backup.receipt_id,
-        },
-    )
+    backup = None
+    try:
+        backup = create_coding_backup(
+            workspace_root=guarded.workspace_root,
+            source_path=guarded.target_path,
+            source_relative_path=guarded.relative_path or guarded.target_path.name,
+            operation_kind="patch_apply",
+            session_id=payload.session_id,
+            expected_hash=current_hash,
+        )
+        atomic_write(guarded.workspace_root, guarded.relative_path, updated.encode("utf-8"), expected_hash=current_hash)
+    except WorkspaceWriteUncertain:
+        return CodingPatchApplyResult(
+            status="verification_required", mutation_performed=True,
+            patch_hash=payload.patch_hash, expected_content_hash=payload.expected_content_hash,
+            blocked_reason="write_durability_unconfirmed", approval_id=payload.approval_id,
+            backup_relative_path=backup.backup_relative_path if backup else None, rollback_receipt_id=backup.receipt_id if backup else None,
+            rollback_note="The replacement occurred. Inspect the current file and backup before continuing.",
+        )
+    except (WorkspaceConflict, OSError) as exc:
+        return CodingPatchApplyResult(
+            status="blocked", blocked_reason="workspace_write_conflict",
+            patch_hash=payload.patch_hash, expected_content_hash=payload.expected_content_hash,
+            approval_id=payload.approval_id,
+            rollback_note="Inspect the current revision and backup before requesting a new approval.",
+            warnings=[str(exc) if isinstance(exc, WorkspaceConflict) else type(exc).__name__],
+        )
+    try:
+        audit_written = write_coding_audit_record(
+            "patch_apply",
+            f"{uuid4().hex[:16]}",
+            {
+                "session_id": payload.session_id,
+                "target_relative_path": guarded.relative_path,
+                "file_type": descriptor.type_id,
+                "adapter": descriptor.adapter,
+                "patch_hash": payload.patch_hash,
+                "previous_content_hash": current_hash,
+                "new_content_hash": new_hash,
+                "operator_approved": True,
+                "approval_phrase_present": bool(payload.approval_phrase),
+                "approval_id": payload.approval_id,
+                "backup_relative_path": backup.backup_relative_path,
+                "rollback_receipt_id": backup.receipt_id,
+            },
+        )
+    except (OSError, ValueError):
+        audit_written = False
+
     return CodingPatchApplyResult(
         status="applied",
         target_relative_path=guarded.relative_path,
@@ -322,7 +349,7 @@ def apply_patch_with_approval(payload: CodingPatchApplyRequest) -> CodingPatchAp
         mutation_performed=True,
         audit_written=audit_written,
         rollback_note=f"Restore from {backup.backup_relative_path} using receipt {backup.receipt_id}.",
-        warnings=["Patch was applied with Python text I/O only; no shell, git, package manager, or command runner was used."],
+        warnings=["Exact patch applied with descriptor-relative atomic replacement."] + ([] if audit_written else ["Completion audit could not be persisted; preserve this receipt."]),
     )
 
 

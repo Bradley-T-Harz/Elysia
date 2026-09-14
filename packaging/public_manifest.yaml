@@ -1,6 +1,6 @@
 schema_version: 1
 contract_version: elysia-public-package-1.0
-target_release: 1.0.0
+target_release: 1.1.0
 current_channel: stable
 
 repository_identity:
@@ -9,11 +9,11 @@ repository_identity:
   canonical_url: https://github.com/Bradley-T-Harz/Elysia
 
 publication:
-  release_role: qualified_public_release_payload
+  release_role: coordinated_release_candidate
   live_state_source: canonical_external_release_surfaces
   mutable_external_state_not_embedded: true
   owner_authorization_required_for_external_mutation: true
-  canonical_release_url: https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.0.0
+  canonical_release_url: https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.1.0
   canonical_archive_url: https://elysiaecobotics.com/archive
 
 reviewed_source:
@@ -22,6 +22,7 @@ reviewed_source:
     - app
     - apps/elysia-desktop
     - config
+    - contracts
     - core
     - derived
     - docs

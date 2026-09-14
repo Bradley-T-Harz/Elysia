@@ -42,7 +42,7 @@ from .schemas import DependencyStatus, DoctorCheck, DoctorStatusData
 
 
 API_VERSION = "1.0.0"
-DESKTOP_VERSION = "1.0.0"
+DESKTOP_VERSION = "1.1.0"
 CONTRACT_VERSION = "elysia-install-doctor-1.0"
 DOCTOR_VERSION = "1"
 LAST_RUN_FILENAME = "last-run.json"
@@ -238,6 +238,13 @@ def _component_checks(paths: ElysiaPaths) -> list[DoctorCheck]:
     ]
     for component_id, component in graph["components"].items():
         required = component_id in selected
+        if component_id == "codev_companion":
+            codev = read_codev_install_status(paths)
+            checks.append(_check(f"component_{component_id}", "Codev Core", "component",
+                DependencyStatus.PRESENT if codev["compatible"] else DependencyStatus.DEGRADED if codev["installed"] else DependencyStatus.MISSING if required else DependencyStatus.PROFILE_GATED,
+                False, "Codev Core package integrity and contract are verified." if codev["compatible"] else "Codev Core is not installed or its package requires repair.",
+                None if codev["compatible"] or not required else "Use the Codev Core Debian package or supplied user installer. VS Code and repository grants are separate."))
+            continue
         if not required:
             checks.append(_check(
                 f"component_{component_id}", str(component_id).replace("_", " ").title(),
@@ -911,7 +918,12 @@ def run_doctor(
     ).strip().lower()
     desktop_present = desktop_state in {"present", "source-dev"}
     if desktop_package_state is None and not desktop_present:
-        desktop_present = shutil.which("elysia-desktop") is not None
+        desktop_present = shutil.which("elysia-desktop") is not None or any(
+            candidate.is_file() for candidate in (
+                Path.home() / ".local/lib/elysia/current/usr/bin/elysia-desktop",
+                Path("/usr/bin/elysia-desktop"),
+            )
+        )
     desktop_compatible = desktop_present and API_VERSION == DESKTOP_VERSION
 
     checks: list[DoctorCheck] = []
@@ -1087,7 +1099,7 @@ def run_doctor(
         ):
             dependency_status = DependencyStatus.PRESENT
             dependency_summary = "A compatible VS Code-family host command is present; no editor was launched."
-        elif dependency.dependency_id == "codev_vsix":
+        elif dependency.dependency_id == "codev_core":
             dependency_status = (
                 DependencyStatus.PRESENT
                 if codev_status["compatible"]
@@ -1096,19 +1108,22 @@ def run_doctor(
                 else DependencyStatus.MISSING
             )
             dependency_summary = (
-                "The official Codev extension receipt matches the expected version and local API contract."
+                "The neutral Codev Core package matches its manifest, executable digest and contract."
                 if codev_status["compatible"]
-                else "A Codev install receipt exists but its version or API contract is incompatible."
+                else "The installed Codev Core package needs repair or a compatible artifact."
                 if codev_status["installed"]
-                else "The official Codev extension receipt is missing; doctor did not install it."
+                else "Codev Core is absent; Doctor did not install it."
             )
+        elif dependency.dependency_id == "codev_vsix":
+            dependency_status = DependencyStatus.PRESENT if codev_status.get("optional_adapter_bundled") else DependencyStatus.OPTIONAL_MISSING
+            dependency_summary = "The matching optional adapter is bundled with Codev Core." if codev_status.get("optional_adapter_bundled") else "The optional bundled adapter is unavailable. This does not define Core installation."
         checks.append(
             _check(
                 f"dependency_{dependency.dependency_id}",
                 dependency.label,
                 f"dependency_{dependency.category}",
                 dependency_status,
-                bool(dependency.required and dependency.profile_id in resolved_profile_ids),
+                bool(dependency.required and dependency.profile_id in resolved_profile_ids and dependency.profile_id != "developer"),
                 dependency_summary,
                 (
                     "Review the owning profile dependency contract; doctor does not install it."
@@ -1125,7 +1140,7 @@ def run_doctor(
     checks.append(
         _check(
             "codev_contract",
-            "Codev Developer-profile contract",
+            "Codev Core contract",
             "developer",
             DependencyStatus.PRESENT
             if codev_status["compatible"]
@@ -1134,17 +1149,17 @@ def run_doctor(
             else DependencyStatus.PROFILE_GATED
             if "developer" not in resolved_profile_ids
             else DependencyStatus.MISSING,
-            "developer" in resolved_profile_ids,
+            False,
             (
                 "Codev version and local coding API contract are aligned."
                 if codev_status["compatible"]
                 else "Developer profile is not selected; Codev remains optional."
                 if "developer" not in resolved_profile_ids
-                else "Install or reconcile the official Codev VSIX through the explicit Developer-profile installer."
+                else "Install or repair the neutral Codev Core package. VS Code is optional."
             ),
             None
             if codev_status["compatible"] or "developer" not in resolved_profile_ids
-            else "Run the explicit Codev installer with a reviewed local VSIX, then rerun doctor.",
+            else "Use the Codev Core Debian package or supplied user installer, then rerun Doctor.",
         )
     )
     checks.append(

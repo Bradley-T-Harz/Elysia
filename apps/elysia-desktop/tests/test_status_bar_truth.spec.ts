@@ -329,3 +329,6 @@ describe("AppShell integration with BottomStatusBar", () => {
     expect(screen.queryByText("Local")).not.toBeInTheDocument();
   });
 });
+
+// Keep optional capability discovery inside the isolated fixture boundary.
+vi.mock("../src/hooks/useCodevInstallation", () => ({ useCodevInstallation: () => null }));

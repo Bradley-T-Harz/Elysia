@@ -422,3 +422,6 @@ describe("desktop preference integration", () => {
     expect(screen.getByTestId("status-menu-page")).toBeInTheDocument();
   });
 });
+
+// Keep optional capability discovery inside the isolated fixture boundary.
+vi.mock("../src/hooks/useCodevInstallation", () => ({ useCodevInstallation: () => null }));

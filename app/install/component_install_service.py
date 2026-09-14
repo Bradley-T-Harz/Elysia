@@ -16,14 +16,13 @@ import threading
 import time
 from typing import Any, Callable, Literal
 from urllib.request import Request, urlopen
-import zipfile
 import yaml
 
 from packaging.utils import canonicalize_name
 from pydantic import BaseModel, ConfigDict, Field
 
 from .acquisition_service import load_acquisition_manifests
-from .codev_installer import CodevInstallError, inspect_codev_vsix
+from .codev_core import inspect_core
 from .component_graph_service import load_component_graph
 from .hardware_service import detect_local_hardware
 from .install_root_service import install_root_hash, resolve_component_runtime_root
@@ -255,98 +254,6 @@ def _registry_plan(image: str) -> dict[str, Any]:
     }
 
 
-def _codev_plan(
-    path_text: str | None,
-    *,
-    metadata_network_approved: bool,
-    release_identity_path: Path | None = None,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    identity_path = release_identity_path or (
-        ROOT / "config" / "release" / "release_identity.json"
-    )
-    try:
-        release = json.loads(identity_path.read_text(encoding="utf-8"))
-        codev = release["official_codev"]
-        version = str(codev["version"])
-        repository_url = str(codev["repository_url"]).rstrip("/")
-        expected_sha256 = str(codev["vsix_sha256"])
-        expected_size = int(codev["vsix_size_bytes"])
-        canonical_url = str(codev["vsix_url"])
-        expected_url = (
-            f"{repository_url}/releases/download/v{version}/"
-            f"elysia-codev-{version}.vsix"
-        )
-    except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
-        raise ComponentInstallError(
-            "The exact first-party Codev release identity is unavailable."
-        ) from exc
-    if (
-        release.get("version") != "1.0.0"
-        or version != "1.0.0"
-        or repository_url != "https://github.com/Bradley-T-Harz/elysia-codev"
-        or len(expected_sha256) != 64
-        or expected_size <= 0
-        or canonical_url != expected_url
-    ):
-        raise ComponentInstallError(
-            "The exact first-party Codev release identity is invalid."
-        )
-    if not path_text:
-        if not metadata_network_approved:
-            raise ComponentInstallError(
-                "The exact Codev v1.0.0 release download requires explicit network approval."
-            )
-        return {
-            "artifact_count": 1,
-            "exact_download_bytes": expected_size,
-            "exact_installed_input_bytes": expected_size,
-            "artifact_sha256": expected_sha256,
-            "package_identity": "ecosyneva-commons.elysia-codev@1.0.0",
-            "third_party_notices_required": True,
-            "network_used": True,
-            "canonical_release_url": canonical_url,
-            "automatic_acquisition": True,
-        }, {
-            "remote_artifact": {
-                "url": canonical_url,
-                "filename": "elysia-codev-1.0.0.vsix",
-                "sha256": expected_sha256,
-                "size_bytes": expected_size,
-            },
-            "artifact_sha256": expected_sha256,
-            "artifact_size_bytes": expected_size,
-        }
-    path = Path(path_text).expanduser().resolve(strict=True)
-    if not path.is_file() or path.is_symlink() or path.suffix.lower() != ".vsix":
-        raise ComponentInstallError("The selected Codev artifact is not a safe local VSIX.")
-    try:
-        inspection = inspect_codev_vsix(path)
-        with zipfile.ZipFile(path) as archive:
-            notices = archive.getinfo("extension/THIRD_PARTY_NOTICES.txt")
-    except (CodevInstallError, KeyError, zipfile.BadZipFile, OSError) as exc:
-        raise ComponentInstallError("The selected Codev VSIX is missing its package identity or notices.") from exc
-    if inspection.sha256 != expected_sha256 or path.stat().st_size != expected_size:
-        raise ComponentInstallError(
-            "The selected local Codev VSIX is not the exact qualified v1.0.0 release payload."
-        )
-    public = {
-        "artifact_count": 1,
-        "exact_download_bytes": 0,
-        "exact_installed_input_bytes": path.stat().st_size,
-        "artifact_sha256": inspection.sha256,
-        "package_identity": "ecosyneva-commons.elysia-codev@1.0.0",
-        "third_party_notices_present": notices.file_size > 0,
-        "network_used": False,
-        "canonical_release_url": canonical_url,
-        "automatic_acquisition": False,
-    }
-    return public, {
-        "local_artifact_path": str(path),
-        "artifact_sha256": inspection.sha256,
-        "artifact_size_bytes": path.stat().st_size,
-    }
-
-
 def _model_acquisition(model_id: str) -> dict[str, Any]:
     path = ROOT / "config" / "install" / "model_acquisitions.yaml"
     try:
@@ -374,7 +281,6 @@ class ComponentInstallService:
         wheel_resolver: Callable[[Path], dict[str, Any]] | None = None,
         registry_resolver: Callable[[str], dict[str, Any]] | None = None,
         command_runner: Callable[[list[str], threading.Event, Path], str | None] | None = None,
-        release_identity_path: Path | None = None,
     ) -> None:
         self.paths = paths or resolve_elysia_paths()
         self.root = self.paths.state_dir / "install" / "component-jobs"
@@ -386,7 +292,6 @@ class ComponentInstallService:
         self.wheel_resolver = wheel_resolver or resolve_hash_locked_wheels
         self.registry_resolver = registry_resolver or _registry_plan
         self.command_runner = command_runner
-        self.release_identity_path = release_identity_path
 
     def _receipt(self, component_id: str) -> dict[str, Any] | None:
         try:
@@ -398,6 +303,12 @@ class ComponentInstallService:
         graph = load_component_graph()
         components = []
         for component_id in graph["components"]:
+            if component_id == "codev_companion":
+                core = inspect_core(self.paths)
+                components.append({"component_id": component_id,
+                    "status": "ready" if core.compatible else "degraded" if core.installed else "not_installed",
+                    "managed_by_elysia": False, "lifecycle_owner": "codev_package", "raw_paths_exposed": False})
+                continue
             receipt = self._receipt(component_id)
             root_matches = bool(
                 receipt
@@ -438,6 +349,8 @@ class ComponentInstallService:
         acquisitions = load_acquisition_manifests()["components"]
         if request.component_id not in graph["components"]:
             raise ComponentInstallError("The component is not present in the authoritative graph.")
+        if request.component_id == "codev_companion":
+            raise ComponentInstallError("Install, repair or remove the Codev Core package with its Debian package manager or supplied user installer. VS Code is optional; an editor receipt cannot install Core.")
         if request.component_id != "creator_perception" and (
             request.selected_model_ids or request.local_model_root or request.model_terms_accepted
         ):
@@ -585,24 +498,6 @@ class ComponentInstallService:
                     "redistribution": model["redistribution"],
                 }
                 private["model_acquisition"] = model
-        elif request.component_id == "codev_companion":
-            codev_public, codev_private = _codev_plan(
-                request.local_artifact_path,
-                metadata_network_approved=request.metadata_network_approved,
-                release_identity_path=self.release_identity_path,
-            )
-            if self.release_identity_path is None and (
-                str(manifest["source"]) != codev_public["canonical_release_url"]
-                or str(manifest["digest"])
-                != f"sha256:{codev_public['artifact_sha256']}"
-                or int(manifest["estimated_download_bytes"])
-                != int(codev_public["exact_installed_input_bytes"])
-            ):
-                raise ComponentInstallError(
-                    "The Codev acquisition and release-identity manifests disagree."
-                )
-            public.update(codev_public)
-            private.update(codev_private)
         elif request.component_id == "local_model_provider":
             executable = shutil.which("ollama")
             if not executable:
@@ -666,6 +561,8 @@ class ComponentInstallService:
     def apply(self, request: ComponentApplyRequest) -> dict[str, Any]:
         preview_path, preview = self._load_preview(request)
         component_id = str(preview["public"]["component_id"])
+        if component_id == "codev_companion":
+            raise ComponentInstallError("This legacy editor preview cannot change the Codev Core package. Use its package lifecycle.")
         with _JOBS_LOCK:
             if any(thread.is_alive() for thread, _ in _JOBS.values()):
                 raise ComponentInstallError("Another component operation is already active.")
@@ -1093,112 +990,6 @@ class ComponentInstallService:
             **self._root_receipt_fields(),
         })
 
-    def _codev_install(self, component_id: str, private: dict[str, Any], cancel: threading.Event, job_id: str) -> None:
-        editor = shutil.which("code") or shutil.which("codium")
-        if not editor:
-            raise ComponentInstallError("A supported VS Code-family host is unavailable.")
-        staging: Path | None = None
-        remote_artifact = private.get("remote_artifact")
-        try:
-            if isinstance(remote_artifact, dict):
-                staging = self.root / "staging" / job_id
-                staging.mkdir(mode=0o700, parents=True, exist_ok=False)
-                artifact = staging / "elysia-codev-1.0.0.vsix"
-                self._job_update(job_id, phase="download")
-                self._download(remote_artifact, artifact, cancel)
-            else:
-                artifact = Path(str(private["local_artifact_path"]))
-            try:
-                inspection = inspect_codev_vsix(artifact)
-            except CodevInstallError as exc:
-                raise ComponentInstallError(
-                    "The approved Codev VSIX changed or became invalid before installation."
-                ) from exc
-            if (
-                inspection.sha256 != str(private.get("artifact_sha256") or "")
-                or artifact.stat().st_size != int(private.get("artifact_size_bytes") or -1)
-            ):
-                raise ComponentInstallError(
-                    "The approved Codev VSIX changed after preview; installation stopped."
-                )
-            self._job_update(job_id, phase="component_installation")
-            self._run_command([editor, "--install-extension", str(artifact), "--force"], cancel, ROOT)
-            installed = self._run_command(
-                [editor, "--list-extensions", "--show-versions"], cancel, ROOT,
-            )
-            if "ecosyneva-commons.elysia-codev@1.0.0" not in {
-                line.strip().lower() for line in installed.splitlines()
-            }:
-                raise ComponentInstallError(
-                    "VS Code did not report the exact Codev extension after installation."
-                )
-            receipt = self.paths.data_dir / "developer" / "codev-install.json"
-            _private_json(receipt, {
-                "schema_version": 1,
-                "extension_id": "ecosyneva-commons.elysia-codev",
-                "version": "1.0.0",
-                "contract_version": "vscode-coding-agent-contract-0.1",
-                "install_state": "installed_by_user",
-                "package_sha256": inspection.sha256,
-                "raw_paths_exposed": False,
-            })
-            _private_json(self.receipt_root / f"{component_id}.json", {
-                "contract_version": CONTRACT_VERSION,
-                "component_id": component_id,
-                "status": "ready",
-                "managed_by_elysia": True,
-                "user_data_present": False,
-                "package_sha256": inspection.sha256,
-                "installed_at_utc": _utc_now(),
-                "raw_paths_exposed": False,
-                **self._root_receipt_fields(),
-            })
-        finally:
-            if staging is not None and staging.is_dir():
-                shutil.rmtree(staging)
-
-    def _codev_remove(self, component_id: str, cancel: threading.Event, job_id: str) -> None:
-        receipt = _safe_payload(self.receipt_root / f"{component_id}.json")
-        if receipt.get("managed_by_elysia") is not True or receipt.get("user_data_present") is not False:
-            raise ComponentInstallError("The component ownership receipt does not authorize removal.")
-        if receipt.get("component_root_sha256") not in {None, install_root_hash(self.component_root)}:
-            raise ComponentInstallError(
-                "The Codev receipt belongs to a different private Setup root; removal stopped."
-            )
-        editor = shutil.which("code") or shutil.which("codium")
-        if not editor:
-            raise ComponentInstallError("A supported VS Code-family host is unavailable.")
-        self._job_update(job_id, phase="component_removal")
-        self._run_command(
-            [editor, "--uninstall-extension", "ecosyneva-commons.elysia-codev"],
-            cancel,
-            ROOT,
-        )
-        installed = self._run_command(
-            [editor, "--list-extensions", "--show-versions"], cancel, ROOT,
-        )
-        if any(
-            line.strip().lower().startswith("ecosyneva-commons.elysia-codev@")
-            for line in installed.splitlines()
-        ):
-            raise ComponentInstallError("VS Code still reports Codev after removal.")
-        codev_receipt = self.paths.data_dir / "developer" / "codev-install.json"
-        codev_payload = _safe_payload(codev_receipt)
-        if codev_payload:
-            codev_payload.update({
-                "install_state": "removed_by_user",
-                "removed_at_utc": _utc_now(),
-                "raw_paths_exposed": False,
-            })
-            _private_json(codev_receipt, codev_payload)
-        receipt.update({
-            "status": "removed",
-            "removed_at_utc": _utc_now(),
-            "recoverable": False,
-            "workspace_and_repository_data_preserved": True,
-        })
-        _private_json(self.receipt_root / f"{component_id}.json", receipt)
-
     def _execute_job(self, job_id: str, preview: dict[str, Any], cancel: threading.Event) -> None:
         public = preview["public"]
         private = preview["private"]
@@ -1216,16 +1007,12 @@ class ComponentInstallService:
                     receipt = _safe_payload(self.receipt_root / f"{component_id}.json")
                     receipt.update({"status": "removed", "removed_at_utc": _utc_now(), "recoverable": True})
                     _private_json(self.receipt_root / f"{component_id}.json", receipt)
-                elif component_id == "codev_companion":
-                    self._codev_remove(component_id, cancel, job_id)
                 else:
                     self._remove(component_id)
             elif component_id in _PYTHON_COMPONENTS or component_id == "scientific_engineering":
                 self._python_install(component_id, private, cancel, job_id)
             elif component_id in _CONTAINER_COMPONENTS:
                 self._container_install(component_id, private, cancel, job_id)
-            elif component_id == "codev_companion":
-                self._codev_install(component_id, private, cancel, job_id)
             elif component_id == "local_model_provider":
                 _private_json(self.receipt_root / f"{component_id}.json", {
                     "contract_version": CONTRACT_VERSION, "component_id": component_id,

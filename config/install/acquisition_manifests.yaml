@@ -13,7 +13,7 @@ rules:
 components:
   core_python_runtime:
     method: package_bound
-    source: exact Elysia v1.0.0 release package
+    source: exact Elysia v1.1.0 release package
     publisher: EcoSyneva Commons LLC
     identity: config/install/locks/core-py312.lock.txt
     digest: sha256:d009afa72031c7377b04114218f364d4bae3319d6f3f320e41ca4acd0a787214
@@ -28,7 +28,7 @@ components:
 
   desktop_shell:
     method: package_bound
-    source: exact Elysia v1.0.0 release package
+    source: exact Elysia v1.1.0 release package
     publisher: EcoSyneva Commons LLC
     identity: Tauri desktop bound to package receipt
     digest: exact_release_artifact_bound
@@ -43,7 +43,7 @@ components:
 
   identity_memory_fabric:
     method: package_bound
-    source: exact Elysia v1.0.0 release package
+    source: exact Elysia v1.1.0 release package
     publisher: EcoSyneva Commons LLC
     identity: canonical-memory-schema-v4 + identity-schema-v1
     digest: exact_release_artifact_bound
@@ -58,7 +58,7 @@ components:
 
   personal_onboarding:
     method: package_bound
-    source: exact Elysia v1.0.0 release package
+    source: exact Elysia v1.1.0 release package
     publisher: EcoSyneva Commons LLC
     identity: elysia-personal-onboarding-1.0
     digest: exact_release_artifact_bound
@@ -147,19 +147,19 @@ components:
     removal: remove_owned_worker_environment; preserve_user_media_and_unowned_model_vault
 
   codev_companion:
-    method: exact_public_release_vsix_or_verified_local_copy
-    source: https://github.com/Bradley-T-Harz/elysia-codev/releases/download/v1.0.0/elysia-codev-1.0.0.vsix
+    method: independently_installed_verified_codev_core_package
+    source: https://github.com/Bradley-T-Harz/Elysia
     publisher: EcoSyneva Commons LLC
-    identity: ecosyneva-commons.elysia-codev@1.0.0 from https://github.com/Bradley-T-Harz/elysia-codev; live availability is authoritative at canonical external release surfaces
-    digest: sha256:5cbb9298e0d9f56797b95854e4cf07db84fe2d7fc00deb7bc3364d503451f6ff
-    size_state: exact_release_artifact_size_162207_bytes
-    estimated_download_bytes: 162207
-    estimated_installed_bytes: 30000000
-    license: Codev first-party license plus VSIX THIRD_PARTY_NOTICES
+    identity: codev-core 1.1.0 amd64 with codev-core-1 manifest and optional matching VS Code adapter
+    digest: exact_artifact_sha256_verified_by_package_installer_then_manifest_payload_digests
+    size_state: exact_selected_debian_artifact_size_verified_before_installation
+    estimated_download_bytes: 0
+    estimated_installed_bytes: 100000000
+    license: Codev first-party license plus compiled Core and optional adapter third-party notices
     redistribution: separately_installed_exact_first_party_release_payload
-    network: exact_canonical_github_release_download_only_after_approval_or_verified_local_copy_with_no_network
-    privilege: current_user_vscode_profile
-    removal: editor_extension_uninstall_preserves_workspace_and_repository_data
+    network: no_setup_download_or_runtime_network_authority; acquire_verified_package_separately
+    privilege: current_user_xdg_install_or_explicit_system_package_manager
+    removal: package_manager_or_supplied_user_uninstaller_preserves_accounts_models_and_repository_data
 
   scientific_engineering:
     method: isolated_neurofabric_lock
@@ -178,7 +178,7 @@ components:
 
   local_connectors:
     method: package_bound
-    source: exact Elysia v1.0.0 release package
+    source: exact Elysia v1.1.0 release package
     publisher: EcoSyneva Commons LLC
     identity: source-contract-v1 connectors
     digest: exact_release_artifact_bound

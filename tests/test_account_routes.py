@@ -119,7 +119,8 @@ def test_profile_photo_preview_route_returns_file_without_original_path(tmp_path
     store = patch_store(tmp_path, monkeypatch)
     run_async(account_routes.create_account(create_payload()))
     source = tmp_path / "profile.webp"
-    source.write_bytes(b"fake-webp-content")
+    from PIL import Image
+    Image.new("RGB", (32, 40), "teal").save(source)
 
     selected = run_async(
         account_routes.select_profile_photo(
@@ -135,3 +136,20 @@ def test_profile_photo_preview_route_returns_file_without_original_path(tmp_path
     assert asset_id in str(response.path)
     assert str(source) not in str(response.path)
     assert str(source) not in repr(selected)
+
+
+def test_profile_photo_json_preview_uses_authenticated_owner_and_hides_native_paths(tmp_path, monkeypatch):
+    from PIL import Image
+    store = patch_store(tmp_path, monkeypatch)
+    run_async(account_routes.create_account(create_payload()))
+    source = tmp_path / "photo.png"
+    Image.new("RGB", (32, 40), "teal").save(source)
+    asset = store.copy_profile_photo(source)
+    response = run_async(account_routes.preview_profile_photo_data(asset.asset_id))
+    assert response["status"] == "ok"
+    assert response["data"]["data_url"].startswith("data:image/png;base64,")
+    assert str(source) not in repr(response)
+    store.logout()
+    response = run_async(account_routes.preview_profile_photo_data(asset.asset_id))
+    assert response["status"] != "ok"
+    assert "data:image" not in repr(response)

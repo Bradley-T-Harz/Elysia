@@ -1,0 +1,76 @@
+.codev-room { container-type:inline-size; height:100%; min-height:0; display:flex; flex-direction:column; gap:16px; color:#C7D2DA; font-size:13px; }
+.codev-room[hidden] { display:none; }
+.codev-room * { box-sizing:border-box; }
+.codev-room h1,.codev-room h2,.codev-room h3,.codev-room p { margin:0; }
+.codev-room h1 { font-size:29px; letter-spacing:-.025em; margin:5px 0; }
+.codev-room h2 { font-size:18px; font-weight:550; }
+.codev-room h3 { font-size:14px; }
+.codev-room p { line-height:1.6; }
+.codev-room-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 4px; }
+.codev-room-header p,.codev-subtle { color:#95A6B5; font-size:12px; }
+.codev-eyebrow { font-size:10px; letter-spacing:.16em; color:#B8A27B; }
+.codev-status { display:inline-flex; border:1px solid #3C625F; color:#A8E2DB; border-radius:20px; font-size:11px; padding:5px 10px; white-space:nowrap; }
+.codev-layout { display:grid; grid-template-columns:minmax(160px, 25%) minmax(0, 1fr); gap:14px; min-height:0; flex:1; }
+.codev-workspace { border:1px solid #2A3745; border-radius:16px; background:#10192599; padding:15px 12px; display:flex; flex-direction:column; gap:12px; min-height:0; overflow:auto; }
+.codev-room button,.codev-room select { font:inherit; color:inherit; border:1px solid #3B4D5B; border-radius:8px; padding:8px 10px; background:#172332; cursor:pointer; line-height:1.4; }
+.codev-room button:hover:not(:disabled) { background:#22394A; border-color:#7ED7D1; }
+.codev-room button:disabled { opacity:.45; cursor:not-allowed; }
+.codev-room button.codev-primary { color:#0B2427; background:#9BD9D1; border-color:#9BD9D1; font-weight:600; }
+.codev-room button.codev-primary:hover:not(:disabled) { background:#BFEAE5; }
+.codev-room :focus-visible { outline:2px solid #9BD9D1; outline-offset:3px; }
+.codev-room input[type=checkbox] { accent-color:#9BD9D1; flex:0 0 auto; }
+.codev-file-tree { max-height:240px; overflow:auto; border-block:1px solid #2B3C4B; padding:6px 0; }
+.codev-file-tree label { display:flex; gap:6px; align-items:start; padding:6px 0; cursor:pointer; }
+.codev-file-tree span { overflow-wrap:anywhere; font:11px/1.5 ui-monospace,monospace; }
+.codev-check { display:flex; align-items:start; gap:5px; font-size:11px; line-height:1.5; }
+.codev-authority-summary { border-top:1px solid #2B3C4B; padding-top:12px; font-size:11px; color:#ADBEC8; }
+.codev-authority-summary p { margin-top:6px; }
+.codev-actions { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.codev-actions label { display:flex; align-items:center; gap:8px; font-size:11px; }
+.codev-workbench { display:flex; flex-direction:column; min-height:0; min-width:0; border:1px solid #2A3745; border-radius:16px; overflow:hidden; background:#0C131D88; }
+.codev-tabs { display:flex; border-bottom:1px solid #2A3745; padding:6px 8px 0; overflow:auto; flex-shrink:0; }
+.codev-tabs button { background:none; border:0; border-bottom:2px solid transparent; border-radius:0; padding:11px 9px; color:#9DAEBB; font-size:12px; white-space:nowrap; }
+.codev-tabs button[aria-selected=true] { color:#A8E2DB; border-bottom-color:#7ED7D1; }
+.codev-panel { flex:1; overflow:auto; min-height:0; padding:18px; }
+.codev-panel > div:not(.codev-conversation) { display:flex; flex-direction:column; gap:14px; }
+.codev-conversation { display:flex; flex-direction:column; min-height:100%; gap:16px; }
+.codev-messages { flex:1; display:flex; flex-direction:column; gap:18px; }
+.codev-empty { display:flex; flex-direction:column; align-items:start; justify-content:center; gap:12px; margin:auto 0; padding:30px 5px; max-width:58ch; }
+.codev-mark { font:30px ui-monospace,monospace; color:#85C9C3; margin-bottom:8px; }
+.codev-message { display:flex; flex-direction:column; gap:8px; padding:16px; border:1px solid #2D484E; background:#152C3055; border-radius:12px; }
+.codev-user { background:#1B253488; border-color:#344251; }
+.codev-message > p,.codev-handoff p { white-space:pre-wrap; overflow-wrap:anywhere; }
+.codev-message strong { color:#A8E2DB; font-size:11px; }
+.codev-room details { color:#A6B8C6; font-size:11px; line-height:1.7; }
+.codev-room summary { cursor:pointer; }
+.codev-composer { display:flex; flex-direction:column; gap:9px; padding-top:16px; border-top:1px solid #293B49; }
+.codev-composer > label { font-size:11px; color:#B8A27B; }
+.codev-room textarea { width:100%; color:#DBE7EE; background:#0B131E; border:1px solid #3B5060; border-radius:10px; resize:vertical; padding:12px; font-family:inherit; font-size:13px; line-height:1.6; }
+.codev-room textarea::placeholder { color:#8296A8; }
+.codev-room textarea.codev-editor { min-height:320px; flex:1; font:12px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace; white-space:pre; overflow:auto; }
+.codev-file-view { min-height:100%; }
+.codev-file-view > label { display:flex; align-items:center; gap:10px; }
+.codev-file-view select { max-width:100%; min-width:0; }
+.codev-room pre,.codev-room code,.codev-mono { font:11px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
+.codev-room pre { overflow:auto; margin:0; padding:12px; background:#080F19; border-radius:8px; max-height:400px; }
+.codev-diff span { display:inline; }
+.codev-add { color:#A4E4BC; background:#1E473955; }
+.codev-remove { color:#F6B3A6; background:#582C3355; }
+.codev-room .codev-notice { font-size:12px; padding:11px 14px; border:1px solid #45625E; border-radius:10px; background:#173333; line-height:1.6; }
+.codev-notice button { margin-top:8px; }
+.codev-room .codev-error { color:#F4C0AE; }
+.codev-room .codev-notice.codev-error { background:#372523; border-color:#765449; }
+.codev-check-card,.codev-receipt,.codev-handoff { display:flex; flex-direction:column; gap:10px; border:1px solid #32424F; padding:15px; border-radius:12px; background:#13202D88; }
+.codev-receipt .codev-status { align-self:start; }
+.codev-receipt dl { display:grid; grid-template-columns:110px minmax(0,1fr); gap:8px 12px; margin:0; font-size:11px; line-height:1.5; }
+.codev-receipt dt { color:#90A4B3; }
+.codev-receipt dd { margin:0; overflow-wrap:anywhere; }
+@container (max-width:650px) { .codev-layout { grid-template-columns:1fr; overflow:auto; } .codev-workspace { max-height:250px; min-height:200px; } .codev-workbench { min-height:450px; } }
+@media (max-width:1100px) { .codev-layout { grid-template-columns:1fr; overflow:auto; } .codev-workspace { max-height:250px; min-height:200px; } .codev-workbench { min-height:450px; } .codev-room-header { align-items:start; } .codev-room-header p { max-width:30ch; } }
+
+.codev-pairing { flex-shrink:0; border:1px solid #2A3745; border-radius:12px; font-size:12px; background:#10192599; }
+.codev-pairing summary { padding:10px 14px; cursor:pointer; color:#A8E2DB; }
+.codev-pairing-content { padding:0 14px 14px; display:grid; gap:12px; max-height:320px; overflow:auto; }
+.codev-pairing-form { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.codev-pairing-form input { flex:1; min-width:140px; background:#0C131D; border:1px solid #3B4D5B; border-radius:8px; padding:9px; color:inherit; font:12px ui-monospace,monospace; }
+.codev-pairing-review { display:grid; gap:10px; padding:12px; border:1px solid #3C625F; border-radius:10px; overflow-wrap:anywhere; }

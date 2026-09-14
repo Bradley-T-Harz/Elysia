@@ -1,6 +1,6 @@
 version: 1
 contract_version: elysia-component-profile-graph-1.0
-release_target: 1.0.0
+release_target: 1.1.0
 authority: authoritative
 legacy_inputs:
   profiles_yaml: compatibility_runtime_projection
@@ -35,7 +35,7 @@ components:
   desktop_shell:
     <<: *lifecycle_defaults
     component_id: desktop_shell
-    exact_version_digest: Elysia Desktop 1.0.0 package-lock sha256:e6babe7cac0b923caa6d38a17e793708a9375e38cc52108c93ef2dde9ac16dfe + Cargo.lock sha256:64f3ebd300852ffc4e6645811b696c1c2b3c5ee9dbfda7f53be91679b42dd86b
+    exact_version_digest: Elysia Desktop 1.1.0 package-lock sha256:0809c9597b13ed8485093ca1903788cb15584b85aed29afad93276b8ab8315ea + Cargo.lock sha256:82861842196f91a348f73994c560abbd515471c58fd249b7e17e2470a5a4f347
     owning_profile: core
     required_components: [core_python_runtime, identity_memory_fabric]
     optional_components: []
@@ -171,18 +171,18 @@ components:
   codev_companion:
     <<: *lifecycle_defaults
     component_id: codev_companion
-    exact_version_digest: Codev 1.0.0 package-lock sha256:c5a5445bbea7d2f3b1bbab7fa4837451425c5949ce8057bef67cfba6d46361e8 + qualified VSIX sha256:5cbb9298e0d9f56797b95854e4cf07db84fe2d7fc00deb7bc3364d503451f6ff
+    exact_version_digest: Codev Core 1.1.0; codev-core-1 manifest binds exact compiled runtime and optional adapter SHA-256 digests
     owning_profile: developer_codev
-    required_components: [core_python_runtime, desktop_shell]
+    required_components: [core_python_runtime]
     optional_components: []
     conflicts: [unapproved_repository, arbitrary_shell, network_authority, git_push_authority]
-    system_dependencies: [vscode, git]
-    runtime_environment: vscode_extension_host_and_packaged_elysia
+    system_dependencies: [git]
+    runtime_environment: private_user_unix_service_shared_by_native_clients
     models_assets: []
     license_provenance_record: Codev LICENSES and VSIX THIRD_PARTY_NOTICES
     network_behavior: no independent network or publication authority
-    health_probe: exact_vsix_contract_workspace_trust_repo_approval_and_revocation
-    doctor_checks: [codev_contract, vscode_engine_compatibility, codev_repo_approval]
+    health_probe: installed_core_manifest_and_private_runtime_identity
+    doctor_checks: [codev_contract, separate_workspace_authority_and_revocation, optional_vscode_adapter]
     capability_ids: [ELY-CODE-001, CODEV-001, CODEV-002, CODEV-003, X-PKG-001]
 
   scientific_engineering:

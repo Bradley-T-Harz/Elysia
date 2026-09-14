@@ -59,7 +59,6 @@ export default function ElysiaSetupPage({ error: initialError, initialState, onC
   const [installRoot, setInstallRoot] = useState("");
   const [internetAvailable, setInternetAvailable] = useState(false);
   const [selectedCustom, setSelectedCustom] = useState<string[]>([]);
-  const [codevPath, setCodevPath] = useState("");
   const [creatorModelIds, setCreatorModelIds] = useState<string[]>([]);
   const [localModelRoot, setLocalModelRoot] = useState("");
   const [modelTermsAccepted, setModelTermsAccepted] = useState(false);
@@ -135,7 +134,7 @@ export default function ElysiaSetupPage({ error: initialError, initialState, onC
         component_id: componentId,
         operation: "install",
         metadata_network_approved: internetAvailable,
-        local_artifact_path: componentId === "codev_companion" ? codevPath || null : null,
+        local_artifact_path: null,
         selected_model_ids: componentId === "creator_perception" ? creatorModelIds : [],
         local_model_root: componentId === "creator_perception" ? localModelRoot || null : null,
         model_terms_accepted: componentId === "creator_perception" && modelTermsAccepted
@@ -255,7 +254,7 @@ export default function ElysiaSetupPage({ error: initialError, initialState, onC
         <header>
           <div style={eyebrowStyle}>Stage A · machine installation</div>
           <h1 style={{ margin: 0 }}>Elysia Setup</h1>
-          <p><strong>Elysia 1.0 Setup</strong> · EcoSyneva Commons LLC · Ubuntu 24.04 x86-64. Exact package identity and signed updater material are verified through the governed lifecycle.</p>
+          <p><strong>Elysia 1.0 Setup</strong> · EcoSyneva Commons LLC · {initialState?.platform_label ?? "Native Linux package"}. Exact package identity and signed updater material are verified through the governed lifecycle.</p>
           <p style={mutedStyle}>Choose components from the authoritative graph. Setup previews downloads, disk, hardware, network, and privilege effects before any configuration. It does not create a person, biography, Website account, or memory.</p>
           <p style={mutedStyle}>Local Elysia works without a public Commons account. Optional Internet research and selected public exports cross local control only after their own explicit consent.</p>
         </header>
@@ -302,14 +301,14 @@ export default function ElysiaSetupPage({ error: initialError, initialState, onC
             <p><strong>Hardware decision:</strong> {String(preview.hardware?.neurofabric_variant ?? "CPU")}; external fingerprinting: no.</p>
             <p><strong>Network:</strong> runtime disabled by default; external acquisition requires separate exact confirmation; personal data egress: no.</p>
             <p><strong>Privilege:</strong> silent sudo: no; package-manager privilege required: {String(preview.privilege_preview?.package_manager_privilege_required ?? false)}.</p>
-            {!!(preview.privilege_preview?.exact_system_package_operations as string[] | undefined)?.length && <p><strong>Exact reviewed Ubuntu operations:</strong> {(preview.privilege_preview?.exact_system_package_operations as string[]).join(", ")}. The full Setup process never runs as root; applying these opens graphical polkit authorization.</p>}
+            {!!(preview.privilege_preview?.exact_system_package_operations as string[] | undefined)?.length && <p><strong>Exact reviewed system operations:</strong> {(preview.privilege_preview?.exact_system_package_operations as string[]).join(", ")}. The full Setup process never runs as root; applying these opens graphical polkit authorization.</p>}
             <p><strong>Initial size estimate:</strong> download {bytes(preview.estimated_download_bytes)}; installed {bytes(preview.estimated_installed_bytes)}. Every external transfer receives a separate exact-byte preview.</p>
             {preview.dependency_install_dispositions && <div role="region" style={nestedStyle} aria-label="Selected profile dependency dispositions">
               <h3 style={{ margin: 0 }}>Selected-profile dependency coverage</h3>
               <p><strong>{preview.dependency_install_dispositions.dependency_count ?? 0}</strong> release-supported dependencies are mapped through one authoritative installation disposition.</p>
-              <p style={mutedStyle}>A bundled: {preview.dependency_install_dispositions.category_counts?.A ?? 0} · B Setup-acquired: {preview.dependency_install_dispositions.category_counts?.B ?? 0} · C Ubuntu/polkit: {preview.dependency_install_dispositions.category_counts?.C ?? 0} · D reused: {preview.dependency_install_dispositions.category_counts?.D ?? 0} · E user action: {preview.dependency_install_dispositions.category_counts?.E ?? 0}</p>
+              <p style={mutedStyle}>A bundled: {preview.dependency_install_dispositions.category_counts?.A ?? 0} · B Setup-acquired: {preview.dependency_install_dispositions.category_counts?.B ?? 0} · C system/polkit: {preview.dependency_install_dispositions.category_counts?.C ?? 0} · D reused: {preview.dependency_install_dispositions.category_counts?.D ?? 0} · E user action: {preview.dependency_install_dispositions.category_counts?.E ?? 0}</p>
               <p><strong>{preview.dependency_install_dispositions.system_dependency_count ?? 0}</strong> selected system/runtime prerequisites are independently classified.</p>
-              <p style={mutedStyle}>System A bundled: {preview.dependency_install_dispositions.system_category_counts?.A ?? 0} · B Setup-acquired: {preview.dependency_install_dispositions.system_category_counts?.B ?? 0} · C Ubuntu/polkit: {preview.dependency_install_dispositions.system_category_counts?.C ?? 0} · D detected/reused: {preview.dependency_install_dispositions.system_category_counts?.D ?? 0} · E user action: {preview.dependency_install_dispositions.system_category_counts?.E ?? 0}</p>
+              <p style={mutedStyle}>System A bundled: {preview.dependency_install_dispositions.system_category_counts?.A ?? 0} · B Setup-acquired: {preview.dependency_install_dispositions.system_category_counts?.B ?? 0} · C system/polkit: {preview.dependency_install_dispositions.system_category_counts?.C ?? 0} · D detected/reused: {preview.dependency_install_dispositions.system_category_counts?.D ?? 0} · E user action: {preview.dependency_install_dispositions.system_category_counts?.E ?? 0}</p>
               {(preview.dependency_install_dispositions.category_e_actions ?? []).map((item) => <div key={item.dependency_id} style={nestedStyle}>
                 <p><strong>{item.guidance?.title ?? item.label ?? item.dependency_id}</strong> · user action required</p>
                 <p>{item.guidance?.why ?? item.purpose}</p>
@@ -353,16 +352,12 @@ export default function ElysiaSetupPage({ error: initialError, initialState, onC
               {item.official_source && <a href={item.official_source} target="_blank" rel="noreferrer">Official installation source</a>}
               <p style={mutedStyle}><strong>Doctor:</strong> {item.doctor_detection} <strong>Retry/repair:</strong> {item.retry_repair}</p>
             </div>)}
-            {!!prerequisitePreview.exact_package_operations?.length && <button type="button" disabled={busy} onClick={() => void applyPrerequisites()} style={primaryButtonStyle}>Authorize only these exact Ubuntu package operations</button>}
+            {!!prerequisitePreview.exact_package_operations?.length && <button type="button" disabled={busy} onClick={() => void applyPrerequisites()} style={primaryButtonStyle}>Authorize only these exact system package operations</button>}
           </div>}
           <label style={{ display: "flex", gap: ".55rem", alignItems: "center" }}>
             <input type="checkbox" checked={internetAvailable} onChange={(event) => setInternetAvailable(event.target.checked)} />
             Permit metadata-only package/registry resolution for this preview
           </label>
-          {initialState?.pending_component_ids?.includes("codev_companion") && <label>Existing exact Codev v1.0.0 VSIX (optional)
-            <input value={codevPath} onChange={(event) => setCodevPath(event.target.value)} placeholder="Leave blank for the exact official GitHub release download" style={inputStyle} />
-            <span style={mutedStyle}>Setup verifies a selected local copy byte-for-byte, or acquires the exact first-party VSIX from its canonical v1.0.0 release URL after network approval.</span>
-          </label>}
           {initialState?.pending_component_ids?.includes("creator_perception") && <fieldset style={fieldsetStyle}>
             <legend>Creator model assets (optional; capabilities remain visibly gated when omitted)</legend>
             {creatorModels.map(([id, label]) => <label key={id} style={{ display: "flex", gap: ".55rem", alignItems: "center" }}>
@@ -382,7 +377,7 @@ export default function ElysiaSetupPage({ error: initialError, initialState, onC
             <p style={mutedStyle}>Profile selection never approves a model transfer. A gated FLUX download uses a session-only HF_TOKEN after upstream terms are accepted; Elysia never stores that token or authenticated download state.</p>
           </fieldset>}
           <div style={{ display: "grid", gap: ".55rem" }}>
-            {(initialState?.pending_component_ids ?? []).map((componentId) => <button key={componentId} type="button" disabled={busy || ["queued", "running"].includes(String(job?.status))} onClick={() => void createComponentPreview(componentId)} style={secondaryButtonStyle}>
+            {(initialState?.pending_component_ids ?? []).filter(componentId => componentId !== "codev_companion").map((componentId) => <button key={componentId} type="button" disabled={busy || ["queued", "running"].includes(String(job?.status))} onClick={() => void createComponentPreview(componentId)} style={secondaryButtonStyle}>
               Resolve exact plan · {componentId.replaceAll("_", " ")}
             </button>)}
           </div>

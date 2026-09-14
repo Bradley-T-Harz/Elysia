@@ -1,8 +1,7 @@
-"""Read-only Codev installation receipt and compatibility truth."""
+"""Read-only neutral Core compatibility and separately granted repository truth."""
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +11,7 @@ from .paths import ElysiaPaths, resolve_elysia_paths
 
 
 CODEV_EXTENSION_ID = "ecosyneva-commons.elysia-codev"
-CODEV_VERSION = "1.0.0"
+CODEV_VERSION = "1.1.0"
 CODEV_CONTRACT_VERSION = "vscode-coding-agent-contract-0.1"
 
 
@@ -22,30 +21,20 @@ def codev_receipt_path(paths: ElysiaPaths | None = None) -> Path:
 
 
 def read_codev_install_status(paths: ElysiaPaths | None = None) -> dict[str, Any]:
-    target = codev_receipt_path(paths)
-    try:
-        payload = json.loads(target.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        payload = {}
-    valid = (
-        isinstance(payload, dict)
-        and payload.get("schema_version") == 1
-        and payload.get("extension_id") == CODEV_EXTENSION_ID
-        and payload.get("install_state") == "installed_by_user"
-    )
-    version = str(payload.get("version") or "") if valid else ""
-    contract = str(payload.get("contract_version") or "") if valid else ""
-    compatible = valid and version == CODEV_VERSION and contract == CODEV_CONTRACT_VERSION
+    from .codev_core import inspect_core, CORE_CONTRACT
+    identity = inspect_core(paths)
     return {
-        "state": "installed" if compatible else "incompatible" if valid else "missing",
-        "installed": bool(valid),
-        "compatible": bool(compatible),
-        "version": version or None,
+        "state": "installed" if identity.compatible else "incompatible" if identity.installed else "missing",
+        "installed": identity.installed,
+        "compatible": identity.compatible,
+        "version": identity.version,
         "expected_version": CODEV_VERSION,
-        "contract_version": contract or None,
+        "contract_version": CODEV_CONTRACT_VERSION if identity.compatible else None,
         "expected_contract_version": CODEV_CONTRACT_VERSION,
+        "core_contract_version": CORE_CONTRACT,
+        "optional_adapter_bundled": identity.adapter is not None,
         "extension_id": CODEV_EXTENSION_ID,
-        "receipt_storage": "XDG user data",
+        "receipt_storage": "installed Core package manifest",
         "raw_path_exposed": False,
     }
 

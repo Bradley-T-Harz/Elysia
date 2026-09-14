@@ -1,0 +1,37 @@
+import React from "react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
+const request=vi.hoisted(()=>vi.fn());
+vi.mock("../src/api/codevNative",()=>({codevRequest:request}));
+import CodevPairing from "../src/CodevPairing";
+afterEach(()=>{cleanup();vi.clearAllMocks();});
+it("requires separate native review and approval for the displayed website account",async()=>{
+  const pairing={pairing_id:"fixture-pairing-id",intent:{account_label:"fixture@example.invalid",origin:"https://elysiaecobotics.com",surface:"forge",status:"pending",expires_at:new Date(Date.now()+300000).toISOString()}};
+  let resolveList!: (value: {pairings: unknown[]}) => void;
+  const oldList = new Promise<{pairings: unknown[]}>(resolve => { resolveList = resolve; });
+  request.mockImplementation(async(path:string)=>{
+    if(path==="pairing/list")return oldList;
+    if(path==="pairing/claim")return pairing;
+    if(path==="pairing/action")return {...pairing,intent:{...pairing.intent,status:"native_approved"}};
+    if(path==="pairing/revoke")return {...pairing,cloud_revoked:false};
+    throw new Error("Unexpected request");
+  });
+  render(<CodevPairing clientId="native-fixture"/>);
+  expect(request).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByText("Website connections"));
+  await waitFor(()=>expect(request).toHaveBeenCalledWith("pairing/list",{client_id:"native-fixture"}));
+  fireEvent.change(screen.getByLabelText("Pairing code"),{target:{value:"EC1.A."+"a".repeat(43)}});
+  fireEvent.click(screen.getByRole("button",{name:"Review pairing"}));
+  await screen.findByText("fixture@example.invalid");
+  await act(async()=>resolveList({pairings:[]}));
+  expect(screen.getByLabelText("Pairing code")).toHaveValue("");
+  expect(request.mock.calls.filter(([path])=>path==="pairing/action")).toHaveLength(0);
+  expect(screen.getByText(/Pairing shares no files or workspaces/)).toBeVisible();
+  fireEvent.click(screen.getByRole("button",{name:"Approve this connection"}));
+  await waitFor(()=>expect(request).toHaveBeenCalledWith("pairing/action",{client_id:"native-fixture",pairing_id:"fixture-pairing-id",action:"confirm",explicitly_approved:true}));
+  await screen.findByText(/Return to the website to finish/);
+  fireEvent.click(screen.getByRole("button",{name:"Revoke connection"}));
+  await screen.findByText(/Local connection and grants revoked/);
+  expect(request).toHaveBeenCalledWith("pairing/revoke",{client_id:"native-fixture",pairing_id:"fixture-pairing-id"});
+  expect(request.mock.calls.every(([path])=>!path.includes("workspace")&&!path.includes("grants"))).toBe(true);
+});

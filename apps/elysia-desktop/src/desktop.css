@@ -259,3 +259,113 @@ summary:focus-visible {
     border-radius: 16px !important;
   }
 }
+
+/* Desktop layout contract: the shell owns navigation/inspection; each working
+ * room owns its vertical document. Content never competes for a leftover grid
+ * row. Container queries respond to actual room space after shell columns. */
+.elysia-top-bar { min-height: 72px; box-sizing: border-box; }
+.elysia-shell-toolbar { display: flex; gap: .5rem; padding: .4rem .75rem 0; }
+.elysia-shell-toolbar:empty { display: none; }
+.elysia-shell-toggle {
+  border: 1px solid rgba(126, 215, 209, .38); border-radius: 10px;
+  background: #15282d; color: #c7e5e2; padding: .45rem .8rem; cursor: pointer;
+}
+.elysia-shell-toggle:hover { background: #203b40; }
+.elysia-shell-panel { display: flex; min-width: 0; min-height: 0; overflow: hidden; }
+.elysia-shell-panel > * { width: 100%; box-sizing: border-box; }
+.elysia-panel-dialog {
+  box-sizing: border-box; width: min(360px, calc(100vw - 2rem));
+  height: calc(100dvh - 2rem); max-height: none; padding: .6rem;
+  border: 1px solid #496565; border-radius: 20px; background: #101720; color: #c7d2da;
+}
+.elysia-panel-dialog::backdrop { background: rgba(0, 0, 0, .6); }
+.elysia-panel-dialog-left { margin-left: 1rem; }
+.elysia-panel-dialog-right { margin-right: 1rem; }
+.elysia-panel-dialog-content { display: flex; flex-direction: column; gap: .6rem; height: 100%; min-height: 0; }
+.elysia-panel-dialog-content > button { flex-shrink: 0; align-self: flex-start; }
+.elysia-panel-dialog-content > aside { flex: 1; min-height: 0; }
+.elysia-room-page {
+  box-sizing: border-box; overflow-y: auto !important; overflow-x: hidden !important;
+  scrollbar-gutter: stable; padding-right: .35rem; scroll-padding: 1rem;
+}
+.elysia-room-page > * { flex: 0 0 auto !important; min-width: 0; }
+.elysia-room-page .elysia-responsive-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) !important;
+  flex: 0 0 auto !important; align-items: start; overflow: visible !important;
+}
+.elysia-room-page .elysia-stacked-pane { overflow: visible !important; min-height: auto !important; }
+.elysia-room-page .elysia-summary-grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)) !important;
+}
+.elysia-room-page .elysia-toolbar-grid-4 {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, .5fr) minmax(120px, .5fr) auto !important;
+}
+.elysia-room-page .elysia-toolbar-grid-4 > :last-child { grid-column: auto; }
+.elysia-room-page input, .elysia-room-page select { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.elysia-room-page h1 { font-size: clamp(1.5rem, 3cqw, 2.1rem) !important; }
+.elysia-conversations-split { flex: 0 0 auto !important; align-items: start !important; overflow: visible !important; }
+.elysia-conversation-list { display: block !important; box-sizing: border-box; height: auto !important; }
+.elysia-conversation-list > summary { color: #7ed7d1; cursor: pointer; font-weight: 650; }
+.elysia-conversation-list[open] > summary { margin-bottom: 1rem; }
+.elysia-conversation-list > div { margin-bottom: .8rem; }
+.elysia-conversation-list > div:last-child { max-height: 60vh; overflow-y: auto; }
+.elysia-active-thread {
+  display: flex !important; flex-direction: column; overflow: visible !important; min-width: 0;
+}
+.elysia-active-thread > * { flex: 0 0 auto; min-width: 0; }
+.elysia-thread-messages { min-height: 7rem !important; max-height: none; overflow: visible !important; }
+.elysia-thread-messages > * { overflow: visible !important; }
+.elysia-active-thread > details { max-height: none !important; overflow: visible !important; }
+.elysia-composer { grid-template-rows: auto auto; }
+.elysia-composer textarea { min-height: 5rem; }
+.elysia-capability-detail { min-width: 0; }
+.elysia-capability-detail:focus { outline: 2px solid #7ed7d1; outline-offset: 2px; }
+
+/* A visible, calm scrollbar is part of the room's navigation. */
+.elysia-app-shell *, .elysia-account-setup-scroll { scrollbar-color: #617d80 #101720; scrollbar-width: auto; }
+.elysia-app-shell ::-webkit-scrollbar, .elysia-account-setup-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.elysia-app-shell ::-webkit-scrollbar-track { background: #101720; }
+.elysia-app-shell ::-webkit-scrollbar-thumb { background: #617d80; border: 2px solid #101720; border-radius: 8px; }
+@container (max-width: 820px) {
+  .elysia-room-page .elysia-responsive-split { grid-template-columns: minmax(0, 1fr) !important; }
+  .elysia-room-page .elysia-toolbar-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .elysia-conversations-header { grid-template-columns: minmax(0, 1fr) !important; }
+}
+@container (max-width: 600px) {
+  .elysia-room-page .elysia-toolbar-grid-4, .elysia-room-page .elysia-toolbar-grid-2 { grid-template-columns: minmax(0, 1fr) !important; }
+  .elysia-conversations-header { padding: .75rem !important; }
+  .elysia-composer-file-tools, .elysia-composer-footer { grid-column: 1 / -1 !important; }
+}
+@media (max-width: 760px), (max-height: 550px) {
+  .elysia-top-bar { min-height: 58px; grid-template-columns: minmax(0, 1fr) auto auto !important; gap: .6rem !important; }
+  .elysia-top-bar > div[aria-hidden="true"]:nth-of-type(3) { display: none; }
+  .elysia-top-bar > div:nth-of-type(2) > div:last-child { font-size: 1rem !important; }
+  .elysia-top-bar > div:nth-of-type(3) { display: none; }
+  .elysia-bottom-status { grid-template-columns: minmax(0, 1fr) auto !important; gap: .4rem !important; padding-inline: .6rem !important; }
+  .elysia-bottom-status > :first-child { display: none; }
+  .elysia-bottom-status > :last-child { flex-wrap: wrap; }
+}
+/* Explicit rows keep a hidden panel toolbar from shifting the room/footer. */
+.elysia-top-bar { grid-row: 1; }
+.elysia-shell-toolbar { grid-row: 2; }
+.elysia-shell-main { grid-row: 3; }
+.elysia-bottom-status { grid-row: 4; }
+
+.elysia-right-drawer > * { flex-shrink: 0; }
+.elysia-panel-dialog { overflow: hidden; }
+.elysia-room-page .elysia-toolbar-grid-2 { grid-template-columns: minmax(0, 1fr) auto !important; }
+@container (max-width: 600px) {
+  .elysia-room-page .elysia-toolbar-grid-2 { grid-template-columns: minmax(0, 1fr) !important; }
+}
+@media (max-height: 550px) {
+  .elysia-top-bar { min-height: 48px; }
+  .elysia-shell-toolbar { padding-top: .25rem; }
+  .elysia-shell-toolbar .elysia-shell-toggle { padding-block: .3rem; }
+  .elysia-shell-main { padding: .35rem !important; gap: .35rem !important; }
+  .elysia-workspace-surface { padding: .4rem !important; }
+  .elysia-bottom-status { min-height: 34px !important; }
+  .elysia-active-thread { padding: .5rem !important; }
+  .elysia-composer { padding: .5rem !important; }
+  .elysia-composer textarea { height: 5rem; }
+  .elysia-composer-file-tools { padding: .3rem .5rem !important; }
+}

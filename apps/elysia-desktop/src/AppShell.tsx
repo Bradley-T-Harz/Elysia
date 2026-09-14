@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import TopBar from "./TopBar";
+import ShellPanel, { useMediaQuery } from "./ShellPanel";
 import HomePage from "./HomePage";
+import CodevWorkroom from "./CodevWorkroom";
+import { useCodevInstallation } from "./hooks/useCodevInstallation";
+import type { CodevHandoff } from "./api/codevNative";
 import LeftRail, { type LeftRailRoom } from "./LeftRail";
 import RightDrawer, { type DrawerSection } from "./RightDrawer";
 import BottomStatusBar from "./BottomStatusBar";
@@ -370,6 +374,13 @@ function buildBottomStatusBadges(
 }
 
 export default function AppShell({ accountState = null }: { accountState?: AccountStateData | null }) {
+  const compactNavigation = useMediaQuery("(max-width: 1100px)");
+  const compactInspector = useMediaQuery("(max-width: 1500px)");
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const codevInstallation = useCodevInstallation(accountState?.active_user_id ?? "");
+  const [codevOpened, setCodevOpened] = useState(false);
+  const [codevHandoff, setCodevHandoff] = useState<CodevHandoff | null>(null);
   const showAdmin = accountState?.active_role === "installation_owner" || accountState?.active_role === "admin";
   const [desktopPreferences, setDesktopPreferences] =
     useState<DesktopPreferences>(readDesktopPreferences);
@@ -437,7 +448,20 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
     [invokerTruth, runtimeTruth, startupTruthState]
   );
 
+  useEffect(() => {
+    if (!codevInstallation) {
+      if (activeRoom === "codev") setActiveRoom("home");
+      if (lastRailRoom === "codev") setLastRailRoom("home");
+      setCodevOpened(false);
+      setCodevHandoff(null);
+    }
+  }, [codevInstallation, activeRoom, lastRailRoom]);
+
   function handleSelectRoom(room: LeftRailRoom) {
+    if (room === "codev") {
+      if (!codevInstallation) return;
+      setCodevOpened(true);
+    }
     setActiveRoom(room);
     setLastRailRoom(room);
     setConversationToOpenId(null);
@@ -592,7 +616,7 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
         style={{
           position: "relative",
           display: "grid",
-          gridTemplateRows: "88px minmax(0, 1fr) 46px",
+          gridTemplateRows: "auto auto minmax(0, 1fr) auto",
           height: "100%",
           minHeight: 0
         }}
@@ -603,12 +627,17 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
           onDesktopPreferencesChange={setDesktopPreferences}
         />
 
+        <nav className="elysia-shell-toolbar" aria-label="Chamber panels">
+          {compactNavigation && <button type="button" className="elysia-shell-toggle" aria-haspopup="dialog" aria-expanded={navigationOpen} onClick={() => setNavigationOpen(true)}>Rooms</button>}
+          {compactInspector && <button type="button" className="elysia-shell-toggle" aria-haspopup="dialog" aria-expanded={inspectorOpen} onClick={() => setInspectorOpen(true)}>Inspector</button>}
+        </nav>
+
         <main
           className="elysia-shell-main"
           style={{
             display: "grid",
             gridTemplateColumns:
-              "clamp(210px, 16vw, 250px) minmax(0, 1fr) clamp(260px, 22vw, 340px)",
+              compactNavigation ? "minmax(0, 1fr)" : compactInspector ? "220px minmax(0, 1fr)" : "240px minmax(0, 1fr) 300px",
             gap: "clamp(0.75rem, 1vw, 1rem)",
             padding: "clamp(0.75rem, 1vw, 1rem)",
             alignItems: isStatusMenu ? "start" : "stretch",
@@ -617,12 +646,15 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
             overflowY: isStatusMenu ? "auto" : "hidden"
           }}
         >
+          <ShellPanel compact={compactNavigation} open={navigationOpen} onClose={() => setNavigationOpen(false)} label="Rooms" side="left">
           <LeftRail
             activeRoom={leftRailActiveRoom}
-            onSelectRoom={handleSelectRoom}
+            onSelectRoom={(room) => { handleSelectRoom(room); setNavigationOpen(false); }}
             defaultGroupBehavior={desktopPreferences.leftRailDefaultBehavior}
             showAdmin={showAdmin}
+            showCodev={!!codevInstallation}
           />
+          </ShellPanel>
 
           <section
             className="elysia-workspace-surface"
@@ -663,7 +695,8 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
                 overflow: "hidden"
               }}
             >
-              {activeRoom === "home" ? (
+              {codevInstallation && codevOpened && <CodevWorkroom key={accountState?.active_user_id ?? "native"} installation={codevInstallation} active={activeRoom === "codev"} handoff={codevHandoff} onRightDrawerSectionsChange={setRightDrawerSections} />}
+              {activeRoom === "codev" ? null : activeRoom === "home" ? (
                 <HomePage
                   startupTruthState={startupTruthState}
                   startupTruthMessage={startupTruthMessage}
@@ -680,6 +713,7 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
                   onRightDrawerSectionsChange={setRightDrawerSections}
                   onOpenProjects={handleReturnToProjects}
                   initialConversationId={conversationToOpenId}
+                  onOpenCodev={codevInstallation ? (handoff) => { setCodevHandoff(handoff); handleSelectRoom("codev"); } : undefined}
                 />
               ) : activeRoom === "project_detail" && selectedProjectId ? (
                 <ProjectDetailPage
@@ -824,22 +858,13 @@ export default function AppShell({ accountState = null }: { accountState?: Accou
             </div>
           </section>
 
-          <div
-            style={{
-              display: "flex",
-              minWidth: 0,
-              minHeight: 0,
-              height: isStatusMenu ? "auto" : "100%",
-              overflow: "hidden",
-              alignSelf: isStatusMenu ? "start" : "stretch"
-            }}
-          >
+          <ShellPanel compact={compactInspector} open={inspectorOpen} onClose={() => setInspectorOpen(false)} label="Inspector" side="right">
             <RightDrawer
               sections={rightDrawerSections}
               layoutMode={isStatusMenu ? "content" : "fill"}
               onOpenQuickInvoke={() => handleOpenQuickInvoke()}
             />
-          </div>
+          </ShellPanel>
         </main>
 
         <BottomStatusBar

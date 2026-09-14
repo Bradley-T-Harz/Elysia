@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import HealthPage from "../src/HealthPage";
@@ -248,5 +248,24 @@ describe("install profile runtime truth", () => {
     expect(screen.queryByRole("button", { name: "Install profile" })).not.toBeInTheDocument();
     expect(bridgeClientMocks.fetchCapabilityManifest).toHaveBeenCalledTimes(1);
     expect(bridgeClientMocks.fetchInstallProfileStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns focus to the selected card when pointer activation did not focus it", async () => {
+    const scrollDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+    try {
+      render(<CapabilitiesPage startupReady={true} onRightDrawerSectionsChange={vi.fn()} />);
+      const card = await screen.findByRole("button", { name: /Install profile runtime truth/ });
+      const filter = screen.getByRole("button", { name: "Clear filters" });
+      filter.focus();
+      // fireEvent.click leaves focus in place, as WebKit does for mouse clicks.
+      fireEvent.click(card);
+      await waitFor(() => expect(document.activeElement).toHaveAttribute("aria-label", "Selected capability detail"));
+      fireEvent.click(screen.getByRole("button", { name: "Back to capability list" }));
+      expect(card).toHaveFocus();
+    } finally {
+      if (scrollDescriptor) Object.defineProperty(HTMLElement.prototype, "scrollIntoView", scrollDescriptor);
+      else Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+    }
   });
 });

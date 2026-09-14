@@ -242,6 +242,15 @@ async def delete_profile_photo() -> dict[str, Any]:
     )
 
 
+@router.get("/profile-photo/{asset_id}/preview-data")
+async def preview_profile_photo_data(asset_id: str):
+    try:
+        preview = account_service.get_profile_photo_preview_data(asset_id)
+    except account_service.AccountServiceError as exc:
+        return _error_envelope(exc, result_type="account_profile_photo_preview")
+    return _envelope(result_type="account_profile_photo_preview", data=preview)
+
+
 @router.get("/profile-photo/{asset_id}/preview", response_model=None)
 async def preview_profile_photo(asset_id: str):
     try:

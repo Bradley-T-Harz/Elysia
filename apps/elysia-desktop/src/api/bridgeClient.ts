@@ -3334,6 +3334,7 @@ export type OnboardingStateEnvelope = BridgeEnvelope<{
 }>;
 
 export type SetupStateEnvelope = BridgeEnvelope<{
+  platform_label?: string;
   contract_version?: string;
   runtime_mode?: string;
   detected_distribution_form?: "deb" | "appimage" | "user_local_desktop" | "onefile_core" | "source";
@@ -4090,13 +4091,13 @@ async function resolveNativeLocalApiSession(): Promise<NativeLocalApiSession | n
 async function buildRequestHeaders(init?: RequestInit): Promise<HeadersInit> {
   return {
     Accept: "application/json",
-    "X-Elysia-Client": "elysia-desktop/1.0.0",
+    "X-Elysia-Client": "elysia-desktop/1.1.0",
     ...(init?.body ? { "Content-Type": "application/json" } : {}),
     ...(init?.headers ?? {})
   };
 }
 
-async function requestEnvelope<T>(
+export async function requestEnvelope<T>(
   path: string,
   init?: RequestInit
 ): Promise<EnvelopeResult<T>> {
@@ -5295,15 +5296,10 @@ export async function deleteAccountProfilePhoto(): Promise<
   );
 }
 
-export function getAccountProfilePhotoPreviewUrl(
-  assetId: string | null | undefined
-): string | null {
-  if (!assetId) {
-    return null;
-  }
-  return buildBridgeUrl(
-    `${ACCOUNT_PATH}/profile-photo/${encodeURIComponent(assetId)}/preview`
-  );
+export async function fetchAccountProfilePhotoPreview(assetId: string): Promise<
+  EnvelopeResult<{ status: string; data?: { asset_id: string; data_url: string }; errors?: string[] }>
+> {
+  return fetchEnvelope(`${ACCOUNT_PATH}/profile-photo/${encodeURIComponent(assetId)}/preview-data`);
 }
 
 export async function fetchAccountColors(): Promise<

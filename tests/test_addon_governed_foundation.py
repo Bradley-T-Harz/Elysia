@@ -62,7 +62,7 @@ def _manifest(files: dict[str, str], **overrides: object) -> dict[str, object]:
         "publisher": {"name": "Test Publisher", "identity": "test-only"},
         "compatibility": {
             "min_elysia_version": "0.1.0",
-            "max_elysia_version": "1.0.0",
+            "max_elysia_version": "1.1.0",
             "addon_api_version": "1",
         },
         "required_profiles": ["developer"],
@@ -513,7 +513,7 @@ def test_marketplace_submission_and_admin_review_are_nonmutating_hash_bound_prev
 def test_codev_is_an_official_qualified_v1_release() -> None:
     candidates = load_official_candidates()
     codev = next(item for item in candidates if item["name"] == "Codev")
-    assert codev["listing_state"] == "official_v1_release"
+    assert codev["listing_state"] == "coordinated_release_candidate"
     assert codev["required_profile"] == "developer"
     assert codev["install_action_live"] is True
     assert codev["public_distribution_supported"] is True

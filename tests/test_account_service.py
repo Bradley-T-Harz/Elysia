@@ -189,7 +189,8 @@ def test_profile_photo_is_copied_to_identity_store_without_original_path(tmp_pat
     store = make_store(tmp_path)
     store.create_account(create_request())
     source = tmp_path / "photo.jpg"
-    source.write_bytes(b"\xff\xd8fake-jpg-content")
+    from PIL import Image
+    Image.new("RGB", (32, 40), "teal").save(source)
 
     asset = store.copy_profile_photo(source)
 
@@ -223,7 +224,8 @@ def test_profile_photo_preview_requires_current_asset_owner(tmp_path):
     store = make_store(tmp_path)
     store.create_account(create_request())
     source = tmp_path / "photo.png"
-    source.write_bytes(b"fake-png-content")
+    from PIL import Image
+    Image.new("RGB", (32, 40), "teal").save(source)
     asset = store.copy_profile_photo(source)
     store.logout()
 
@@ -235,7 +237,8 @@ def test_encrypted_profile_export_and_recovery_preserves_identity_boundary(tmp_p
     store = make_store(tmp_path)
     store.create_account(create_request())
     source = tmp_path / "identity.png"
-    source.write_bytes(b"synthetic-private-profile-photo")
+    from PIL import Image
+    Image.new("RGB", (32, 40), "teal").save(source)
     original_asset = store.copy_profile_photo(source)
     password = "correct horse battery staple"
     recovery = "synthetic archive recovery material"
@@ -284,7 +287,8 @@ def test_governed_account_deletion_removes_empty_identity_authority_and_photo(tm
     store = make_store(tmp_path)
     store.create_account(create_request())
     source = tmp_path / "photo.png"
-    source.write_bytes(b"synthetic-photo")
+    from PIL import Image
+    Image.new("RGB", (32, 40), "teal").save(source)
     asset = store.copy_profile_photo(source)
     stored_photo = store.paths.profile_photo_dir / f"{asset.asset_id}.png"
 
@@ -503,3 +507,32 @@ def test_memory_key_permission_failure_is_sanitized_and_leaves_no_partial_accoun
     assert "SYNTHETIC_SECRET_KEY_PATH" not in str(captured.value)
     assert store.account_count() == 0
     assert store.current_session() is None
+
+
+def test_photo_preview_is_bounded_owned_persistent_and_invalid_replace_preserves_current(tmp_path):
+    import base64
+    import io
+    from PIL import Image
+    store = make_store(tmp_path)
+    store.create_account(create_request())
+    source = tmp_path / "selected.png"
+    Image.new("RGB", (1400, 900), "teal").save(source)
+    asset = store.copy_profile_photo(source)
+    preview = store.profile_photo_preview_data(asset.asset_id)
+    assert str(source) not in repr(preview)
+    assert preview["asset_id"] == asset.asset_id
+    with Image.open(io.BytesIO(base64.b64decode(preview["data_url"].split(",", 1)[1]))) as image:
+        assert max(image.size) == 512
+    assert make_store(tmp_path).profile_photo_preview_data(asset.asset_id) == preview
+    source.write_bytes(b"not an image despite the png extension")
+    with pytest.raises(AccountBlockedError, match="valid JPG"):
+        store.copy_profile_photo(source)
+    assert store.private_profile().profile_photo_asset_id == asset.asset_id
+    Image.new("RGB", (30, 50), "gold").save(source)
+    replacement = store.copy_profile_photo(source)
+    with pytest.raises(AccountAuthError):
+        store.profile_photo_preview_data(asset.asset_id)
+    assert store.profile_photo_preview_data(replacement.asset_id)
+    store.delete_profile_photo()
+    with pytest.raises(AccountAuthError):
+        store.profile_photo_preview_data(replacement.asset_id)

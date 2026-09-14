@@ -126,7 +126,10 @@ import {
   type ResponseTruth
 } from "./api/bridgeClient";
 
+import type { CodevHandoff } from "./api/codevNative";
+
 type ConversationsPageProps = {
+  onOpenCodev?: (handoff: CodevHandoff) => void;
   startupReady: boolean;
   onRightDrawerSectionsChange: (sections: DrawerSection[]) => void;
   onOpenProjects?: () => void;
@@ -2181,7 +2184,8 @@ export default function ConversationsPage({
   startupReady,
   onRightDrawerSectionsChange,
   onOpenProjects,
-  initialConversationId = null
+  initialConversationId = null,
+  onOpenCodev
 }: ConversationsPageProps) {
   const [conversationList, setConversationList] = useState<UiConversationSummary[]>([]);
   const [conversationListState, setConversationListState] = useState<LoadState>("idle");
@@ -5927,6 +5931,7 @@ export default function ConversationsPage({
 
   return (
     <div
+      className="elysia-conversations-page elysia-room-page"
       ref={pageLayoutRef}
       style={{
         display: "flex",
@@ -5940,6 +5945,7 @@ export default function ConversationsPage({
       }}
     >
       <div
+        className="elysia-conversations-header"
         style={{
           display: "grid",
           gridTemplateColumns: isCompactLayout
@@ -5977,6 +5983,10 @@ export default function ConversationsPage({
           >
             Speak inside the first working room.
           </h1>
+          {onOpenCodev && draftMessage.trim() && <button type="button"
+            title="Share this draft instruction with Codev. Workspace access is granted separately."
+            style={{ marginTop: "0.65rem", border: "1px solid #496A69", borderRadius: "8px", padding: "0.5rem 0.8rem", background: "#173031", color: "#B6E2DB", cursor: "pointer" }}
+            onClick={() => onOpenCodev({ conversationId: activeConversationId, requestId: activeThread?.messages[activeThread.messages.length - 1]?.requestId ?? null, instruction: draftMessage })}>Open this instruction in Codev</button>}
           <div
             style={{
               marginTop: "0.45rem",
@@ -6006,7 +6016,7 @@ export default function ConversationsPage({
         </div>
       </div>
 
-      <div
+      <div className="elysia-conversations-split"
         style={{
           display: "grid",
           gridTemplateColumns: isCompactLayout
@@ -6019,7 +6029,7 @@ export default function ConversationsPage({
           alignItems: "stretch"
         }}
       >
-        <aside
+        <details className="elysia-conversation-list" open={!isCompactLayout}
           style={{
             display: "grid",
             gridTemplateRows: "auto auto minmax(0, 1fr)",
@@ -6036,6 +6046,7 @@ export default function ConversationsPage({
               "inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 28px rgba(0,0,0,0.18)"
           }}
         >
+          <summary>Conversations · browse or start a thread</summary>
           <div
             style={{
               display: "flex",
@@ -6361,9 +6372,9 @@ export default function ConversationsPage({
               );
             })}
           </div>
-        </aside>
+        </details>
 
-        <section
+        <section className="elysia-active-thread"
           style={{
             display: "grid",
             gridTemplateRows:
@@ -6461,7 +6472,7 @@ export default function ConversationsPage({
             onChange={setSelectedMode}
             disabled={sendState === "sending"}
           />
-          <label style={{ display: "flex", gap: "0.55rem", alignItems: "center", color: palette.silverMuted, fontSize: "0.78rem" }}>
+          <label style={{ display: "flex", flexWrap: "wrap", gap: "0.55rem", alignItems: "center", color: palette.silverMuted, fontSize: "0.78rem" }}>
             Reasoning depth
             <select aria-label="Reasoning depth for this request" value={requestedGear} disabled={sendState === "sending"} onChange={(event) => setRequestedGear(event.target.value)}>
               <option value="automatic">Automatic</option>
@@ -6475,7 +6486,7 @@ export default function ConversationsPage({
             <span>Depth changes cognition effort, never authority.</span>
           </label>
 
-          <div
+          <div className="elysia-thread-messages"
             style={{
               minHeight: 0,
               display: "flex",

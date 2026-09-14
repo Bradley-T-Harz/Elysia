@@ -6,14 +6,19 @@
 // accepts an arbitrary command, shell string, worker request, network target,
 // or private-data mount from the webview.
 
+mod local_runtime;
+mod identity_photo;
+mod codev_contracts;
+use local_runtime::Stream as LocalStream;
 use serde::Serialize;
 use std::env;
 use std::fs;
 use std::io::{Read, Write};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 use tauri::Manager;
@@ -48,11 +53,13 @@ struct LocalApiResponse {
 
 struct LocalApiLifecycle {
     child: Mutex<Option<Child>>,
+    runtime_checked: AtomicBool,
     runtime_mode: &'static str,
     api_address: SocketAddr,
     launcher_path: PathBuf,
     credential_path: PathBuf,
     distribution_form: &'static str,
+    shared_runtime_dir: Option<PathBuf>,
 }
 
 fn home_dir() -> PathBuf {
@@ -153,11 +160,13 @@ impl LocalApiLifecycle {
         };
         Self {
             child: Mutex::new(None),
+            runtime_checked: AtomicBool::new(false),
             runtime_mode,
             api_address: configured_api_address(),
             launcher_path: packaged_runtime_path(),
             credential_path: xdg_runtime_dir().join("auth").join("local-api.credential"),
             distribution_form: desktop_distribution_form(),
+            shared_runtime_dir: (runtime_mode == "packaged").then(xdg_runtime_dir),
         }
     }
 
@@ -172,35 +181,41 @@ impl LocalApiLifecycle {
         if let Some(process) = slot.as_mut() {
             match process.try_wait() {
                 Ok(None) => return,
-                Ok(Some(_)) | Err(_) => {
+                Ok(Some(status)) => {
+                    self.runtime_checked.store(status.success(), Ordering::Release);
+                    slot.take();
+                }
+                Err(_) => {
+                    self.runtime_checked.store(false, Ordering::Release);
                     slot.take();
                 }
             }
         }
-        if self.api_reachable() {
+        if self.runtime_checked.load(Ordering::Acquire) && self.api_reachable() {
             return;
         }
 
-        let port = self.api_address.port().to_string();
         let mut command = Command::new(&self.launcher_path);
         command
-            .args(["serve", "--host", "127.0.0.1", "--port"])
-            .arg(port)
-            .args(["--mode", "packaged"])
+            .args(["runtime", "ensure"])
             .env("ELYSIA_DESKTOP_PACKAGE", "present")
             .env("ELYSIA_DISTRIBUTION_FORM", self.distribution_form)
             .env("ELYSIA_WORKER_ENVS_ROOT", xdg_data_dir().join("components"))
+            .env("PYINSTALLER_RESET_ENVIRONMENT", "1")
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
         #[cfg(unix)]
         command.process_group(0);
         if let Ok(process) = command.spawn() {
+            self.runtime_checked.store(false, Ordering::Release);
             *slot = Some(process);
         }
     }
 
-    fn stop_owned_process(&self) {
+    fn stop_owned_process(&self) -> Result<(), String> {
+        self.runtime_checked.store(false, Ordering::Release);
+        let shared_stop = self.shared_runtime_dir.as_ref().map(|directory| local_runtime::stop_peer(directory));
         if let Ok(mut slot) = self.child.lock() {
             if let Some(mut process) = slot.take() {
                 #[cfg(unix)]
@@ -226,6 +241,10 @@ impl LocalApiLifecycle {
                 let _ = process.wait();
             }
         }
+        match shared_stop {
+            Some(Err(_)) => Err("The stop posture is preserved, but termination of the installed runtime could not be confirmed.".to_string()),
+            _ => Ok(()),
+        }
     }
 
     fn launcher_present(&self) -> bool {
@@ -233,10 +252,58 @@ impl LocalApiLifecycle {
     }
 
     fn api_reachable(&self) -> bool {
-        TcpStream::connect_timeout(&self.api_address, Duration::from_millis(150)).is_ok()
+        if self.runtime_mode == "packaged" && !self.runtime_checked.load(Ordering::Acquire) { return false; }
+        LocalStream::connect(self.shared_runtime_dir.as_deref(), &self.api_address, Duration::from_millis(150)).is_ok()
+    }
+
+    fn stop_if_exclusive(&self) {
+        // With Codev installed, the neutral runtime also serves other clients.
+        // Absence is checked by the same packaged manifest resolver as the UI.
+        if self.shared_runtime_dir.is_some() {
+            if let Ok(value) = self.installation_snapshot() {
+                if value.get("installed").and_then(serde_json::Value::as_bool) == Some(false) {
+                    let _ = self.stop_owned_process();
+                }
+            }
+        } else {
+            let _ = self.stop_owned_process();
+        }
+    }
+
+    fn installation_snapshot(&self) -> Result<serde_json::Value, String> {
+        let mut command = Command::new(&self.launcher_path);
+        command.arg("codev-status").env("PYINSTALLER_RESET_ENVIRONMENT", "1")
+            .stdin(Stdio::null()).stderr(Stdio::null()).stdout(Stdio::piped());
+        #[cfg(unix)]
+        command.process_group(0);
+        let mut child = command.spawn().map_err(|_| "The installed capability could not be read.".to_string())?;
+        let deadline = Instant::now() + Duration::from_secs(8);
+        let status = loop {
+            if let Some(status) = child.try_wait().map_err(|_| "Capability inspection failed.".to_string())? { break status; }
+            if Instant::now() >= deadline {
+                #[cfg(unix)]
+                unsafe { libc::killpg(child.id() as i32, libc::SIGKILL); }
+                let _ = child.wait();
+                return Err("Capability inspection exceeded its bounded deadline.".to_string());
+            }
+            thread::sleep(Duration::from_millis(25));
+        };
+        let mut bytes = Vec::new();
+        if let Some(output) = child.stdout.take() {
+            output.take(65537).read_to_end(&mut bytes).map_err(|_| "Capability inspection could not be read.".to_string())?;
+        }
+        if !status.success() || bytes.len() > 65536 {
+            return Err("The installed capability response is unavailable.".to_string());
+        }
+        serde_json::from_slice(&bytes).map_err(|_| "The installed capability response is invalid.".to_string())
     }
 
     fn owns_running_process(&self) -> bool {
+        if let Some(directory) = &self.shared_runtime_dir {
+            // Kernel peer credentials replace the obsolete per-window child
+            // requirement for a service deliberately shared by native clients.
+            return local_runtime::connect_verified(directory).is_ok();
+        }
         let Ok(mut guard) = self.child.lock() else {
             return false;
         };
@@ -293,6 +360,7 @@ fn wait_for_api(state: &LocalApiLifecycle) -> bool {
     // same clean-machine profile that can start the application normally.
     let deadline = Instant::now() + LOCAL_API_STARTUP_TIMEOUT;
     while !state.api_reachable() && Instant::now() < deadline {
+        state.start_if_packaged();
         thread::sleep(Duration::from_millis(100));
     }
     state.api_reachable()
@@ -379,7 +447,7 @@ fn request_emergency_stop(
         headers.push_str(&format!("Authorization: Bearer {value}\r\n"));
     }
     headers.push_str("\r\n");
-    let mut stream = TcpStream::connect_timeout(&state.api_address, Duration::from_millis(750))
+    let mut stream = LocalStream::connect(state.shared_runtime_dir.as_deref(), &state.api_address, Duration::from_millis(750))
         .map_err(|_| "Emergency stop could not connect to the owned API.".to_string())?;
     stream
         .set_read_timeout(Some(Duration::from_secs(2)))
@@ -428,19 +496,25 @@ fn emergency_stop_owned(
             // Desktop request may restart Core, but restart recovery reads the
             // persisted stop posture and remains fail-closed until Owner/Admin
             // reset.
-            state.stop_owned_process();
+            state.stop_owned_process()?;
             return Ok(response);
         }
     }
     // Fail closed beneath the webview: persist restart posture, then terminate
     // only the exact child process group spawned and held by this Desktop.
     write_native_emergency_marker()?;
-    state.stop_owned_process();
+    state.stop_owned_process()?;
     Ok(LocalApiResponse {
         status_code: 200,
         body: "{\"status\":\"ok\",\"result_type\":\"emergency_stop\",\"data\":{\"active\":true,\"resume_required\":true,\"native_hard_stop\":true}}".to_string(),
         content_type: "application/json".to_string(),
     })
+}
+
+fn local_api_read_timeout(method: &str, path: &str) -> Duration {
+    // Codev's governed request owns a 210-second total deadline, leaving
+    // transport time for final authority checks and response delivery.
+    Duration::from_secs(if method == "POST" && path == "/codev/chat" { 240 } else { 120 })
 }
 
 #[tauri::command]
@@ -457,6 +531,9 @@ fn local_api_request(
     }
 
     state.start_if_packaged();
+    if method == "GET" && path == "/codev/installation" && !state.api_reachable() {
+        return Err("Use native installed package inspection while the service starts.".to_string());
+    }
     if !wait_for_api(&state) {
         return Err("The packaged local API did not become ready.".to_string());
     }
@@ -478,7 +555,7 @@ fn local_api_request(
 
     let payload = body.unwrap_or_default();
     let mut headers = format!(
-        "{method} {path} HTTP/1.1\r\nHost: {}\r\nAccept: application/json\r\nX-Elysia-Client: elysia-desktop/1.0.0\r\nConnection: close\r\n",
+        "{method} {path} HTTP/1.1\r\nHost: {}\r\nAccept: application/json\r\nX-Elysia-Client: elysia-desktop/1.1.0\r\nConnection: close\r\n",
         state.api_address
     );
     if let Some(value) = credential {
@@ -489,10 +566,10 @@ fn local_api_request(
     }
     headers.push_str(&format!("Content-Length: {}\r\n\r\n", payload.len()));
 
-    let mut stream = TcpStream::connect_timeout(&state.api_address, Duration::from_secs(5))
+    let mut stream = LocalStream::connect(state.shared_runtime_dir.as_deref(), &state.api_address, Duration::from_secs(5))
         .map_err(|_| "The packaged local API request could not connect.".to_string())?;
     stream
-        .set_read_timeout(Some(Duration::from_secs(120)))
+        .set_read_timeout(Some(local_api_read_timeout(&method, &path)))
         .map_err(|_| "The packaged local API timeout could not be configured.".to_string())?;
     stream
         .set_write_timeout(Some(Duration::from_secs(10)))
@@ -565,7 +642,7 @@ fn local_api_session(state: tauri::State<'_, LocalApiLifecycle>) -> LocalApiSess
     LocalApiSession {
         runtime_mode: state.runtime_mode.to_string(),
         lifecycle_state: lifecycle_state.to_string(),
-        base_url: format!("http://{}", state.api_address),
+        base_url: if state.shared_runtime_dir.is_some() { "unix://elysia-local-runtime".to_string() } else { format!("http://{}", state.api_address) },
         authentication_required: state.runtime_mode == "packaged",
         authentication_state: if state.runtime_mode != "packaged" {
             "development_disabled".to_string()
@@ -580,6 +657,7 @@ fn local_api_session(state: tauri::State<'_, LocalApiLifecycle>) -> LocalApiSess
 
 #[cfg(test)]
 mod tests {
+    use super::local_api_read_timeout;
     use super::{
         classify_distribution_form, parse_api_port, select_api_port,
         write_native_emergency_marker_at, LocalApiLifecycle, DEFAULT_API_PORT,
@@ -610,6 +688,7 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
     use std::sync::Mutex;
+    use std::sync::atomic::AtomicBool;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     #[cfg(unix)]
@@ -634,6 +713,14 @@ mod tests {
     #[test]
     fn packaged_core_restart_window_is_bounded_and_one_file_safe() {
         assert_eq!(LOCAL_API_STARTUP_TIMEOUT, Duration::from_secs(60));
+    }
+
+    #[test]
+    fn codev_chat_transport_outlives_its_governed_deadline_only_on_the_exact_route() {
+        assert_eq!(local_api_read_timeout("POST", "/codev/chat"), Duration::from_secs(240));
+        for (method, path) in [("GET", "/codev/chat"), ("POST", "/chat"), ("POST", "/codev/chat/cancel")] {
+            assert_eq!(local_api_read_timeout(method, path), Duration::from_secs(120));
+        }
     }
 
     #[test]
@@ -673,17 +760,24 @@ mod tests {
         let child_id = child.id();
         let lifecycle = LocalApiLifecycle {
             child: Mutex::new(Some(child)),
+            runtime_checked: AtomicBool::new(false),
             runtime_mode: "packaged",
             api_address: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 9),
             launcher_path: PathBuf::from("/nonexistent/elysia"),
             credential_path: PathBuf::from("/nonexistent/credential"),
             distribution_form: "user_local_desktop",
+            shared_runtime_dir: None,
         };
-        lifecycle.stop_owned_process();
+        lifecycle.stop_owned_process().expect("confirmed owned child stop");
         assert!(lifecycle.child.lock().expect("child slot").is_none());
         let alive = unsafe { libc::kill(child_id as i32, 0) } == 0;
         assert!(!alive, "owned child process survived exact hard stop");
     }
+}
+
+#[tauri::command]
+fn codev_installation(state: tauri::State<'_, LocalApiLifecycle>) -> Result<serde_json::Value, String> {
+    state.installation_snapshot()
 }
 
 fn main() {
@@ -693,12 +787,14 @@ fn main() {
         .manage(lifecycle)
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
-                window.state::<LocalApiLifecycle>().stop_owned_process();
+                window.state::<LocalApiLifecycle>().stop_if_exclusive();
             }
         })
         .invoke_handler(tauri::generate_handler![
             local_api_session,
+            codev_installation,
             local_api_request,
+            identity_photo::choose_identity_photo,
             emergency_stop_owned
         ])
         .plugin(tauri_plugin_dialog::init())
@@ -708,7 +804,7 @@ fn main() {
 
     app.run(|app_handle, event| {
         if matches!(event, tauri::RunEvent::Exit) {
-            app_handle.state::<LocalApiLifecycle>().stop_owned_process();
+            app_handle.state::<LocalApiLifecycle>().stop_if_exclusive();
         }
     });
 }
