@@ -138,7 +138,7 @@ export default function Composer({
   }
 
   return (
-    <div
+    <div className="elysia-composer"
       style={{
         display: "grid",
         gridTemplateColumns: "minmax(155px, auto) minmax(0, 1fr) auto",

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchInstallProfileStatus,
   type InstallProfileStatusEnvelope
@@ -828,6 +828,9 @@ export default function CapabilitiesPage({
     capabilityStartupState === "unavailable" ||
     capabilityStartupState === "error";
 
+  const detailRef = useRef<HTMLDivElement>(null);
+  const selectedCardRef = useRef<HTMLElement | null>(null);
+
   function clearFilters() {
     setSearchQuery("");
     setSelectedGroup("all");
@@ -837,7 +840,7 @@ export default function CapabilitiesPage({
 
   return (
     <div
-      className="elysia-room-scroll-at-narrow"
+      className="elysia-room-page"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -1166,9 +1169,11 @@ export default function CapabilitiesPage({
                   selected={
                     selectedCapability?.capabilityKey === capability.capabilityKey
                   }
-                  onSelect={() =>
-                    setSelectedCapabilityKey(capability.capabilityKey)
-                  }
+                  onSelect={() => {
+                    selectedCardRef.current = document.activeElement as HTMLElement;
+                    setSelectedCapabilityKey(capability.capabilityKey);
+                    requestAnimationFrame(() => { detailRef.current?.focus(); detailRef.current?.scrollIntoView({ block: "start" }); });
+                  }}
                 />
               ))
             ) : (
@@ -1180,7 +1185,10 @@ export default function CapabilitiesPage({
             )}
           </section>
 
-          <DetailPanel capability={selectedCapability} />
+          <div ref={detailRef} tabIndex={-1} className="elysia-capability-detail" aria-label="Selected capability detail">
+            <button type="button" className="elysia-shell-toggle" onClick={() => { selectedCardRef.current?.focus(); selectedCardRef.current?.scrollIntoView({ block: "center" }); }}>Back to capability list</button>
+            <DetailPanel capability={selectedCapability} />
+          </div>
         </div>
       )}
 
