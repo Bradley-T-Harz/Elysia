@@ -330,12 +330,12 @@ function CapabilityCard({
 }: {
   capability: CapabilityManifestEntry;
   selected: boolean;
-  onSelect: () => void;
+  onSelect: (card: HTMLButtonElement) => void;
 }) {
   return (
     <button
       type="button"
-      onClick={onSelect}
+      onClick={(event) => onSelect(event.currentTarget)}
       style={{
         width: "100%",
         display: "grid",
@@ -1169,8 +1169,9 @@ export default function CapabilitiesPage({
                   selected={
                     selectedCapability?.capabilityKey === capability.capabilityKey
                   }
-                  onSelect={() => {
-                    selectedCardRef.current = document.activeElement as HTMLElement;
+                  onSelect={(card) => {
+                    // WebKit pointer activation does not necessarily focus a button.
+                    selectedCardRef.current = card;
                     setSelectedCapabilityKey(capability.capabilityKey);
                     requestAnimationFrame(() => { detailRef.current?.focus(); detailRef.current?.scrollIntoView({ block: "start" }); });
                   }}
