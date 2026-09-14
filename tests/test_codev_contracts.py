@@ -34,6 +34,7 @@ def setup_plan():
 
 def test_generated_desktop_contracts_match_canonical_schema():
     schema, ts = generated_files()
+    assert "edits: Record<string, string>;" in ts
     assert (ROOT / "contracts/codev.schema.json").read_text() == schema
     assert (ROOT / "apps/elysia-desktop/src/api/codevContracts.ts").read_text() == ts
     assert (ROOT / "apps/elysia-desktop/src-tauri/src/codev_contracts.rs").read_text() == generated_rust()

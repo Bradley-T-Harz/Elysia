@@ -291,7 +291,13 @@ class BrowserRevisionRequest(BrowserWorkspaceRequest):
 class BrowserChatRequest(BrowserRevisionRequest):
     message: str = Field(min_length=1, max_length=16000)
     requested_gear: str = "standard"
+    response_kind: Literal["conversation", "edit_proposal"] = "conversation"
     request_id: str = Field(pattern=r"^codev_[a-f0-9]{32}$")
+
+
+class BrowserEditProposal(Contract):
+    summary: str = Field(min_length=1, max_length=2000)
+    edits: dict[str, str] = Field(min_length=1, max_length=20)
 
 
 class BrowserCancelRequest(Contract):
@@ -329,6 +335,7 @@ class CodevContracts(Contract):
     browser_share: BrowserWorkspaceShare
     browser_revision: BrowserRevisionRequest
     browser_chat: BrowserChatRequest
+    browser_edit_proposal: BrowserEditProposal
     browser_cancel: BrowserCancelRequest
     browser_patch: BrowserPatchRequest
     browser_approve: BrowserApproveRequest

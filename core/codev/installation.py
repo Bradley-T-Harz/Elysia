@@ -29,6 +29,7 @@ def capability_manifest(*, usable: bool) -> list[Capability]:
         "workspace_read": ["workspace_grant", "selected_files"],
         "workspace_write_plan": ["workspace_grant"],
         "patch_propose": ["workspace_grant", "selected_files"],
+        "structured_edit_proposal": ["workspace_propose_grant", "selected_files", "local_compute_admission"],
         "patch_apply": ["workspace_write_grant", "exact_revision_approval"],
         "git_inspect": ["workspace_grant"],
         "command_catalog": [],

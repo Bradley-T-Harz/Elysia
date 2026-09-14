@@ -17,9 +17,10 @@ from core.codev import broker, pairing, sessions, browser_workspaces
 from core.codev.contracts import Installation, BrowserPublicKey
 from core.codev.grants import utc_now, GrantDenied
 from core.codev.runtime_scope import current_context
+from core.codev.installation import capability_manifest
 
 principal = {"user_id": "synthetic-browser-local-profile", "session_id": "synthetic-browser-local-login"}
-installation = Installation(state="installed_ready", installed=True, usable=True, version="1.0.0", note="Synthetic browser qualification adapter.")
+installation = Installation(state="installed_ready", installed=True, usable=True, version="1.0.0", capabilities=capability_manifest(usable=True), note="Synthetic browser qualification adapter.")
 account_service.get_authenticated_principal = lambda: principal.copy()
 sessions._principal = lambda: principal.copy()
 pairing._principal = lambda: principal.copy()
@@ -48,7 +49,7 @@ def online(origin, route, payload):
 
 def model_response(payload):
     context = current_context()
-    model_contexts.append({"files": [item.path for item in context.files], "inventory": context.handoff})
+    model_contexts.append({"files": [item.path for item in context.files], "inventory": context.handoff, "edit_proposal": context.edit_proposal})
     if proposed_edits:
         response = json.dumps({"summary": "Synthetic provider proposes a focused improvement", "edits": proposed_edits})
     else:
@@ -106,7 +107,7 @@ try:
         elif op == "configure":
             if "installed" in command:
                 value = command["installed"]
-                installation = Installation(state="installed_ready" if value else "absent", installed=value, usable=value, version="1.0.0" if value else None, note="Synthetic test installation state.")
+                installation = Installation(state="installed_ready" if value else "absent", installed=value, usable=value, version="1.0.0" if value else None, capabilities=capability_manifest(usable=value), note="Synthetic test installation state.")
             proposed_edits = command.get("edits", proposed_edits)
             print(json.dumps({"ok": True}), flush=True)
         elif op == "counts":

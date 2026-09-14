@@ -6,6 +6,19 @@ from core.codev.contracts import WorkspaceFile
 from core.codev.runtime_scope import DevelopmentContext, development_context, current_context
 
 
+def test_typed_edit_proposal_keeps_coding_routing_and_replaces_only_presentation_guidance():
+    from core import runtime
+    kwargs = {"intent": {"primary": "writing"}, "mode": "coder",
+              "selected_skill": {"selected_skill_id": "conversation.conversation_helper"}}
+    assert runtime._derive_model_routing_task_type(**kwargs) == "conversation"
+    with development_context(DevelopmentContext("proposal-test", edit_proposal=True)):
+        assert runtime._derive_model_routing_task_type(**kwargs) == "coding"
+        guidance = runtime._build_mode_coder_guidance_block("coder")
+        assert "JSON" in guidance and "exact review and approval" in guidance
+        assert "Repo Context, Patch Plan" not in guidance
+    assert "Repo Context, Patch Plan" in runtime._build_mode_coder_guidance_block("coder")
+
+
 def test_codev_uses_only_explicit_context_and_never_queries_personal_sources(monkeypatch):
     class ForbiddenSource:
         source_type = "private_canary"

@@ -8,7 +8,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from hashlib import sha256
 
-from core.codev.contracts import WorkspaceFile
+from core.codev.contracts import BrowserEditProposal, WorkspaceFile
 
 # Both clients allow 240 seconds for transport. Reserve time for final
 # authority checks and delivery; planning and provider preflight share this
@@ -22,6 +22,18 @@ class DevelopmentContext:
     files: tuple[WorkspaceFile, ...] = ()
     handoff: str = ""
     deadline_monotonic: float | None = None
+    edit_proposal: bool = False
+
+    def proposal_schema(self):
+        if not self.edit_proposal:
+            return None
+        schema = BrowserEditProposal.model_json_schema()
+        schema["properties"]["edits"] = {
+            "type": "object", "minProperties": 1, "maxProperties": 20,
+            "properties": {item.path: {"type": "string"} for item in self.files if item.text is not None},
+            "additionalProperties": False,
+        }
+        return schema
 
     def candidates(self, owner_user_id):
         from app.cognition.models import CognitionCandidate, estimate_tokens

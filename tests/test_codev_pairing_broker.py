@@ -176,8 +176,9 @@ def test_browser_share_revision_grants_and_exact_single_use_patch(fixture):
     with pytest.raises(GrantDenied): browser.dispatch(pair, "/codev/workspace/status", {"workspace_id":source["workspace_id"]})
 
 
+@pytest.mark.parametrize("response_kind", ["conversation", "edit_proposal"])
 @pytest.mark.parametrize("change", ["logout", "uninstall", "cloud_revoke"])
-def test_revocation_withholds_inflight_cognition_and_clears_shared_source(fixture, monkeypatch, change):
+def test_revocation_withholds_inflight_cognition_and_clears_shared_source(fixture, monkeypatch, change, response_kind):
     from app.api import runtime_bridge
     from core.codev.runtime_scope import current_context
     state = fixture; pair = connect(state); source, shared_state = shared(state, pair)
@@ -190,9 +191,45 @@ def test_revocation_withholds_inflight_cognition_and_clears_shared_source(fixtur
         return {"data":{"invocation_status":"ok", "response_source":"live_invoker", "response_text":"WITHHELD_CANARY"}}
     monkeypatch.setattr(runtime_bridge, "send_chat_request", respond)
     with pytest.raises(GrantDenied): browser.dispatch(pair, "/codev/chat", {"workspace_id":source["workspace_id"], "revision":3,
-        "content_hash":source["content_hash"], "grant_epoch":shared_state["grant"]["epoch"], "message":"Explain", "request_id":"codev_"+uuid4().hex})
+        "content_hash":source["content_hash"], "grant_epoch":shared_state["grant"]["epoch"], "message":"Explain",
+        "response_kind":response_kind, "request_id":"codev_"+uuid4().hex})
     pairing.revoke_unavailable_pairs()
     assert not any(value.actor == pair.actor for value in browser._WORKSPACES.values())
+
+
+@pytest.mark.parametrize("output", [
+    {"summary": "Exact edit", "edits": {"main.py": "answer = 43\n"}},
+    {"summary": {}, "edits": {"main.py": "answer = 43\n"}},
+    {"summary": "Wrong scope", "edits": {"unselected.py": "DO_NOT_RETURN"}},
+])
+def test_structured_proposal_validates_model_output_without_authorizing_mutation(fixture, monkeypatch, output):
+    from app.api import runtime_bridge
+    from core.codev.runtime_scope import current_context
+    state = fixture; pair = connect(state); source, shared_state = shared(state, pair)
+    selected_path = source["files"][0]["path"]
+    if "main.py" in output["edits"]:
+        output = {**output, "edits": {selected_path: output["edits"]["main.py"]}}
+    def respond(payload):
+        assert current_context().edit_proposal
+        return {"data": {"invocation_status": "ok", "response_source": "live_invoker", "response_text": json.dumps(output)}}
+    monkeypatch.setattr(runtime_bridge, "send_chat_request", respond)
+    result = browser.dispatch(pair, "/codev/chat", {"workspace_id":source["workspace_id"], "revision":3,
+        "content_hash":source["content_hash"], "grant_epoch":shared_state["grant"]["epoch"], "message":"Propose",
+        "response_kind":"edit_proposal", "request_id":"codev_"+uuid4().hex})
+    valid = isinstance(output["summary"], str) and set(output["edits"]) == {selected_path}
+    assert result["receipt"]["status"] == ("completed" if valid else "blocked")
+    assert "DO_NOT_RETURN" not in result["response_text"]
+    assert browser._workspace(pair.actor, source["workspace_id"]).share.files[0].text == "answer = 42\n"
+
+
+def test_structured_proposal_requires_propose_grant_before_model_access(fixture, monkeypatch):
+    from app.api import runtime_bridge
+    state = fixture; pair = connect(state); source, shared_state = shared(state, pair, scopes=["read"])
+    monkeypatch.setattr(runtime_bridge, "send_chat_request", lambda *_: pytest.fail("Read-only grant accessed proposal model path"))
+    with pytest.raises(GrantDenied):
+        browser.dispatch(pair, "/codev/chat", {"workspace_id":source["workspace_id"], "revision":3,
+            "content_hash":source["content_hash"], "grant_epoch":shared_state["grant"]["epoch"], "message":"Propose",
+            "response_kind":"edit_proposal", "request_id":"codev_"+uuid4().hex})
 
 
 def test_native_revoke_succeeds_even_when_cloud_is_down(fixture):

@@ -152,8 +152,10 @@ def dispatch(pair, path: str, payload: dict) -> dict:
         request = ChatRequest.model_validate(payload)
         value = _workspace(pair.actor, request.workspace_id)
         with value.lock:
-            grant = _revision(value, request)
+            grant = _revision(value, request, "propose" if request.response_kind == "edit_proposal" else "read")
             selected = tuple(item.model_copy(deep=True) for item in value.share.files if item.path in grant.files and item.text is not None)
+            if request.response_kind == "edit_proposal" and not selected:
+                raise GrantDenied("proposal_requires_selected_file_contents")
         checked_at = monotonic()
         def check_pairing(*, periodic=False):
             nonlocal checked_at
@@ -162,6 +164,7 @@ def dispatch(pair, path: str, payload: dict) -> dict:
                 checked_at = monotonic()
         return actions._governed_chat(pair.actor, workspace_id=request.workspace_id, message=request.message,
             request_id=request.request_id, requested_gear=request.requested_gear, selected=selected, grant=grant,
+            response_kind=request.response_kind,
             handoff="Explicitly shared browser file inventory (metadata is not file contents):\n" + json.dumps([
                 {"path":item.path,"size_bytes":item.size_bytes,"content_available":item.text is not None}
                 for item in value.share.files[:60]],ensure_ascii=False).encode("utf-8")[:14000].decode("utf-8",errors="ignore") +

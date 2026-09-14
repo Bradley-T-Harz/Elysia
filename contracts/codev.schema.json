@@ -288,6 +288,15 @@
           "title": "Requested Gear",
           "type": "string"
         },
+        "response_kind": {
+          "default": "conversation",
+          "enum": [
+            "conversation",
+            "edit_proposal"
+          ],
+          "title": "Response Kind",
+          "type": "string"
+        },
         "revision": {
           "minimum": 0,
           "title": "Revision",
@@ -309,6 +318,32 @@
         "request_id"
       ],
       "title": "BrowserChatRequest",
+      "type": "object"
+    },
+    "BrowserEditProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "edits": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 20,
+          "minProperties": 1,
+          "title": "Edits",
+          "type": "object"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "summary",
+        "edits"
+      ],
+      "title": "BrowserEditProposal",
       "type": "object"
     },
     "BrowserPatchRequest": {
@@ -1783,6 +1818,9 @@
     "browser_chat": {
       "$ref": "#/$defs/BrowserChatRequest"
     },
+    "browser_edit_proposal": {
+      "$ref": "#/$defs/BrowserEditProposal"
+    },
     "browser_patch": {
       "$ref": "#/$defs/BrowserPatchRequest"
     },
@@ -1842,6 +1880,7 @@
     "browser_share",
     "browser_revision",
     "browser_chat",
+    "browser_edit_proposal",
     "browser_cancel",
     "browser_patch",
     "browser_approve"

@@ -8,6 +8,31 @@ import pytest
 from core import model_invoker as invoker
 
 
+def test_codev_edit_proposal_uses_selected_file_schema_without_changing_compute_controls(monkeypatch):
+    from hashlib import sha256
+    from core.codev.contracts import WorkspaceFile
+    from core.codev.runtime_scope import DevelopmentContext, development_context
+    text = "first line\nsecond line\n"
+    selected = WorkspaceFile(path="README.md", text=text, size_bytes=len(text),
+        content_hash=sha256(text.encode()).hexdigest(), availability="text", provenance="editor")
+    metadata = WorkspaceFile(path="private.txt", text=None, size_bytes=5, availability="metadata_only", provenance="intake")
+    captured = {}
+    def post(url, payload, timeout_s):
+        captured.update(payload)
+        return {"message": {"content": json.dumps({"summary": "Keep paragraphs", "edits": {"README.md": text}})}, "done": True}
+    monkeypatch.setattr(invoker, "_post_json", post)
+    with development_context(DevelopmentContext("selected-workspace", (selected, metadata), edit_proposal=True)):
+        result = invoker._call_ollama_chat("local:code", "Existing governed system instructions", "Keep line breaks",
+            stream_transport=False, num_gpu=0, max_output_tokens=88)
+    assert result["ok"]
+    assert json.loads(result["response_text"])["edits"]["README.md"] == text
+    assert captured["format"]["properties"]["edits"]["properties"] == {"README.md": {"type": "string"}}
+    assert captured["format"]["properties"]["edits"]["additionalProperties"] is False
+    assert captured["format"]["additionalProperties"] is False
+    assert captured["options"] == {"temperature": 0, "num_gpu": 0, "num_predict": 88}
+    assert captured["messages"][0]["content"].startswith("Existing governed system instructions")
+
+
 @pytest.mark.parametrize("phase", ["before_headers", "between_tokens"])
 @pytest.mark.parametrize("stop", ["cancel", "deadline"])
 def test_codev_provider_interrupts_stalled_socket_without_returning_partial_content(monkeypatch, phase, stop):

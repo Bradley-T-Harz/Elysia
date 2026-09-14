@@ -8,7 +8,7 @@ from time import monotonic
 from uuid import uuid4
 
 from core.codev.approvals import PLANS
-from core.codev.contracts import Actor, ChangePlan, OperationReceipt
+from core.codev.contracts import Actor, BrowserEditProposal, ChangePlan, OperationReceipt
 from core.codev.grants import GRANTS, GrantDenied, iso_now, utc_now
 from core.codev.identity import bind_client
 from core.codev.runtime_scope import CHAT_BUDGET_SECONDS, DevelopmentContext, development_context
@@ -112,7 +112,7 @@ def chat(actor: Actor, *, workspace_id: str | None, message: str, request_id: st
 
 def _governed_chat(actor: Actor, *, workspace_id: str | None, message: str, request_id: str,
                    requested_gear: str, handoff: str = "", selected=(), grant=None,
-                   authority_check=None, remember=None) -> dict:
+                   authority_check=None, remember=None, response_kind="conversation") -> dict:
     """One governed runtime for native and explicitly shared browser snapshots."""
     deadline = monotonic() + CHAT_BUDGET_SECONDS
     from app.api.runtime_bridge import send_chat_request
@@ -126,6 +126,11 @@ def _governed_chat(actor: Actor, *, workspace_id: str | None, message: str, requ
         raise GrantDenied("bounded_message_required")
     if requested_gear not in {"automatic", "quick", "standard", "deep", "deliberative", "research_engineering"}:
         raise GrantDenied("unsupported_reasoning_gear")
+    if response_kind not in {"conversation", "edit_proposal"}:
+        raise GrantDenied("unsupported_response_kind")
+    is_proposal = response_kind == "edit_proposal"
+    if is_proposal and (not grant or not selected):
+        raise GrantDenied("proposal_requires_selected_file_grant")
     with _CHAT_LOCK:
         if any(owner[0] == actor for owner in _CHAT_OWNERS.values()) or request_id in _CHAT_OWNERS or len(_CHAT_OWNERS) >= 8:
             raise GrantDenied("codev_cognition_busy")
@@ -144,7 +149,7 @@ def _governed_chat(actor: Actor, *, workspace_id: str | None, message: str, requ
         if authority_check:
             authority_check(periodic=periodic)
         if grant:
-            GRANTS.require(actor, workspace_id, "read", epoch=grant.epoch)
+            GRANTS.require(actor, workspace_id, "propose" if is_proposal else "read", epoch=grant.epoch)
 
     def monitor():
         while not finished.wait(0.5):
@@ -159,7 +164,8 @@ def _governed_chat(actor: Actor, *, workspace_id: str | None, message: str, requ
     try:
         still_authorized()
         with bind_client(actor.client_id), development_context(DevelopmentContext(
-            workspace_id or "no-workspace", selected, handoff, deadline_monotonic=deadline
+            workspace_id or "no-workspace", selected, handoff,
+            deadline_monotonic=deadline, edit_proposal=is_proposal,
         )):
             response = send_chat_request({"message": message, "request_id": request_id, "requested_mode": "coder",
                 "requested_gear": requested_gear, "ui_surface": "codev_" + actor.surface})
@@ -167,6 +173,16 @@ def _governed_chat(actor: Actor, *, workspace_id: str | None, message: str, requ
         data = response.get("data") or {}
         live = (monotonic() < deadline and not cancelled.is_set()
                 and data.get("invocation_status") == "ok" and data.get("response_source") == "live_invoker")
+        if live and is_proposal:
+            try:
+                proposal = BrowserEditProposal.model_validate_json(data.get("response_text", ""))
+                allowed = {item.path for item in selected if item.text is not None}
+                if not set(proposal.edits).issubset(allowed):
+                    raise ValueError("unselected proposal path")
+            except ValueError:
+                live = False
+                data["invocation_status"] = "error"
+                data["caveats"] = [*(data.get("caveats") or []), "The local model did not return a valid selected-file edit proposal. No patch was authorized or applied."]
         receipt = OperationReceipt(operation_id=request_id, request_id=request_id, workspace_id=workspace_id,
             status="cancelled" if cancelled.is_set() else "completed" if live else "blocked", summary="Governed local Codev response." if live else "The local model did not complete this request.",
             files_inspected=[item.path for item in selected], warnings=data.get("caveats") or [],

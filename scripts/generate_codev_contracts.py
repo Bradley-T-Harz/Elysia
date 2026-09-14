@@ -28,6 +28,8 @@ def typescript_type(schema: dict) -> str:
     if kind == "array":
         return f"Array<{typescript_type(schema['items'])}>"
     if kind == "object":
+        if not schema.get("properties") and isinstance(schema.get("additionalProperties"), dict):
+            return f"Record<string, {typescript_type(schema['additionalProperties'])}>"
         required = set(schema.get("required", []))
         return "{\n" + "\n".join(
             f"  {key}{'' if key in required else '?'}: {typescript_type(value)};"
