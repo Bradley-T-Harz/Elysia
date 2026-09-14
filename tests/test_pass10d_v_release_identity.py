@@ -84,15 +84,16 @@ def test_release_bearing_manifests_share_v1_identity() -> None:
     assert codev["in_app_install_control_live"] is False
 
 
-def test_exact_codev_release_is_bound_into_install_manifests() -> None:
-    graph = (ROOT / "config/install/component_graph.yaml").read_text(encoding="utf-8")
-    acquisitions = (ROOT / "config/install/acquisition_manifests.yaml").read_text(
-        encoding="utf-8"
-    )
-    assert CODEV_VSIX_SHA256 in graph
-    assert CODEV_VSIX_SHA256 in acquisitions
-    assert "ecosyneva-commons.elysia-codev@1.0.0" in acquisitions
-    assert "exact_selected_vsix_digest_required" not in acquisitions
+def test_codev_installation_uses_neutral_core_without_rewriting_frozen_release_identity() -> None:
+    graph = yaml.safe_load((ROOT / "config/install/component_graph.yaml").read_text())["components"]["codev_companion"]
+    acquisition = yaml.safe_load((ROOT / "config/install/acquisition_manifests.yaml").read_text())["components"]["codev_companion"]
+    assert "codev-core-1" in graph["exact_version_digest"]
+    assert "vscode" not in graph["system_dependencies"]
+    assert acquisition["method"] == "independently_installed_verified_codev_core_package"
+    assert "manifest_payload_digests" in acquisition["digest"]
+    assert "1.0.0" in acquisition["identity"]
+    frozen = json.loads((ROOT / "config/release/release_identity.json").read_text())
+    assert frozen["official_codev"]["vsix_sha256"] == CODEV_VSIX_SHA256
 
 
 def test_package_bound_acquisitions_describe_release_payloads_not_candidates() -> None:

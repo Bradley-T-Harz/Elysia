@@ -169,7 +169,13 @@ def inspect_dependency(
 ) -> DependencyStatusEntry:
     """Inspect one dependency without importing it, executing it, or using network."""
     version: str | None = None
-    if "import_check" in dependency:
+    if dependency_id == "codev_core":
+        from .codev_core import inspect_core
+        identity = inspect_core()
+        version = identity.version
+        status = DependencyStatus.PRESENT if identity.compatible else DependencyStatus.DEGRADED if identity.installed else DependencyStatus.MISSING
+        check_method = "installed_core_manifest"
+    elif "import_check" in dependency:
         status, version = _python_status(dependency)
         check_method = "module_metadata"
     elif "command_check" in dependency:

@@ -476,191 +476,33 @@ def test_persisted_running_job_without_live_worker_is_truthfully_interrupted(tmp
     assert service.job(job_id)["status"] == "interrupted"
 
 
-def test_codev_apply_refuses_vsix_changed_after_exact_preview(
-    tmp_path: Path, monkeypatch,
-) -> None:
-    artifact = tmp_path / "elysia-codev-1.0.0.vsix"
-    _codev_vsix(artifact)
-    commands: list[list[str]] = []
-
-    def runner(command: list[str], _cancel, _working: Path) -> str:
-        commands.append(command)
-        return ""
-
-    monkeypatch.setattr(
-        "app.install.component_install_service.shutil.which",
-        lambda command: "/usr/bin/code" if command == "code" else None,
-    )
-    service = ComponentInstallService(
-        _paths(tmp_path / "xdg"),
-        command_runner=runner,
-        release_identity_path=_codev_release_identity(tmp_path, artifact),
-    )
-    preview = service.preview(ComponentPreviewRequest(
-        component_id="codev_companion",
-        operation="install",
-        local_artifact_path=str(artifact),
-    ))
-    assert preview["canonical_release_url"].endswith(
-        "/releases/download/v1.0.0/elysia-codev-1.0.0.vsix"
-    )
-    artifact.write_bytes(b"changed after preview")
-    result = service.apply(ComponentApplyRequest(
-        preview_id=preview["preview_id"],
-        approval_token=preview["approval_token"],
-        operator_approved=True,
-    ))
-    state = _wait(service, result["job_id"])
-    assert state["status"] == "failed"
-    assert commands == []
+@pytest.mark.parametrize("operation", ["install", "repair", "remove"])
+def test_codev_core_lifecycle_cannot_be_minted_by_a_vsix_or_setup_receipt(tmp_path, monkeypatch, operation):
+    from app.install.codev_core import CoreIdentity
+    monkeypatch.setattr("app.install.component_install_service.inspect_core", lambda _paths: CoreIdentity("absent"))
+    service = ComponentInstallService(_paths(tmp_path))
+    service.receipt_root.mkdir(parents=True)
+    (service.receipt_root / "codev_companion.json").write_text(json.dumps({"status": "ready", "managed_by_elysia": True}))
+    row = next(item for item in service.state()["components"] if item["component_id"] == "codev_companion")
+    assert row["status"] == "not_installed" and not row["managed_by_elysia"]
+    with pytest.raises(ComponentInstallError, match="Codev Core package"):
+        service.preview(ComponentPreviewRequest(component_id="codev_companion", operation=operation, metadata_network_approved=True))
+    assert not service.preview_root.exists()
 
 
-def test_codev_component_install_and_remove_verify_editor_reality(
-    tmp_path: Path, monkeypatch,
-) -> None:
-    artifact = tmp_path / "elysia-codev-1.0.0.vsix"
-    _codev_vsix(artifact)
-    installed = False
-    commands: list[list[str]] = []
-
-    def runner(command: list[str], _cancel, _working: Path) -> str:
-        nonlocal installed
-        commands.append(command)
-        if "--install-extension" in command:
-            installed = True
-        elif "--uninstall-extension" in command:
-            installed = False
-        elif "--list-extensions" in command:
-            return "ecosyneva-commons.elysia-codev@1.0.0\n" if installed else ""
-        return ""
-
-    monkeypatch.setattr(
-        "app.install.component_install_service.shutil.which",
-        lambda command: "/usr/bin/code" if command == "code" else None,
-    )
-    service = ComponentInstallService(
-        _paths(tmp_path / "xdg"),
-        command_runner=runner,
-        release_identity_path=_codev_release_identity(tmp_path, artifact),
-    )
-    preview = service.preview(ComponentPreviewRequest(
-        component_id="codev_companion",
-        operation="install",
-        local_artifact_path=str(artifact),
-    ))
-    result = service.apply(ComponentApplyRequest(
-        preview_id=preview["preview_id"],
-        approval_token=preview["approval_token"],
-        operator_approved=True,
-    ))
-    assert _wait(service, result["job_id"])["status"] == "succeeded"
-    install_receipt = json.loads(
-        (service.paths.data_dir / "developer" / "codev-install.json").read_text()
-    )
-    assert install_receipt["package_sha256"] == preview["artifact_sha256"]
+def test_setup_recognizes_neutral_core_without_editor_or_legacy_receipt(tmp_path, monkeypatch):
+    from app.install.codev_core import CoreIdentity
+    monkeypatch.setattr("app.install.component_install_service.inspect_core", lambda _paths: CoreIdentity("installed", True, True, "1.0.0"))
+    service = ComponentInstallService(_paths(tmp_path))
+    row = next(item for item in service.state()["components"] if item["component_id"] == "codev_companion")
+    assert row["status"] == "ready" and row["lifecycle_owner"] == "codev_package"
+    assert row["managed_by_elysia"] is False
+    assert not service.receipt_root.exists()
 
 
-def test_codev_component_can_acquire_exact_first_party_release_without_local_file(
-    tmp_path: Path, monkeypatch,
-) -> None:
-    artifact = tmp_path / "fixture.vsix"
-    _codev_vsix(artifact)
-    payload = artifact.read_bytes()
-    installed = False
-    commands: list[list[str]] = []
-
-    def runner(command: list[str], _cancel, _working: Path) -> str:
-        nonlocal installed
-        commands.append(command)
-        if "--install-extension" in command:
-            installed = True
-        elif "--uninstall-extension" in command:
-            installed = False
-        elif "--list-extensions" in command:
-            return "ecosyneva-commons.elysia-codev@1.0.0\n" if installed else ""
-        return ""
-
-    monkeypatch.setattr(
-        "app.install.component_install_service.shutil.which",
-        lambda command: "/usr/bin/code" if command == "code" else None,
-    )
-    monkeypatch.setattr(
-        "app.install.component_install_service.urlopen",
-        lambda _request, timeout: io.BytesIO(payload),
-    )
-    service = ComponentInstallService(
-        _paths(tmp_path / "xdg"),
-        command_runner=runner,
-        release_identity_path=_codev_release_identity(tmp_path, artifact),
-    )
-    with pytest.raises(ComponentInstallError, match="network approval"):
-        service.preview(ComponentPreviewRequest(
-            component_id="codev_companion",
-            operation="install",
-        ))
-    preview = service.preview(ComponentPreviewRequest(
-        component_id="codev_companion",
-        operation="install",
-        metadata_network_approved=True,
-    ))
-    assert preview["automatic_acquisition"] is True
-    assert preview["exact_download_bytes"] == len(payload)
-    result = service.apply(ComponentApplyRequest(
-        preview_id=preview["preview_id"],
-        approval_token=preview["approval_token"],
-        operator_approved=True,
-    ))
-    assert _wait(service, result["job_id"])["status"] == "succeeded"
-    assert not (service.root / "staging" / result["job_id"]).exists()
-
-    removal = service.preview(ComponentPreviewRequest(
-        component_id="codev_companion", operation="remove",
-    ))
-    result = service.apply(ComponentApplyRequest(
-        preview_id=removal["preview_id"],
-        approval_token=removal["approval_token"],
-        operator_approved=True,
-    ))
-    assert _wait(service, result["job_id"])["status"] == "succeeded"
-    assert installed is False
-    component_receipt = json.loads(
-        (service.receipt_root / "codev_companion.json").read_text()
-    )
-    assert component_receipt["status"] == "removed"
-    assert component_receipt["workspace_and_repository_data_preserved"] is True
-    assert any("--install-extension" in command for command in commands)
-    assert any("--uninstall-extension" in command for command in commands)
-
-
-def test_codev_remote_acquisition_failure_cleans_private_staging(
-    tmp_path: Path, monkeypatch,
-) -> None:
-    artifact = tmp_path / "fixture.vsix"
-    _codev_vsix(artifact)
-    monkeypatch.setattr(
-        "app.install.component_install_service.shutil.which",
-        lambda command: "/usr/bin/code" if command == "code" else None,
-    )
-    monkeypatch.setattr(
-        "app.install.component_install_service.urlopen",
-        lambda _request, timeout: io.BytesIO(b"not the approved VSIX"),
-    )
-    service = ComponentInstallService(
-        _paths(tmp_path / "xdg"),
-        command_runner=lambda *_args: "",
-        release_identity_path=_codev_release_identity(tmp_path, artifact),
-    )
-    preview = service.preview(ComponentPreviewRequest(
-        component_id="codev_companion",
-        operation="install",
-        metadata_network_approved=True,
-    ))
-    result = service.apply(ComponentApplyRequest(
-        preview_id=preview["preview_id"],
-        approval_token=preview["approval_token"],
-        operator_approved=True,
-    ))
-    job = _wait(service, result["job_id"])
-    assert job["status"] == "failed"
-    assert "differs from the exact approved" in job["error_summary"]
-    assert not (service.root / "staging" / result["job_id"]).exists()
+def test_old_approved_editor_preview_cannot_execute_after_core_contract_migration(tmp_path, monkeypatch):
+    service = ComponentInstallService(_paths(tmp_path))
+    monkeypatch.setattr(service, "_load_preview", lambda request: (tmp_path / "old-preview", {"public": {"component_id": "codev_companion"}}))
+    with pytest.raises(ComponentInstallError, match="Codev Core package"):
+        service.apply(ComponentApplyRequest(preview_id="component_" + "a" * 24, approval_token="b" * 43, operator_approved=True))
+    assert not service.job_root.exists()

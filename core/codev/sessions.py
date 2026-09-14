@@ -14,6 +14,7 @@ class _Session:
     actor: Actor
     local_session_id: str
     expires_at: datetime
+    installation_id: str | None = None
 
 
 _SESSIONS: dict[str, _Session] = {}
@@ -41,7 +42,8 @@ def open_native_session() -> Actor:
                 del _SESSIONS[key]
         if len(_SESSIONS) >= 32:
             raise GrantDenied("native_session_capacity_reached")
-        _SESSIONS[actor.client_id] = _Session(actor, principal["session_id"], utc_now() + timedelta(hours=8))
+        _SESSIONS[actor.client_id] = _Session(actor, principal["session_id"], utc_now() + timedelta(hours=8),
+                                             resolve_installation().installation_id)
     return actor
 
 
@@ -54,4 +56,6 @@ def require_native_session(client_id: str, *, revocation_only: bool = False) -> 
         if (not session or session.expires_at <= utc_now() or session.actor.local_profile_id != principal["user_id"]
                 or session.local_session_id != principal["session_id"]):
             raise GrantDenied("native_session_missing_expired_or_account_changed")
+        if not revocation_only and session.installation_id != resolve_installation().installation_id:
+            raise GrantDenied("native_session_installation_changed")
         return session.actor

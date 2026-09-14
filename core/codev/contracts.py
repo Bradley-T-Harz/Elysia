@@ -26,10 +26,44 @@ class Installation(Contract):
     version: str | None = None
     expected_version: Literal["1.0.0"] = "1.0.0"
     contract_versions: list[str] = Field(default_factory=list)
-    source: Literal["none", "legacy_install_receipt"] = "none"
+    source: Literal["none", "legacy_install_receipt", "installed_core_manifest"] = "none"
+    installation_state: Literal["absent", "installed", "incompatible"] = "absent"
+    runtime_state: Literal["disconnected", "ready", "degraded"] = "disconnected"
+    session_state: Literal["approval_needed", "ready"] = "approval_needed"
+    runtime_instance_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{48}$")
+    installation_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     capabilities: list[Capability] = Field(default_factory=list)
     note: str
     raw_paths_exposed: Literal[False] = False
+
+
+class ClientLifecycle(Contract):
+    """Independent axes; pairing and installation never grant a workspace."""
+    installation: Installation
+    workspace_authority: Literal["no_workspace", "workspace_read", "approval_needed", "executing", "revoked"] = "no_workspace"
+    network_pairing: Literal["disconnected", "connected", "revoked"] = "disconnected"
+
+
+class CorePackageManifest(Contract):
+    product: Literal["codev-core"] = "codev-core"
+    version: Literal["1.0.0"] = "1.0.0"
+    contract: Literal["codev-core-1"] = "codev-core-1"
+    runtime_contract: Literal["elysia-local-runtime-1"] = "elysia-local-runtime-1"
+    architecture: Literal["amd64"] = "amd64"
+    core_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    adapter_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class NativeRuntimeIdentity(Contract):
+    contract: Literal["elysia-local-runtime-1"] = "elysia-local-runtime-1"
+    product_version: Literal["1.0.0"] = "1.0.0"
+    pid: int = Field(ge=2)
+    uid: int = Field(ge=0)
+    instance_id: str = Field(pattern=r"^[a-f0-9]{48}$")
+    transport: Literal["unix"] = "unix"
+    boot_id: str = Field(pattern=r"^[a-f0-9-]{36}$")
+    process_start_ticks: str = Field(pattern=r"^[0-9]+$")
+    executable_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
 
 
 # Ownership fields are assigned by trusted adapters, never accepted as authority
@@ -278,6 +312,9 @@ class BrowserApproveRequest(BrowserRevisionRequest):
 class CodevContracts(Contract):
     """Schema root for deterministic JSON Schema and TypeScript generation."""
     installation: Installation
+    lifecycle: ClientLifecycle
+    core_package: CorePackageManifest
+    native_runtime: NativeRuntimeIdentity
     workspace: WorkspaceDescriptor
     grant: WorkspaceGrant
     plan: ChangePlan

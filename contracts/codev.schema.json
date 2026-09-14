@@ -679,6 +679,93 @@
       "title": "ChangePlan",
       "type": "object"
     },
+    "ClientLifecycle": {
+      "additionalProperties": false,
+      "description": "Independent axes; pairing and installation never grant a workspace.",
+      "properties": {
+        "installation": {
+          "$ref": "#/$defs/Installation"
+        },
+        "network_pairing": {
+          "default": "disconnected",
+          "enum": [
+            "disconnected",
+            "connected",
+            "revoked"
+          ],
+          "title": "Network Pairing",
+          "type": "string"
+        },
+        "workspace_authority": {
+          "default": "no_workspace",
+          "enum": [
+            "no_workspace",
+            "workspace_read",
+            "approval_needed",
+            "executing",
+            "revoked"
+          ],
+          "title": "Workspace Authority",
+          "type": "string"
+        }
+      },
+      "required": [
+        "installation"
+      ],
+      "title": "ClientLifecycle",
+      "type": "object"
+    },
+    "CorePackageManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Adapter Sha256",
+          "type": "string"
+        },
+        "architecture": {
+          "const": "amd64",
+          "default": "amd64",
+          "title": "Architecture",
+          "type": "string"
+        },
+        "contract": {
+          "const": "codev-core-1",
+          "default": "codev-core-1",
+          "title": "Contract",
+          "type": "string"
+        },
+        "core_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Core Sha256",
+          "type": "string"
+        },
+        "product": {
+          "const": "codev-core",
+          "default": "codev-core",
+          "title": "Product",
+          "type": "string"
+        },
+        "runtime_contract": {
+          "const": "elysia-local-runtime-1",
+          "default": "elysia-local-runtime-1",
+          "title": "Runtime Contract",
+          "type": "string"
+        },
+        "version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "core_sha256",
+        "adapter_sha256"
+      ],
+      "title": "CorePackageManifest",
+      "type": "object"
+    },
     "ExactApproval": {
       "additionalProperties": false,
       "properties": {
@@ -850,6 +937,29 @@
           "title": "Expected Version",
           "type": "string"
         },
+        "installation_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Installation Id"
+        },
+        "installation_state": {
+          "default": "absent",
+          "enum": [
+            "absent",
+            "installed",
+            "incompatible"
+          ],
+          "title": "Installation State",
+          "type": "string"
+        },
         "installed": {
           "default": false,
           "title": "Installed",
@@ -865,11 +975,44 @@
           "title": "Raw Paths Exposed",
           "type": "boolean"
         },
+        "runtime_instance_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{48}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runtime Instance Id"
+        },
+        "runtime_state": {
+          "default": "disconnected",
+          "enum": [
+            "disconnected",
+            "ready",
+            "degraded"
+          ],
+          "title": "Runtime State",
+          "type": "string"
+        },
+        "session_state": {
+          "default": "approval_needed",
+          "enum": [
+            "approval_needed",
+            "ready"
+          ],
+          "title": "Session State",
+          "type": "string"
+        },
         "source": {
           "default": "none",
           "enum": [
             "none",
-            "legacy_install_receipt"
+            "legacy_install_receipt",
+            "installed_core_manifest"
           ],
           "title": "Source",
           "type": "string"
@@ -908,6 +1051,76 @@
         "note"
       ],
       "title": "Installation",
+      "type": "object"
+    },
+    "NativeRuntimeIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "boot_id": {
+          "pattern": "^[a-f0-9-]{36}$",
+          "title": "Boot Id",
+          "type": "string"
+        },
+        "contract": {
+          "const": "elysia-local-runtime-1",
+          "default": "elysia-local-runtime-1",
+          "title": "Contract",
+          "type": "string"
+        },
+        "executable_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Executable Sha256"
+        },
+        "instance_id": {
+          "pattern": "^[a-f0-9]{48}$",
+          "title": "Instance Id",
+          "type": "string"
+        },
+        "pid": {
+          "minimum": 2,
+          "title": "Pid",
+          "type": "integer"
+        },
+        "process_start_ticks": {
+          "pattern": "^[0-9]+$",
+          "title": "Process Start Ticks",
+          "type": "string"
+        },
+        "product_version": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Product Version",
+          "type": "string"
+        },
+        "transport": {
+          "const": "unix",
+          "default": "unix",
+          "title": "Transport",
+          "type": "string"
+        },
+        "uid": {
+          "minimum": 0,
+          "title": "Uid",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pid",
+        "uid",
+        "instance_id",
+        "boot_id",
+        "process_start_ticks"
+      ],
+      "title": "NativeRuntimeIdentity",
       "type": "object"
     },
     "OperationReceipt": {
@@ -1579,11 +1792,20 @@
     "browser_share": {
       "$ref": "#/$defs/BrowserWorkspaceShare"
     },
+    "core_package": {
+      "$ref": "#/$defs/CorePackageManifest"
+    },
     "grant": {
       "$ref": "#/$defs/WorkspaceGrant"
     },
     "installation": {
       "$ref": "#/$defs/Installation"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/ClientLifecycle"
+    },
+    "native_runtime": {
+      "$ref": "#/$defs/NativeRuntimeIdentity"
     },
     "pairing_intent": {
       "$ref": "#/$defs/PairingIntent"
@@ -1603,6 +1825,9 @@
   },
   "required": [
     "installation",
+    "lifecycle",
+    "core_package",
+    "native_runtime",
     "workspace",
     "grant",
     "plan",

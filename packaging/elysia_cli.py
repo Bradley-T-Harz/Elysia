@@ -36,6 +36,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    runtime = subparsers.add_parser("runtime", help="Discover or start the private installed user runtime.")
+    runtime.add_argument("operation", choices=("ensure", "status", "serve"))
+    subparsers.add_parser("codev-status", help="Read installed Codev identity without granting a workspace.")
+    package_check = subparsers.add_parser("codev-package-check", help="Verify one extracted Codev Core package.")
+    package_check.add_argument("--root", type=Path, required=True)
+    adapter = subparsers.add_parser("codev-adapter", help="Install the bundled optional adapter in one VS Code profile.")
+    adapter.add_argument("--editor")
+    adapter.add_argument("--profile")
+    subparsers.add_parser("codev-user-autostart", help="Register the owned installed user runtime for graphical login.")
+
     serve = subparsers.add_parser("serve", help="Start the governed loopback API.")
     serve.add_argument("--host", default="127.0.0.1", choices=("127.0.0.1", "::1"))
     serve.add_argument("--port", default=8000, type=int)
@@ -101,6 +111,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     _enter_packaged_resource_root()
 
+    if args.command == "runtime":
+        from app.install.runtime_service import main as service_main
+        return service_main([args.operation])
+    if args.command == "codev-status":
+        from app.install.runtime_service import runtime_status
+        from core.codev.installation import resolve_installation
+        print(resolve_installation(runtime_ready=runtime_status()["state"] == "ready").model_dump_json())
+        return 0
+    if args.command in {"codev-package-check", "codev-adapter", "codev-user-autostart"}:
+        from app.install.codev_package import check_package, install_adapter, write_user_autostart
+        from app.install.codev_installer import CodevInstallError
+        try:
+            result = check_package(args.root) if args.command == "codev-package-check" else install_adapter(args.editor, args.profile) if args.command == "codev-adapter" else write_user_autostart()
+        except (OSError, ValueError, CodevInstallError) as exc:
+            print(f"Codev package operation refused: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(result, sort_keys=True))
+        return 0
+
     if args.command == "serve":
         from app.cli.runtime import main as runtime_main
 
@@ -127,7 +156,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             doctor_args.append("--record")
         return doctor_main(doctor_args)
     if args.command == "version":
-        print(f"Elysia {VERSION}")
+        product = "Codev" if Path(sys.executable).name == "codev-core" else "Elysia"
+        print(f"{product} {VERSION}")
         return 0
     if args.command == "codev-install":
         from app.install.codev_installer import CodevInstallError, install_codev_vsix
@@ -141,7 +171,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         except CodevInstallError as exc:
             print(f"Codev installation refused: {exc}", file=sys.stderr)
             return 2
-        print("Codev local installation completed.")
+        print("Codev editor adapter installation completed. Neutral Codev Core is installed separately.")
         print(json.dumps(result.public_summary(), sort_keys=True))
         print("No download, publication, shell, package-manager, Git, or repository authority was granted.")
         return 0

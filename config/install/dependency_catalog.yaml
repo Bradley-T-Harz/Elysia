@@ -72,6 +72,7 @@ dependency_groups:
       - vscode
       - git
       - codev_vsix
+      - codev_core
   developer_python_test:
     dependencies:
       - pytest
@@ -522,8 +523,8 @@ dependencies:
   vscode:
     package_name: vscode-compatible-editor
     profile: developer
-    purpose: Host for the official Codev extension.
-    required: true
+    purpose: Optional native client host for installed Codev Core.
+    required: false
     kind: application
     external_download_required: true
     allowed_in_core: false
@@ -542,13 +543,23 @@ dependencies:
   codev_vsix:
     package_name: elysia-codev-vsix
     profile: developer
-    purpose: First-party official Developer profile extension.
-    required: true
+    purpose: Optional VS Code client bundled with installed Codev Core; not installation identity.
+    required: false
     kind: application
     external_download_required: false
     allowed_in_core: false
     doctor_check: codev_api_contract_compatibility
     license_provenance_note: First-party Apache-2.0 target; inspect the packaged VSIX contents.
+  codev_core:
+    package_name: codev-core
+    profile: developer
+    purpose: Neutral installed Codev runtime for Elysia, optional VS Code, and explicitly paired websites.
+    required: true
+    kind: application
+    external_download_required: false
+    allowed_in_core: false
+    doctor_check: codev_core_manifest_and_private_runtime
+    license_provenance_note: First-party Apache-2.0 Core package; compiled payload and optional adapter are hash-bound in codev-core-1.
   pytest:
     package_name: pytest
     profile: developer

@@ -1,6 +1,6 @@
 version: 1
 contract_version: elysia-system-prerequisites-1.0
-supported_os: ubuntu-24.04
+supported_os: ubuntu-24.04; debian-13-core-and-codev
 supported_architecture: x86_64
 rules:
   silent_sudo: false
@@ -29,5 +29,4 @@ dependencies:
   cpu_baseline: {kind: logical, packages: [], purpose: Scientific CPU fallback requires the exact locally checked instruction baseline}
   ollama: {kind: external, packages: [], command: ollama, purpose: Separately approved local model provider}
   ollama_optional: {kind: external_optional, packages: [], command: ollama, purpose: Optional separately approved local model provider}
-  vscode: {kind: external, packages: [], commands: [code, codium], purpose: User-selected VS Code-family Extension Host}
   optional_supported_nvidia_driver: {kind: hardware_optional, packages: [], purpose: CUDA only after supported NVIDIA driver and resource proof}

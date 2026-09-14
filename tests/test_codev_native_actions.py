@@ -16,7 +16,7 @@ def authenticated(monkeypatch, actor=None):
     principal = {"user_id": actor.local_profile_id if actor else "native-fixture", "session_id": "fixture-session"}
     monkeypatch.setattr(sessions, "_principal", lambda: principal.copy())
     monkeypatch.setattr(account_service, "get_authenticated_principal", lambda: principal.copy())
-    monkeypatch.setattr(sessions, "resolve_installation", lambda: SimpleNamespace(usable=True))
+    monkeypatch.setattr(sessions, "resolve_installation", lambda: SimpleNamespace(usable=True, installation_id="a" * 64))
     return principal
 
 

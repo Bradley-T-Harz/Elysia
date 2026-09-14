@@ -86,7 +86,7 @@ component_dependency_ids:
     - videoforge_model_assets
     - bubblewrap
     - rootless_container_engine
-  codev_companion: [vscode, git, codev_vsix]
+  codev_companion: [vscode, git, codev_vsix, codev_core]
   scientific_engineering:
     - neurofabric_torch_cpu
     - neurofabric_ncps_cpu
@@ -142,7 +142,6 @@ categories:
     - speechforge_model_assets
     - imageforge_model_assets
     - videoforge_model_assets
-    - codev_vsix
     - qdrant_loopback_service
     - qwen3_embedding_0_6b
     - semantic_container_engine
@@ -160,6 +159,8 @@ categories:
   D:
     - ollama_local_provider
     - vscode
+    - codev_core
+    - codev_vsix
   E:
     - pytest
     - httpx
@@ -196,13 +197,11 @@ system_dependency_categories:
     - ollama
     - ollama_optional
     - optional_supported_nvidia_driver
-    - vscode
 
 system_dependency_guidance_refs:
   ollama: ollama_local_provider
   ollama_optional: ollama_local_provider
   optional_supported_nvidia_driver: optional_supported_nvidia_driver
-  vscode: vscode
 
 category_e_guidance:
   ollama_local_provider:
@@ -221,7 +220,7 @@ category_e_guidance:
     retry_repair: Repair or update Ollama through its official lifecycle, restart the loopback service, then rerun Elysia Doctor and the exact model acquisition.
   vscode:
     title: VS Code-family Extension Host
-    why: The Developer / Codev profile needs a supported VS Code or VSCodium Extension Host.
+    why: VS Code or VSCodium is an optional interface to the independently installed Codev Core.
     official_source: https://code.visualstudio.com/docs/setup/linux
     signup_required: No account is required for a local editor or local VSIX installation.
     data_leaving_local_control: Download and update checks contact the chosen editor publisher. Codev itself has no independent network, shell, package-install, or Git-push authority.
@@ -230,9 +229,36 @@ category_e_guidance:
       - Choose VS Code or VSCodium and review that publisher's license, privacy, and update behavior.
       - Install a supported Linux build using the publisher's documented method.
       - Confirm `code --version` or `codium --version` succeeds.
-      - Return to Elysia Setup; Setup will acquire and install the exact first-party Codev v1.0.0 VSIX after approval.
-    doctor_detection: Doctor detects `code` or `codium`, checks the supported engine range, and verifies the installed Codev extension identity and Elysia API contract.
+      - Install the matching bundled adapter with `codev codev-adapter --editor code`, adding `--profile PROFILE` for a named editor profile.
+    doctor_detection: Core installation and readiness do not depend on an editor. The optional adapter installer resolves the selected `code` or `codium` executable; the editor enforces the packaged adapter's engine requirement.
     retry_repair: Repair or update the chosen editor through its publisher-supported lifecycle, then rerun the Codev component operation and Doctor.
+  codev_core:
+    title: Codev Core installed runtime
+    why: Codev needs its neutral installed runtime; editor installation and repository trust are independent.
+    official_source: https://github.com/Bradley-T-Harz/Elysia
+    signup_required: No external account is required for installation. Local Elysia account governance remains required for workspace operations.
+    data_leaving_local_control: Artifact acquisition contacts the chosen official distribution channel. Installation grants no workspace access or website pairing.
+    license_privacy_security: Verify the published artifact digest and review its notices. Use a supported amd64 Debian-family package; no source checkout or developer environment is required.
+    supported_steps:
+      - Obtain the matching Codev Core 1.0.0 Debian artifact and verify its published digest.
+      - Install through the system package manager or the supplied user installer, first reviewing its dry run.
+      - Open Elysia; the Codev workroom appears even without a selected workspace or VS Code.
+      - Grant repository or website authority separately when needed.
+    doctor_detection: Doctor validates the installed manifest, contract, architecture, payload ownership and executable digest independently of editor and workspace state.
+    retry_repair: Reinstall the verified package or rerun the supplied user installer. User workspaces, accounts and models are retained.
+  codev_vsix:
+    title: Optional Codev VS Code adapter
+    why: The adapter supplies an editor interface to Codev Core; it does not define Core installation.
+    official_source: https://github.com/Bradley-T-Harz/elysia-codev
+    signup_required: No external account is required for local adapter installation.
+    data_leaving_local_control: Installing the bundled adapter needs no workspace upload. Explicit website pairing and network authority remain separate.
+    license_privacy_security: Use the matching adapter bundled with the verified Codev Core package. Workspace trust and exact repository grants remain enforced.
+    supported_steps:
+      - Install Codev Core and a supported VS Code-family editor in either order.
+      - Run `codev codev-adapter --editor code`, optionally selecting `--profile PROFILE`.
+      - Open the Coding Room; the adapter discovers the same private installed runtime as Elysia.
+    doctor_detection: Doctor verifies the optional adapter bundled with Core. Use the selected editor profile's extension inventory to verify installation in that profile; this is separate from Core installation and runtime readiness.
+    retry_repair: Rerun the bundled adapter installation for the intended editor profile. Reinstalling the adapter does not grant repository authority.
   pytest:
     title: Contributor Python test runner
     why: This is needed only for source-development regression work, not for an ordinary packaged Developer / Codev installation.

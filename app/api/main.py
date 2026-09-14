@@ -175,6 +175,7 @@ def _try_include_router(app: FastAPI, module_path: str, router_attr: str) -> Non
 def create_app(
     *,
     auth_policy: LocalApiAuthPolicy | None = None,
+    private_unix_socket: bool = False,
 ) -> FastAPI:
     """
     Create the FastAPI app for Elysia's local API bridge.
@@ -272,6 +273,13 @@ def create_app(
     app.state.pending_route_modules = []
     app.state.local_api_auth_policy = resolved_auth_policy
 
+    @app.get("/runtime/identity", include_in_schema=False)
+    def runtime_identity():
+        identity = getattr(app.state, "runtime_identity", None)
+        if not private_unix_socket or identity is None:
+            raise HTTPException(status_code=404, detail="No installed Unix runtime.")
+        return identity
+
     @app.middleware("http")
     async def enforce_local_only_by_default(
         request: Request,
@@ -281,6 +289,11 @@ def create_app(
         Reject non-local clients by default with a structured envelope response.
         """
         client_host = request.client.host if request.client else None
+        if private_unix_socket and client_host is None:
+            # This instance is served exclusively by a pre-bound 0600 Unix
+            # socket in the verified private runtime directory. AF_UNIX has
+            # no TCP client tuple. Authentication and policy still apply.
+            client_host = "127.0.0.1"
 
         if LOCAL_ONLY_BY_DEFAULT and not _is_local_client(client_host):
             envelope = build_response_envelope(

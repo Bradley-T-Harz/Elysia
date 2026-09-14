@@ -8,7 +8,7 @@ from core.codev.approvals import PlanAuthority
 from core.codev.contracts import Actor, BrowserPublicKey, ChangePlan, FileChange, WorkspaceFile, BrowserWorkspaceShare
 from core.codev.grants import GrantAuthority, GrantDenied, utc_now
 from core.codev.revisions import relative_path, workspace_hash
-from scripts.generate_codev_contracts import generated_files, ROOT
+from scripts.generate_codev_contracts import generated_files, generated_rust, ROOT
 
 
 def actor(client="native-a", account="local-a", kind="native", online=None):
@@ -36,6 +36,7 @@ def test_generated_desktop_contracts_match_canonical_schema():
     schema, ts = generated_files()
     assert (ROOT / "contracts/codev.schema.json").read_text() == schema
     assert (ROOT / "apps/elysia-desktop/src/api/codevContracts.ts").read_text() == ts
+    assert (ROOT / "apps/elysia-desktop/src-tauri/src/codev_contracts.rs").read_text() == generated_rust()
 
 
 def test_workspace_hash_checks_actual_bytes_and_preserves_full_license():

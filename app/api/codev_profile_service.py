@@ -25,7 +25,7 @@ def build_codev_developer_profile_status() -> dict[str, Any]:
     repo_approval = read_codev_repo_approval_status()
     dependencies: dict[str, dict[str, Any]] = {}
     for item in profile.dependencies:
-        if item.dependency_id not in {"vscode", "git", "codev_vsix"}:
+        if item.dependency_id not in {"vscode", "git", "codev_vsix", "codev_core"}:
             continue
         raw_status = item.status.value if isinstance(item.status, Enum) else str(item.status)
         version = item.version
@@ -34,7 +34,7 @@ def build_codev_developer_profile_status() -> dict[str, Any]:
             for command in ("code", "code-insiders", "codium", "vscodium")
         ):
             raw_status = "present"
-        elif item.dependency_id == "codev_vsix":
+        elif item.dependency_id == "codev_core":
             raw_status = (
                 "present"
                 if codev["compatible"]
@@ -45,11 +45,11 @@ def build_codev_developer_profile_status() -> dict[str, Any]:
             version = codev["version"]
         dependencies[item.dependency_id] = {
             "status": raw_status,
-            "required": item.required,
+            "required": item.dependency_id == "codev_core",
             "activation_state": item.activation_state,
             "version": version,
         }
-    active = "developer" in profile.resolved_profile_ids
+    active = codev["compatible"] or "developer" in profile.resolved_profile_ids
     base_readiness = (
         developer.readiness.value
         if developer and isinstance(developer.readiness, Enum)
@@ -57,11 +57,7 @@ def build_codev_developer_profile_status() -> dict[str, Any]:
         if developer
         else "unknown"
     )
-    required_dependencies_ready = bool(dependencies) and all(
-        not item["required"] or item["status"] == "present"
-        for item in dependencies.values()
-    )
-    readiness = "ready" if active and required_dependencies_ready else base_readiness
+    readiness = "ready" if codev["compatible"] else base_readiness
     ready = bool(active and codev["compatible"] and developer and readiness == "ready")
     return {
         "status": "ready" if ready else "profile_gated" if not active else "degraded",
@@ -72,6 +68,7 @@ def build_codev_developer_profile_status() -> dict[str, Any]:
         "live_availability_source": "canonical_external_release_surfaces",
         "in_app_install_control_available": False,
         "active": active,
+        "developer_profile_selected": "developer" in profile.resolved_profile_ids,
         "profile_id": "developer",
         "profile_label": developer.display_name if developer else "Developer / Codev",
         "profile_readiness": readiness,
