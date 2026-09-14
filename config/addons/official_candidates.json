@@ -9,7 +9,7 @@
       "version": "1.1.0",
       "extension_id": "ecosyneva-commons.elysia-codev",
       "coding_contract_version": "vscode-coding-agent-contract-0.1",
-      "listing_state": "coordinated_release_candidate",
+      "listing_state": "coordinated_release_payload",
       "required_profile": "developer",
       "purpose": "Governed local coding companion with approved repository context, patch proposals, exact approved mutation, bounded checks, and request traceability.",
       "requested_permissions": [

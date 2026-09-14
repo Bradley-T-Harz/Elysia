@@ -9,7 +9,7 @@ repository_identity:
   canonical_url: https://github.com/Bradley-T-Harz/Elysia
 
 publication:
-  release_role: coordinated_release_candidate
+  release_role: coordinated_release_payload
   live_state_source: canonical_external_release_surfaces
   mutable_external_state_not_embedded: true
   owner_authorization_required_for_external_mutation: true

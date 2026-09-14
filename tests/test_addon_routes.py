@@ -139,7 +139,7 @@ def test_governed_addon_routes_through_async_asgi_are_truthful_and_nonexecuting(
     rendered = json.dumps((status, candidates, blocked, submission))
     assert status["data"]["addons_status"]["execution_enabled"] is False
     assert status["data"]["addons_status"]["cloud_sandbox_required"] is False
-    assert candidates["data"]["official_candidates"][0]["listing_state"] == "coordinated_release_candidate"
+    assert candidates["data"]["official_candidates"][0]["listing_state"] == "coordinated_release_payload"
     assert candidates["data"]["official_candidates"][0]["install_action_live"] is True
     assert candidates["data"]["official_candidates"][0]["public_distribution_supported"] is True
     assert candidates["data"]["official_candidates"][0]["in_app_install_control_live"] is False

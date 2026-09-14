@@ -5,8 +5,8 @@
   "version": "1.1.0",
   "semantic_tag": "v1.1.0",
   "channel": "stable",
-  "qualification_state": "final_artifact_qualification_pending",
-  "artifact_role": "coordinated_release_candidate",
+  "qualification_state": "external_signed_release_evidence",
+  "artifact_role": "coordinated_release_payload",
   "publication_state": {
     "live_state_source": "canonical_external_release_surfaces",
     "mutable_external_state_not_embedded": true,

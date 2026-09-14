@@ -18,8 +18,8 @@ def test_release_identity_is_qualified_without_mutable_publication_state() -> No
     assert identity["version"] == VERSION
     assert identity["semantic_tag"] == "v1.1.0"
     assert identity["channel"] == "stable"
-    assert identity["qualification_state"] == "final_artifact_qualification_pending"
-    assert identity["artifact_role"] == "coordinated_release_candidate"
+    assert identity["qualification_state"] == "external_signed_release_evidence"
+    assert identity["artifact_role"] == "coordinated_release_payload"
     assert identity["publication_state"] == {
         "live_state_source": "canonical_external_release_surfaces",
         "mutable_external_state_not_embedded": True,
@@ -66,7 +66,7 @@ def test_release_bearing_manifests_share_v1_identity() -> None:
     assert public["target_release"] == VERSION
     assert public["current_channel"] == "stable"
     assert public["publication"] == {
-        "release_role": "coordinated_release_candidate",
+        "release_role": "coordinated_release_payload",
         "live_state_source": "canonical_external_release_surfaces",
         "mutable_external_state_not_embedded": True,
         "owner_authorization_required_for_external_mutation": True,
@@ -79,7 +79,7 @@ def test_release_bearing_manifests_share_v1_identity() -> None:
     assert tauri["version"] == VERSION
     assert codev["version"] == VERSION
     assert codev["version_channel"] == "stable"
-    assert codev["listing_state"] == "coordinated_release_candidate"
+    assert codev["listing_state"] == "coordinated_release_payload"
     assert codev["public_distribution_supported"] is True
     assert codev["in_app_install_control_live"] is False
 

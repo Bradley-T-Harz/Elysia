@@ -513,7 +513,7 @@ def test_marketplace_submission_and_admin_review_are_nonmutating_hash_bound_prev
 def test_codev_is_an_official_qualified_v1_release() -> None:
     candidates = load_official_candidates()
     codev = next(item for item in candidates if item["name"] == "Codev")
-    assert codev["listing_state"] == "coordinated_release_candidate"
+    assert codev["listing_state"] == "coordinated_release_payload"
     assert codev["required_profile"] == "developer"
     assert codev["install_action_live"] is True
     assert codev["public_distribution_supported"] is True

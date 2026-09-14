@@ -1,9 +1,9 @@
-# Elysia / Codev 1.1.0 candidate limits
+# Elysia / Codev 1.1.0 qualification limits
 
-The final artifact gate is pending. Prior implementation evidence covers amd64
-Debian 13 and Ubuntu 24.04; desktop photo/responsive/native snapping evidence
-covers GNOME/X11. These results do not substitute for the new package install
-and original-public-1.0.0 upgrade matrix.
+Exact-byte installation and upgrade results belong to the signed release
+evidence. Prior implementation evidence covers amd64 Debian 13 and Ubuntu
+24.04; desktop photo/responsive/native snapping evidence covers GNOME/X11.
+Source version metadata is not proof of current public artifact availability.
 
 No new ARM, Wayland, Windows, macOS, or universal model-performance support is
 claimed. Models, GIS, and optional hardware dependencies retain their existing
