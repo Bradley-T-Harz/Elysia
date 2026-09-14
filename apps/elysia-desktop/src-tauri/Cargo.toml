@@ -13,6 +13,7 @@ publish = false
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+base64 = "0.22.1"
 libc = "0.2"
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"

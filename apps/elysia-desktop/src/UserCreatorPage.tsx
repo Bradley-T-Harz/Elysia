@@ -6,7 +6,7 @@ import {
   type AccountColorOption,
   type AccountCreateRequest
 } from "./api/bridgeClient";
-import { openLocalProfilePhotoFile } from "./api/localFilePicker";
+import { chooseIdentityPhoto, type SelectedIdentityPhoto } from "./api/identityPhoto";
 import {
   accountPalette,
   colorForId,
@@ -24,9 +24,10 @@ export default function UserCreatorPage({ colors, onCreated }: UserCreatorPagePr
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [ownerAcknowledged, setOwnerAcknowledged] = useState(false);
   const [profileColorId, setProfileColorId] = useState(colors[0]?.id ?? "meteor_rose");
-  const [profilePhotoPath, setProfilePhotoPath] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<SelectedIdentityPhoto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
 
   const selectedColor = useMemo(
     () => colorForId(colors, profileColorId),
@@ -34,14 +35,16 @@ export default function UserCreatorPage({ colors, onCreated }: UserCreatorPagePr
   );
 
   async function choosePhoto() {
-    const selected = await openLocalProfilePhotoFile();
-    if (selected) {
-      setProfilePhotoPath(selected);
-    }
+    setError(null);
+    try {
+      const selected = await chooseIdentityPhoto();
+      if (selected) setPhoto(selected);
+    } catch (error) { setError(error instanceof Error ? error.message : String(error)); }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (accountCreated) { await onCreated(); return; }
     setSaving(true);
     setError(null);
     try {
@@ -69,13 +72,13 @@ export default function UserCreatorPage({ colors, onCreated }: UserCreatorPagePr
         return;
       }
 
-      if (profilePhotoPath) {
-        const photoResult = await selectAccountProfilePhoto(profilePhotoPath);
+      setAccountCreated(true);
+      if (photo) {
+        const photoResult = await selectAccountProfilePhoto(photo.sourcePath);
         if (!photoResult.ok || photoResult.payload.status !== "ok") {
           setError(
             `Account was created, but the profile photo was not copied: ${readEnvelopeError(photoResult.payload)}`
           );
-          await onCreated();
           return;
         }
       }
@@ -138,8 +141,10 @@ export default function UserCreatorPage({ colors, onCreated }: UserCreatorPagePr
               <button type="button" onClick={choosePhoto} style={secondaryButtonStyle}>
                 Choose jpg, png, or webp
               </button>
+              {photo && <img src={photo.previewUrl} alt="Selected local identity photo" style={{ width: 88, height: 104, objectFit: "contain", borderRadius: 12 }} />}
+              {photo && <button type="button" onClick={() => setPhoto(null)} style={secondaryButtonStyle}>Remove selected photo</button>}
               <span style={{ color: accountPalette.silverMuted }}>
-                {profilePhotoPath ? "Image selected for sealed local copy." : "No image selected"}
+                {photo ? "Image selected for sealed local copy." : "No image selected"}
               </span>
             </div>
           </Field>
@@ -184,7 +189,7 @@ export default function UserCreatorPage({ colors, onCreated }: UserCreatorPagePr
         {error && <div role="alert" style={errorStyle}>{error}</div>}
 
         <button type="submit" disabled={saving} style={primaryButtonStyle}>
-          {saving ? "Creating sealed local identity..." : "Create Local Account"}
+          {accountCreated ? "Continue to Personal Identity" : saving ? "Creating sealed local identity..." : "Create Local Account"}
         </button>
       </form>
     </div>

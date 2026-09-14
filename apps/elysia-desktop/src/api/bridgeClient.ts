@@ -5296,15 +5296,10 @@ export async function deleteAccountProfilePhoto(): Promise<
   );
 }
 
-export function getAccountProfilePhotoPreviewUrl(
-  assetId: string | null | undefined
-): string | null {
-  if (!assetId) {
-    return null;
-  }
-  return buildBridgeUrl(
-    `${ACCOUNT_PATH}/profile-photo/${encodeURIComponent(assetId)}/preview`
-  );
+export async function fetchAccountProfilePhotoPreview(assetId: string): Promise<
+  EnvelopeResult<{ status: string; data?: { asset_id: string; data_url: string }; errors?: string[] }>
+> {
+  return fetchEnvelope(`${ACCOUNT_PATH}/profile-photo/${encodeURIComponent(assetId)}/preview-data`);
 }
 
 export async function fetchAccountColors(): Promise<

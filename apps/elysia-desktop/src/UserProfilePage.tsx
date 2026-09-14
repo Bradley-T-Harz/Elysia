@@ -8,7 +8,7 @@ import {
   fetchAccountProfile,
   fetchMemoryItems,
   exportAccountProfileArchive,
-  getAccountProfilePhotoPreviewUrl,
+  fetchAccountProfilePhotoPreview,
   selectAccountProfilePhoto,
   restoreAccountProfileArchive,
   updateAccountProfile,
@@ -16,7 +16,7 @@ import {
   type AccountProfilePrivate,
   type AccountProfileUpdateRequest
 } from "./api/bridgeClient";
-import { openLocalProfilePhotoFile } from "./api/localFilePicker";
+import { chooseIdentityPhoto } from "./api/identityPhoto";
 import { useAccountSession } from "./AccountGate";
 import BirthdateField from "./BirthdateField";
 import MarketplaceLinkPanel from "./MarketplaceLinkPanel";
@@ -90,17 +90,19 @@ export default function UserProfilePage() {
   }
 
   async function choosePhoto() {
-    const selected = await openLocalProfilePhotoFile();
-    if (!selected) return;
     setSaving(true);
     setError(null);
     try {
-      const result = await selectAccountProfilePhoto(selected);
+      const selected = await chooseIdentityPhoto();
+      if (!selected) return;
+      const result = await selectAccountProfilePhoto(selected.sourcePath);
       if (!result.ok || result.payload.status !== "ok") {
         setError(readEnvelopeError(result.payload));
         return;
       }
       await loadProfile();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error));
     } finally {
       setSaving(false);
     }
@@ -696,7 +698,7 @@ function LongTextPanel({
   );
 }
 
-function ProfileAvatar({
+export function ProfileAvatar({
   profile,
   color
 }: {
@@ -704,11 +706,31 @@ function ProfileAvatar({
   color: AccountColorOption;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const previewUrl = getAccountProfilePhotoPreviewUrl(profile.profile_photo_asset_id);
+  const [preview, setPreview] = useState<{ asset: string; url: string } | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const asset = profile.profile_photo_asset_id;
+  const previewUrl = preview && preview.asset === asset ? preview.url : null;
+  useEffect(() => {
+    let active = true;
+    setImageFailed(false);
+    setPreview(null);
+    setPreviewError(null);
+    if (asset && profile.profile_photo_available) {
+      void fetchAccountProfilePhotoPreview(asset).then((result) => {
+        if (!active) return;
+        const data = result.payload.data;
+        if (result.ok && result.payload.status === "ok" && data?.asset_id === asset && data.data_url.startsWith("data:image/png;base64,")) {
+          setPreview({ asset, url: data.data_url });
+        } else setPreviewError("Identity photo could not be loaded. Choose a valid image to replace it.");
+      });
+    }
+    return () => { active = false; };
+  }, [asset, profile.profile_photo_available]);
   const showImage = Boolean(profile.profile_photo_available && previewUrl && !imageFailed);
   return (
     <div
       className="elysia-profile-avatar"
+      aria-busy={Boolean(asset && !previewUrl && !previewError)}
       style={{
         width: "10rem",
         height: "13rem",
@@ -728,7 +750,7 @@ function ProfileAvatar({
         <img
           src={previewUrl ?? undefined}
           alt="Local personal identity"
-          onError={() => setImageFailed(true)}
+          onError={() => { setImageFailed(true); setPreviewError("Identity photo could not be displayed. Choose a valid image to replace it."); }}
           style={{
             width: "100%",
             height: "100%",
@@ -750,6 +772,7 @@ function ProfileAvatar({
           }}
         >
           {(profile.username || "E").slice(0, 1).toUpperCase()}
+          {previewError && <span role="alert" style={{ fontSize: ".8rem", padding: ".5rem", color: accountPalette.silver }}>{previewError}</span>}
         </div>
       )}
     </div>

@@ -6,6 +6,7 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }));
 
 import {
   createAccount,
+  fetchAccountProfilePhotoPreview,
   fetchAccountState,
   probeLocalApiAuthentication
 } from "../src/api/bridgeClient";
@@ -84,4 +85,14 @@ describe("packaged local API client authentication", () => {
     expect(result.payload.errors?.[0]).toContain("refused an unowned loopback listener");
     expect(result.payload.errors?.[0]).not.toContain("fixed Core launcher did not become ready");
   });
+});
+
+it("loads identity photo bytes over authenticated IPC, never the development HTTP image URL", async () => {
+  Object.defineProperty(window, "__TAURI_INTERNALS__", { configurable: true, value: {} });
+  const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+  invokeMock.mockResolvedValueOnce({ statusCode: 200, contentType: "application/json", body: JSON.stringify({ status: "ok", data: { asset_id: "photo_safe", data_url: "data:image/png;base64,eA==" } }) });
+  const result = await fetchAccountProfilePhotoPreview("photo_safe");
+  expect(result.payload.data?.asset_id).toBe("photo_safe");
+  expect(invokeMock).toHaveBeenCalledWith("local_api_request", { method: "GET", path: "/account/profile-photo/photo_safe/preview-data", body: null });
+  expect(fetchMock).not.toHaveBeenCalled();
 });

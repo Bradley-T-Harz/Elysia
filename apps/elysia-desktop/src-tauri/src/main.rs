@@ -7,6 +7,7 @@
 // or private-data mount from the webview.
 
 mod local_runtime;
+mod identity_photo;
 mod codev_contracts;
 use local_runtime::Stream as LocalStream;
 use serde::Serialize;
@@ -793,6 +794,7 @@ fn main() {
             local_api_session,
             codev_installation,
             local_api_request,
+            identity_photo::choose_identity_photo,
             emergency_stop_owned
         ])
         .plugin(tauri_plugin_dialog::init())
