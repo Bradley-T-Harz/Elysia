@@ -18,9 +18,9 @@ fn image_mime(bytes: &[u8]) -> Result<&'static str, String> {
 }
 
 #[tauri::command]
-pub async fn choose_identity_photo(app: tauri::AppHandle) -> Result<Option<SelectedPhoto>, String> {
+pub async fn choose_identity_photo(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<Option<SelectedPhoto>, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let Some(selected) = app.dialog().file().set_title("Choose Identity Photo")
+        let Some(selected) = app.dialog().file().set_parent(&window).set_title("Choose Identity Photo")
             .add_filter("Identity photo (JPG, PNG, WebP)", &["jpg", "jpeg", "png", "webp"])
             .blocking_pick_file() else { return Ok(None); };
         let path = selected.into_path().map_err(|_| "Choose a local image file.".to_string())?;

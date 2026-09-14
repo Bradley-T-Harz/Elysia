@@ -313,13 +313,14 @@ export default function RightDrawer({
         height: isContentMode ? "auto" : "100%",
         maxHeight: isContentMode ? "none" : "100%",
         flex: isContentMode ? "0 0 auto" : 1,
-        overflow: "hidden"
+        overflowX: "hidden",
+        overflowY: "auto",
+        scrollbarGutter: "stable"
       }}
     >
       {/* Portrait owns the visible launcher surface.
           RightDrawer only passes the shell callback through. */}
       <ElysiaPortraitCard
-        sticky
         onOpenQuickInvoke={onOpenQuickInvoke}
       />
 
@@ -329,9 +330,9 @@ export default function RightDrawer({
           display: "flex",
           flexDirection: "column",
           gap: "0.82rem",
-          flex: isContentMode ? "0 1 auto" : 1,
+          flex: "0 0 auto",
           minHeight: 0,
-          overflowY: "auto",
+          overflowY: "visible",
           overscrollBehavior: "contain",
           scrollbarGutter: "stable",
           paddingRight: "0.15rem",

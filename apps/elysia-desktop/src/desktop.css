@@ -350,3 +350,22 @@ summary:focus-visible {
 .elysia-shell-toolbar { grid-row: 2; }
 .elysia-shell-main { grid-row: 3; }
 .elysia-bottom-status { grid-row: 4; }
+
+.elysia-right-drawer > * { flex-shrink: 0; }
+.elysia-panel-dialog { overflow: hidden; }
+.elysia-room-page .elysia-toolbar-grid-2 { grid-template-columns: minmax(0, 1fr) auto !important; }
+@container (max-width: 600px) {
+  .elysia-room-page .elysia-toolbar-grid-2 { grid-template-columns: minmax(0, 1fr) !important; }
+}
+@media (max-height: 550px) {
+  .elysia-top-bar { min-height: 48px; }
+  .elysia-shell-toolbar { padding-top: .25rem; }
+  .elysia-shell-toolbar .elysia-shell-toggle { padding-block: .3rem; }
+  .elysia-shell-main { padding: .35rem !important; gap: .35rem !important; }
+  .elysia-workspace-surface { padding: .4rem !important; }
+  .elysia-bottom-status { min-height: 34px !important; }
+  .elysia-active-thread { padding: .5rem !important; }
+  .elysia-composer { padding: .5rem !important; }
+  .elysia-composer textarea { height: 5rem; }
+  .elysia-composer-file-tools { padding: .3rem .5rem !important; }
+}
