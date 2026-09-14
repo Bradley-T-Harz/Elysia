@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCodevInstallation } from "../api/codevNative";
 import type { Installation } from "../api/codevContracts";
 
@@ -14,13 +15,18 @@ export function useCodevInstallation(profileId = "") {
         const value = await getCodevInstallation();
         if (mounted && current === serial) setInstallation({ owner: profileId, value });
       } catch {
-        if (mounted && current === serial) setInstallation(null);
+        // A service outage is not an uninstall. Native package inspection
+        // remains available even when no API process can answer.
+        try {
+          const value = isTauri() ? await invoke<Installation>("codev_installation") : null;
+          if (mounted && current === serial) setInstallation(value ? { owner: profileId, value } : null);
+        } catch { /* Preserve the last verified installed identity during an outage. */ }
       }
     };
     void refresh();
     window.addEventListener("focus", refresh);
-    const timer = window.setInterval(() => { if (document.visibilityState === "visible") void refresh(); }, 30000);
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") void refresh(); }, 5000);
     return () => { mounted = false; window.removeEventListener("focus", refresh); window.clearInterval(timer); };
   }, [profileId]);
-  return installation?.owner === profileId && installation.value.usable && installation.value.state === "installed_ready" ? installation.value : null;
+  return installation?.owner === profileId && installation.value.installed ? installation.value : null;
 }

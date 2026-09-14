@@ -202,11 +202,14 @@ PACKAGE_ICON="$CURRENT_LINK/usr/share/icons/hicolor/128x128/apps/elysia-desktop.
 install -m 0644 "$PACKAGE_ICON" "$ICON_ROOT/elysia-desktop.png"
 
 ENTRY_TEMP="$RECEIPT_ROOT/generated-desktop-entry-$RELEASE_ID-$$.desktop"
+[[ ! "$STABLE_LAUNCHER" =~ [[:cntrl:]] ]] || { echo 'Control characters in launcher paths are unsupported.' >&2; exit 2; }
+# Desktop Exec has its own quoting and percent field codes; it is not a shell.
+ENTRY_EXEC="$(printf '%s' "$STABLE_LAUNCHER" | sed -e 's/[\\"`$]/\\&/g' -e 's/\\/\\\\/g' -e 's/%/%%/g')"
 cat >"$ENTRY_TEMP" <<EOF
 [Desktop Entry]
 Categories=Office;
 Comment=Local-first governed AI desktop application.
-Exec=$STABLE_LAUNCHER
+Exec="$ENTRY_EXEC"
 TryExec=$STABLE_LAUNCHER
 StartupWMClass=elysia-desktop
 Icon=elysia-desktop

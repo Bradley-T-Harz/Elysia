@@ -10,6 +10,7 @@ import subprocess
 from typing import Any, Callable
 
 import yaml
+from .platform_service import operating_system, core_platform_supported
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -100,23 +101,15 @@ def detect_local_hardware(
         total_memory_bytes = int(os.sysconf("SC_PHYS_PAGES")) * int(os.sysconf("SC_PAGE_SIZE"))
     except (OSError, ValueError, TypeError):
         pass
-    os_id = "unknown"
-    os_version = "unknown"
-    try:
-        for line in Path("/etc/os-release").read_text(encoding="utf-8").splitlines():
-            key, _, value = line.partition("=")
-            if key == "ID":
-                os_id = value.strip().strip('"')
-            elif key == "VERSION_ID":
-                os_version = value.strip().strip('"')
-    except OSError:
-        pass
+    system = operating_system()
+    os_id, os_version = system["id"], system["version_id"]
     architecture = platform.machine().lower()
     supported_architecture = architecture in {"x86_64", "amd64"}
     cpu_only_supported = supported_architecture and not missing_cpu_features
     return {
         "operating_system": {"id": os_id, "version_id": os_version},
         "supported_ubuntu": os_id == "ubuntu" and os_version.startswith("24.04"),
+        "supported_core_platform": core_platform_supported(system),
         "architecture": architecture,
         "supported_architecture": supported_architecture,
         "cpu_logical_count": os.cpu_count() or 1,

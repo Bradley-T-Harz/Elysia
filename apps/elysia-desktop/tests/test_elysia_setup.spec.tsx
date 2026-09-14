@@ -187,10 +187,10 @@ describe("Elysia Setup machine-install authority", () => {
     expect(screen.getByText(/capabilities remain visibly gated when omitted/i)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Inspect exact system prerequisites" }));
     expect(await screen.findByText(/graphical_polkit_pkexec/)).toBeVisible();
-    expect(screen.getByRole("button", { name: /Authorize only these exact Ubuntu package operations/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Authorize only these exact system package operations/i })).toBeVisible();
   });
 
-  it("offers exact Codev acquisition while preserving editor-choice authority", () => {
+  it("does not turn a legacy pending adapter entry into Core installation authority", () => {
     render(<ElysiaSetupPage initialState={{
       configured: true,
       setup_required: true,
@@ -200,9 +200,8 @@ describe("Elysia Setup machine-install authority", () => {
       pending_component_ids: ["codev_companion"]
     }} onConfigured={vi.fn().mockResolvedValue(undefined)} />);
 
-    expect(screen.getByLabelText(/Existing exact Codev v1\.0\.0 VSIX/)).toBeVisible();
-    expect(screen.getByPlaceholderText(/exact official GitHub release download/i)).toBeVisible();
-    expect(screen.getByText(/acquires the exact first-party VSIX/i)).toBeVisible();
+    expect(screen.queryByLabelText(/Existing exact Codev v1\.0\.0 VSIX/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Resolve exact plan.*codev/i })).not.toBeInTheDocument();
   });
 
   it("runs a non-repairing Doctor as the final machine-install gate", async () => {

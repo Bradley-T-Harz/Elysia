@@ -3334,6 +3334,7 @@ export type OnboardingStateEnvelope = BridgeEnvelope<{
 }>;
 
 export type SetupStateEnvelope = BridgeEnvelope<{
+  platform_label?: string;
   contract_version?: string;
   runtime_mode?: string;
   detected_distribution_form?: "deb" | "appimage" | "user_local_desktop" | "onefile_core" | "source";

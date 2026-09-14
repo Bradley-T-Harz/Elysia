@@ -10,7 +10,7 @@ import LeftRail from "../src/LeftRail";
 import { useCodevInstallation } from "../src/hooks/useCodevInstallation";
 
 const actor: Actor = { client_id: "native_fixture_client", local_profile_id: "profile-fixture", client_kind: "native", surface: "local" };
-const installed: Installation = { state: "installed_ready", usable: true, version: "1.0.0", note: "Fixture" };
+const installed: Installation = { state: "installed_ready", installed: true, runtime_state: "ready", usable: true, version: "1.0.0", note: "Fixture" };
 const base: WorkspaceDescriptor = { workspace_id: "workspace_fixture_id", workspace_type: "local_repository", label: "example-addon", owner: actor,
   current_revision: 0, base_revision: 0, content_hash: "a".repeat(64), base_hash: "a".repeat(64), grant_epoch: 0, files: [] };
 let current: WorkspaceDescriptor;
@@ -36,7 +36,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 const renderRoom = () => render(<CodevWorkroom installation={installed} active handoff={null} onRightDrawerSectionsChange={vi.fn()} />);
 async function shareFile() {
-  fireEvent.click(await screen.findByRole("button", { name: "Choose repository" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Choose workspace" }));
   fireEvent.click(await screen.findByRole("button", { name: "Inspect file list" }));
   fireEvent.click(await screen.findByLabelText("main.py"));
   fireEvent.click(screen.getByRole("button", { name: "Share selected files (1)" }));
@@ -56,17 +56,31 @@ describe("Codev installation gating and workspace authority", () => {
     fireEvent.click(screen.getByRole("button", { name: "Codev" }));
     expect(props.onSelectRoom).toHaveBeenCalledWith("codev");
   });
-  it.each(["absent", "incompatible", "degraded", "installed_unavailable"])("does not expose a route for %s", async state => {
-    mocks.installation.mockResolvedValue({ ...installed, state, usable: state === "incompatible" });
+  it("does not expose a route for absent Core", async () => {
+    mocks.installation.mockResolvedValue({ ...installed, state: "absent", installed: false, usable: false });
     function Gate() { const result = useCodevInstallation(); return <LeftRail activeRoom="home" defaultGroupBehavior="expanded" onSelectRoom={vi.fn()} showCodev={!!result}/>; }
     render(<Gate/>);
     await waitFor(() => expect(mocks.installation).toHaveBeenCalled());
     expect(screen.queryByText("Codev")).toBeNull();
   });
+  it.each(["incompatible", "degraded", "installed_unavailable", "installed_ready"])("keeps installed Core visible independently of session policy: %s", async state => {
+    mocks.installation.mockResolvedValue({ ...installed, state, usable: false });
+    function Gate() { const result = useCodevInstallation(); return <LeftRail activeRoom="home" defaultGroupBehavior="expanded" onSelectRoom={vi.fn()} showCodev={!!result}/>; }
+    render(<Gate/>);
+    expect(await screen.findByRole("button", { name: "Codev" })).toBeInTheDocument();
+    expect(mocks.request).not.toHaveBeenCalled();
+  });
+  it("opens an installed workroom without workspace grants", async () => {
+    renderRoom();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Choose workspace" })).toBeEnabled());
+    expect(screen.getByText("No workspace selected")).toBeInTheDocument();
+    expect(mocks.open).not.toHaveBeenCalled();
+    expect(mocks.request.mock.calls.every(([route]) => ["session", "commands/catalog"].includes(route))).toBe(true);
+  });
   it("selects without access and grants file names separately from content", async () => {
     renderRoom();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Choose repository" })).toBeEnabled());
-    fireEvent.click(screen.getByRole("button", { name: "Choose repository" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Choose workspace" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Choose workspace" }));
     await screen.findByText(/Repository selected. No file list/);
     expect(mocks.request.mock.calls.some(([path]) => path === "grants/issue")).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Inspect file list" }));
@@ -76,7 +90,7 @@ describe("Codev installation gating and workspace authority", () => {
   });
   it("preserves edits when source changes and requires an explicit fresh review", async () => {
     renderRoom();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Choose repository" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Choose workspace" })).toBeEnabled());
     await shareFile();
     fireEvent.change(await screen.findByLabelText("Edit main.py"), { target: { value: "answer = 2\n" } });
     current = { ...current, current_revision: 2, content_hash: "c".repeat(64), files: [{ ...current.files![0], text: "answer = 3\n", content_hash: "c".repeat(64) }] };
@@ -89,7 +103,7 @@ describe("Codev installation gating and workspace authority", () => {
   });
   it("revokes authority while preserving unsaved local buffers", async () => {
     renderRoom();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Choose repository" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Choose workspace" })).toBeEnabled());
     await shareFile();
     fireEvent.change(await screen.findByLabelText("Edit main.py"), { target: { value: "answer = 2\n" } });
     fireEvent.click(screen.getByRole("button", { name: "Revoke access" }));

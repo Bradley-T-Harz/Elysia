@@ -31,7 +31,7 @@ fi
 
 # Cargo and third-party crates can embed compiler source paths in panic metadata.
 # Use Cargo's unit-separator encoding so homes containing spaces remain one flag.
-export CARGO_ENCODED_RUSTFLAGS="--remap-path-prefix=${HOME}=/build/user"
+export CARGO_ENCODED_RUSTFLAGS="--remap-path-prefix=${HOME}=/build/user"$'\x1f'"--remap-path-prefix=${ROOT_DIR}=/build/elysia"
 
 # Tauri emits a legacy Elysia.appdata.xml alias next to the canonical
 # reverse-DNS metainfo filename. appimagetool rejects that duplicate filename

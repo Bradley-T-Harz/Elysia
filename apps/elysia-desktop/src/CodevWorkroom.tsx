@@ -18,6 +18,7 @@ export default function CodevWorkroom({ installation, active, handoff, onRightDr
   const mounted = useRef(true);
   const [workspace, setWorkspace] = useState<WorkspaceDescriptor | null>(null);
   const workspaceRef = useRef(workspace);
+  const workspaceClient = useRef<string | null>(null);
   workspaceRef.current = workspace;
   const [files, setFiles] = useState<Array<{ path: string; size_bytes: number }>>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -50,11 +51,20 @@ export default function CodevWorkroom({ installation, active, handoff, onRightDr
 
   useEffect(() => {
     mounted.current = true;
-    actorPromise.current ??= codevRequest<{ actor: Actor }>("session", {});
-    void actorPromise.current.then(result => { if (mounted.current) setActor(result.actor); }).catch(reason => { if (mounted.current) setError(errorText(reason)); });
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => { mounted.current = false; window.clearInterval(timer); };
   }, []);
+  useEffect(() => {
+    let current = true;
+    setActor(null); setGrant(null); setPlan(null);
+    if (workspaceRef.current) setNotice("The Codev session changed. Choose the repository again before granting access. Existing unsaved buffers are retained.");
+    if (!installation.usable) { actorPromise.current = null; return; }
+    actorPromise.current = codevRequest<{ actor: Actor }>("session", {});
+    void actorPromise.current.then(result => {
+      if (current && mounted.current) { setActor(result.actor); setError(""); }
+    }).catch(reason => { if (current && mounted.current) setError(errorText(reason)); });
+    return () => { current = false; };
+  }, [installation.usable, installation.runtime_instance_id, installation.installation_id]);
   useEffect(() => { if (handoff) { setSharedHandoff(handoff); setMessage(handoff.instruction); setTab("conversation"); } }, [handoff]);
 
   const call = useCallback(<T,>(path: string, body: object = {}) => {
@@ -126,7 +136,8 @@ export default function CodevWorkroom({ installation, active, handoff, onRightDr
       const chosen = await open({ directory: true, multiple: false, title: "Choose a Codev repository" });
       if (typeof chosen !== "string") return;
       const result = await call<{ workspace: WorkspaceDescriptor }>("workspaces/select", { root_path: chosen });
-      if (workspace) await call("grants/revoke", { workspace_id: workspace.workspace_id });
+      if (workspace && workspaceClient.current === actor?.client_id) await call("grants/revoke", { workspace_id: workspace.workspace_id });
+      workspaceClient.current = actor?.client_id ?? null;
       setWorkspace(result.workspace); setFiles([]); setSelected([]); setBuffers({}); setConflicts([]); setGrant(null);
       setPlan(null); setActiveFile(""); setWriteScope(false); setCommandScope(false); setRun(null);
       setNotice("Repository selected. No file list or contents have been shared.");
@@ -205,14 +216,15 @@ export default function CodevWorkroom({ installation, active, handoff, onRightDr
   }
 
   return <div className="codev-room" hidden={!active}>
-    <header className="codev-room-header"><div><span className="codev-eyebrow">LOCAL DEVELOPMENT</span><h1>Codev</h1><p>Understand, review, and change your selected workspace.</p></div><span className="codev-status">Local · v{installation.version}</span></header>
+    <header className="codev-room-header"><div><span className="codev-eyebrow">LOCAL DEVELOPMENT</span><h1>Codev</h1><p>Understand, review, and change your selected workspace.</p></div><span className="codev-status">{installation.runtime_state === "ready" ? "Ready" : "Installed · service unavailable"} · v{installation.version ?? "1.0.0"}</span></header>
+    {!installation.usable && <p className="codev-notice" role="status">{installation.note}</p>}
     <CodevPairing clientId={actor?.client_id ?? null}/>
     {(error || notice) && <div className={`codev-notice ${error ? "codev-error" : ""}`} role={error ? "alert" : "status"}>{error || notice}</div>}
     <div className="codev-layout">
       <aside className="codev-workspace" aria-label="Codev workspace permissions">
-        <span className="codev-eyebrow">WORKSPACE</span><h2>{workspace?.label ?? "Choose your scope"}</h2>
-        <button disabled={!actor || busy} onClick={() => void chooseRepository()}>{workspace ? "Change repository" : "Choose repository"}</button>
-        {!workspace && <p>Start with a repository you own. Choosing it shares no files.</p>}
+        <span className="codev-eyebrow">WORKSPACE</span><h2>{workspace?.label ?? "No workspace selected"}</h2>
+        <button disabled={!actor || busy} onClick={() => void chooseRepository()}>{workspace ? "Change repository" : "Choose workspace"}</button>
+        {!workspace && <p>Codev is installed. Choose a repository when you are ready. Choosing it shares no files.</p>}
         {workspace && <>
           <p className="codev-mono">Revision {workspace.current_revision} · {shortHash(workspace.content_hash)}</p>
           {!allowed.includes("metadata") && <button disabled={busy} onClick={() => void inspectList()}>Inspect file list</button>}

@@ -1,5 +1,14 @@
 # Codev multi-surface implementation evidence
 
+## Portable installed-product correction (qualification in progress)
+
+The later owner directive authorizes the canonical VS Code client changes required for portable installation. Earlier receipt/profile-based installation descriptions in this report are historical. Codev Core is now a separate Debian payload; the editor is optional. The authoritative package manifest, private Unix service and generated client contracts separate installation, runtime readiness, local account state, workspace grants and website pairing.
+
+The real failure combined an older installed Elysia package, a dynamically selected desktop TCP port, the adapter's fixed port-8000 assumption and receipt/readiness gating. Unit and synthetic browser checks had not exercised that exact installed lifecycle. The new compiled native and Core package lifecycle gates run without a source environment, and actual Debian 13/Ubuntu 24.04 guests cover ordinary users, both installation orders, reboot, absence, reinstall and an empty workroom. The install contract is documented in [Codev Core installation](../release/CODEV_DEVELOPER_PROFILE_INSTALL.md).
+
+Recovery validation: 1,405 backend tests passed, four were explicitly skipped, and two GIS failures reproduced against the unchanged baseline. Desktop React: 123 passed in 26 files. Rust: 9 passed, one ignored subprocess fixture. VS Code adapter: 23 passed. The compiled artifact lifecycle gate passed installation, private runtime identity, zero initial authority, permission damage/repair, uninstall/reinstall and preservation of local state. These counts do not substitute for final artifact, actual-machine and production evidence. Final committed build identities and closeout results will be recorded after those gates finish.
+
+
 Product versions remain 1.0.0. The Codev Add-on and historical release artifacts
 are read-only throughout this implementation. The four owner-supplied directives
 were read in full before changes (master plus local, Marketplace, and Forge).

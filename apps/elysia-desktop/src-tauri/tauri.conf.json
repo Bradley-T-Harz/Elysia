@@ -44,7 +44,7 @@
     "licenseFile": "../../../LICENSE",
     "category": "Productivity",
     "shortDescription": "Local-first governed AI desktop application.",
-    "longDescription": "Elysia is a local-first governed AI desktop application with a private loopback Core runtime.",
+    "longDescription": "Elysia is a local-first governed AI desktop application with a private local Core runtime.",
     "resources": {
       "../../../LICENSE": "LICENSE",
       "../../../LICENSES": "LICENSES",
@@ -80,6 +80,7 @@
         }
       },
       "deb": {
+        "depends": ["libc6 (>= 2.39)", "libexpat1", "sqlite3", "libcairo2", "libpango-1.0-0", "libwebkit2gtk-4.1-0", "libgtk-3-0t64", "libayatana-appindicator3-1", "librsvg2-2"],
         "files": {
           "/usr/share/metainfo/llc.ecosyneva.elysia.metainfo.xml": "linux/llc.ecosyneva.elysia.metainfo.xml"
         }

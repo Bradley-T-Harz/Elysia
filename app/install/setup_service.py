@@ -27,6 +27,7 @@ from .dependency_disposition_service import dependency_install_summary
 from .hardware_service import detect_local_hardware
 from .install_root_service import install_root_hash
 from .paths import ElysiaPaths, resolve_elysia_paths
+from .platform_service import operating_system, installed_desktop_form, DEBIAN_CORE_COMPONENTS
 from .schemas import DependencyStatus
 from .system_prerequisite_service import SystemPrerequisiteService
 
@@ -111,6 +112,8 @@ def _detected_distribution_form(paths: ElysiaPaths) -> str:
     allowed = {"deb", "appimage", "user_local_desktop", "onefile_core", "source"}
     if configured in allowed:
         return configured
+    if paths.mode.value == "packaged" and (desktop := installed_desktop_form()):
+        return desktop
     return "onefile_core" if paths.mode.value == "packaged" else "source"
 
 
@@ -177,7 +180,7 @@ class SetupService:
         }
         pending = [
             component_id for component_id in component_ids
-            if component_state.get(component_id) not in {"package_bound", "ready", "ready_with_model_gates"}
+            if component_id != "codev_companion" and component_state.get(component_id) not in {"package_bound", "ready", "ready_with_model_gates"}
         ]
         configured = bool(receipt and receipt.get("status") == "configured")
         doctor_receipt: dict[str, Any] | None = None
@@ -195,6 +198,7 @@ class SetupService:
         machine_ready = configured and not pending and doctor_passed
         return {
             "contract_version": SETUP_CONTRACT_VERSION,
+            "platform_label": " ".join([operating_system()["id"].capitalize(), operating_system()["version_id"], "x86-64"]),
             "runtime_mode": self.paths.mode.value,
             "detected_distribution_form": _detected_distribution_form(self.paths),
             "distribution_form_locked": self.paths.mode.value == "packaged",
@@ -271,8 +275,10 @@ class SetupService:
         reserve_bytes = 2 * 1024**3
         warnings: list[str] = []
         blockers: list[str] = []
-        if not hardware["supported_ubuntu"]:
-            blockers.append("This release supports Ubuntu 24.04; the detected operating system is outside the qualified contract.")
+        if not hardware.get("supported_core_platform", hardware["supported_ubuntu"]):
+            blockers.append("The native Core package supports Debian 13 and Ubuntu 24.04; this operating system is outside that contract.")
+        elif not hardware["supported_ubuntu"] and not set(components) <= DEBIAN_CORE_COMPONENTS:
+            blockers.append("These optional profiles have not been qualified on Debian. Select Core or Developer / Codev.")
         if not hardware["supported_architecture"]:
             blockers.append("This release supports the x86-64 architecture; the detected architecture is outside the qualified contract.")
         hardware_selected_python = sorted(
@@ -296,7 +302,7 @@ class SetupService:
         if acquisition_components:
             warnings.append("Selected external components require their own exact metadata/size preview and approval before transfer.")
         if prerequisites["exact_package_operations"]:
-            warnings.append("Missing Ubuntu packages require a separate exact graphical polkit approval before component installation.")
+            warnings.append("Missing system packages require a separate exact graphical polkit approval before component installation.")
         if prerequisites["external_missing_dependency_ids"]:
             warnings.append(
                 "Separately governed external prerequisites are not currently present: "
