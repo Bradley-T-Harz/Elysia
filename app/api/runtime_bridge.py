@@ -1634,6 +1634,9 @@ def send_chat_request(payload_dict: dict[str, Any]) -> dict[str, Any]:
         if runtime_request_context is None:
             runtime_request_context = {}
         runtime_request_context["requested_gear"] = request_model.requested_gear or "automatic"
+        # Canonical user text, never the attachment-augmented model message or
+        # a caller-supplied context hint, is eligible for public query preparation.
+        runtime_request_context["public_research_question"] = request_model.message
         effective_message = _build_effective_runtime_message(
             user_message=request_model.message,
             attached_context_packet=attached_context_packet,

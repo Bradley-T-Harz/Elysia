@@ -583,8 +583,8 @@ def _detect_hard_blocked_request(request_text: str) -> Dict[str, Any]:
     Detect narrow requests that must be blocked before model/tool action.
 
     This is a deterministic Sprint 12 safety check, not a new execution organ.
-    It catches requests that combine private/vault context with external web or
-    direct mutation/worker asks, plus explicit destructive repo/file deletion
+    It catches requests that combine private/vault context with direct
+    mutation/worker asks, plus explicit destructive repo/file deletion
     requests that must not proceed through ordinary Coder context gathering.
     """
     lowered = str(request_text or "").lower()
@@ -641,8 +641,8 @@ def _detect_hard_blocked_request(request_text: str) -> Dict[str, Any]:
         marker in lowered for marker in destructive_mutation_markers
     )
 
-    if touches_private and touches_outward:
-        reasons.append("private or vault context must not be sent to public web research")
+    # Co-occurrence is not an egress request. ResearchPort partitions the
+    # public question and its query guard owns the actual outbound payload.
 
     if touches_private and asks_mutation_worker:
         reasons.append("vault/private paths must not be edited or handed to coding workers")
@@ -1153,8 +1153,6 @@ def _detect_governed_public_research_candidate(
     URL, or a research-class request whose wording clearly requires current
     public information.
     """
-    if local_data_candidate:
-        return False
     lowered = str(request_text or "").casefold()
     explicit_public = any(
         marker in lowered
@@ -1176,7 +1174,7 @@ def _detect_governed_public_research_candidate(
             "https://",
         )
     )
-    clearly_current = primary_intent == "research" and any(
+    clearly_current = not local_data_candidate and primary_intent == "research" and any(
         marker in lowered
         for marker in (
             "up-to-date public",

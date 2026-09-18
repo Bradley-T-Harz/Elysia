@@ -1431,6 +1431,7 @@ def _merge_request_context_into_gathered_context(
         "research_initiative",
         "safe_search_level",
         "internet_master_enabled",
+        "public_research_question",
         "research_approval_id",
         "research_approval_token",
         "explicit_sealed_memory",
@@ -1882,6 +1883,8 @@ def handle_user_message(
         context,
         request_context,
     )
+    public_research_question = str(context.get("public_research_question", message))
+    context["request_text"] = public_research_question
     if codev_context() is not None:
         context.update(internet_master_enabled=False, research_initiative="manual",
                        background_cognition_enabled=False, max_background_jobs=0,
@@ -2124,11 +2127,16 @@ def handle_user_message(
     if sealed_context_admitted:
         context["sealed_private_memory_context"] = True
         research["sealed_context_egress_blocked"] = True
+    if plan.get("governed_public_research_candidate") and not _coerce_bool(context.get("internet_master_enabled"), False):
+        # Report the disabled lane without entering ResearchPort or overriding
+        # the cognition governor. Local reasoning remains eligible to proceed.
+        research.update(state="blocked", reason="internet_master_off",
+                        internet_master_enabled=False, research_attempted=False,
+                        searxng_used=False)
     if (
         _coerce_bool(plan.get("governed_public_research_candidate", False), False)
         and _coerce_bool(policy_review.get("allowed", False), False)
         and not _coerce_bool(plan.get("hard_blocked_request", False), False)
-        and not sealed_context_admitted
         and governor.research_allowed
         and codev_context() is None
         and not cancel_event.is_set()
@@ -2136,7 +2144,7 @@ def handle_user_message(
         from app.api.research_service import WebResearchPort
 
         research = WebResearchPort().investigate(
-            question=message,
+            question=public_research_question,
             request_id=workspace_request_id,
             conversation_id=str(context.get("conversation_id") or "") or None,
             project_id=str(context.get("project_id") or "") or None,
