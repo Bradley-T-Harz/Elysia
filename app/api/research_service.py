@@ -135,6 +135,21 @@ def prepare_minimum_necessary_public_queries(
     this function. The query guard still blocks secrets, paths, sealed content,
     and exactly gates sensitive categories before any outbound construction.
     """
+    # An explicit request to export private material is a separate privacy
+    # decision. Never turn it into automatic public permission by redaction.
+    egress_request = re.sub(
+        r"\b(?:do not|don't|never|must not)\s+(?:send|upload|publish|post|export|transmit|copy)\b[^.;!?\n]*",
+        "", str(question or ""), flags=re.IGNORECASE,
+    )
+    if re.search(
+        r"\b(?:send|upload|publish|post|export|transmit|copy)\b[^.;!?\n]*\b(?:private|vault|sealed|local file|local log|memory|attachment)\b"
+        r"[^.;!?\n]*\b(?:(?:to|via|on|into)\s+[^.;!?\n]*\b(?:public|web|internet|online|searxng|external)|externally)\b"
+        r"|\b(?:search the web|search the public web|research online)\b[^.;!?\n]*\busing\s+(?:my|our|the)\s+(?:private|vault|sealed)\b",
+        egress_request, flags=re.IGNORECASE,
+    ):
+        return [], {"version": "minimum-necessary-query-v1",
+                    "local_context_included": False, "removed_categories": [],
+                    "outbound_query_count": 0, "blocked_reason": "explicit_private_egress"}
     compact = " ".join(str(question or "").split())
     compact = re.sub(
         r"^(please\s+)?(research|look up|search(?: the web)? for|investigate)\s+",
@@ -158,6 +173,14 @@ def prepare_minimum_necessary_public_queries(
     )
     if local_count:
         removed.append("local_context_clause")
+    # Discard explicitly local/private clauses as whole units. Their arbitrary
+    # contents cannot be made public merely by deleting the privacy label.
+    compact, private_count = re.subn(
+        r"[^.;!?]*\b(?:private|vault|local files?|local logs?)\b[^.;!?]*(?:[.;!?]|$)",
+        " ", compact, flags=re.IGNORECASE,
+    )
+    if private_count:
+        removed.append("private_context_clause")
     compact = " ".join(compact.split())
     compact = compact[:240].strip(" .")
     if not compact:
@@ -1397,6 +1420,9 @@ class WebResearchPort:
         cancelled = False
         approval: dict[str, Any] | None = None
         errors: list[str] = []
+        terminal_search_status: str | None = None
+        attempted = False
+        searxng_used = False
 
         if not internet_master_enabled():
             return {
@@ -1409,6 +1435,18 @@ class WebResearchPort:
                 "evidence_ids": [],
                 "session_id": None,
                 "query_privacy": query_privacy,
+                "research_attempted": False,
+                "searxng_used": False,
+                "internet_master_enabled": False,
+            }
+
+        if not queries:
+            return {
+                "state": "blocked", "reason": query_privacy.get("blocked_reason", "no_public_safe_query"),
+                "research_attempted": False, "searxng_used": False,
+                "internet_master_enabled": True, "network_access_used": False,
+                "private_context_sent": False, "evidence_ids": [],
+                "query_privacy": query_privacy,
             }
 
         for sequence, query in enumerate(queries, start=1):
@@ -1417,7 +1455,7 @@ class WebResearchPort:
                 break
             payload = {
                 "request_id": f"{request_id}:search:{sequence}",
-                "question": question,
+                "question": query,
                 "queries": [query],
                 "max_results_per_query": budget.max_results_per_query,
                 "project_id": project_id,
@@ -1429,11 +1467,14 @@ class WebResearchPort:
             if sequence == 1 and approval_id and approval_token:
                 payload["approval_id"] = approval_id
                 payload["approval_token"] = approval_token
+            attempted = True
             result = search_runner(payload)
             data = dict(result.get("data") or {})
             status = str(result.get("status") or "error")
             progress.append({"stage": "search", "sequence": sequence, "state": status})
+            searxng_used = searxng_used or bool(dict(data.get("worker_summary") or {}).get("searxng_used"))
             if status == "blocked":
+                terminal_search_status = status
                 approval = data.get("approval") if isinstance(data.get("approval"), dict) else None
                 errors.extend(str(item) for item in result.get("errors", []) if str(item))
                 break
@@ -1446,7 +1487,9 @@ class WebResearchPort:
                 dict(item) for item in data.get("evidence_packets", []) if isinstance(item, dict)
             )
             if status not in {"ok", "degraded"}:
+                terminal_search_status = status
                 errors.extend(str(item) for item in result.get("errors", []) if str(item))
+                break
             owner = _authenticated_owner()
             if owner and session_id:
                 EvidenceRepository().record_progress(
@@ -1516,7 +1559,7 @@ class WebResearchPort:
                 break
             fetch_payload = {
                     "request_id": f"{request_id}:fetch:{sequence}",
-                    "question": question,
+                    "question": queries[0],
                     "url": url,
                     "research_session_id": session_id,
                     "project_id": project_id,
@@ -1552,7 +1595,7 @@ class WebResearchPort:
                 )
 
         owner = _authenticated_owner()
-        final_state = "cancelled" if cancelled else "completed" if evidence_ids else "failed"
+        final_state = "cancelled" if cancelled else "completed" if evidence_ids else terminal_search_status or "failed"
         if owner and session_id:
             repository = EvidenceRepository()
             repository.update_session_budget(
@@ -1573,7 +1616,7 @@ class WebResearchPort:
             repository.transition_session(
                 owner,
                 session_id,
-                final_state,
+                final_state if final_state in {"cancelled", "completed"} else "failed",
                 working_conclusion=f"{len(set(evidence_ids))} quarantined evidence records retained across {len(seen_domains)} domains.",
                 contradiction_state="not_evaluated",
             )
@@ -1594,6 +1637,9 @@ class WebResearchPort:
             "progress": progress,
             "approval": approval,
             "network_access_used": network_used,
+            "research_attempted": attempted,
+            "searxng_used": searxng_used,
+            "internet_master_enabled": True,
             "private_context_sent": False,
             "untrusted_content_quarantined": True,
             "query_privacy": query_privacy,

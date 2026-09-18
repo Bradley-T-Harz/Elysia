@@ -499,7 +499,7 @@ def compose_response(
         False,
     )
     lowered_message = str(message or "").lower()
-    asks_public_research = (
+    asks_public_research = bool(plan.get("governed_public_research_candidate")) or (
         mode.strip().lower() in {"researcher", "research"}
         and any(
             marker in lowered_message
@@ -513,6 +513,20 @@ def compose_response(
                 "current recommended",
             )
         )
+    )
+    research = internal_result.get("research", {}) or {}
+    research_executed = bool(research.get("network_access_used"))
+    research_reason = str(research.get("reason") or research.get("state") or "not_attempted")
+    research_notice = (
+        "Bounded SearXNG research ran through the governed public route; private context remained local."
+        if research_executed else
+        "bounded SearXNG research did not run: Internet setting is OFF."
+        if research_reason == "internet_master_off" else
+        "bounded SearXNG research did not run: the enabled worker is unavailable."
+        if research_reason == "unavailable" else
+        f"bounded SearXNG research did not run; research state: {research_reason}. "
+        "I did not fetch web pages or produce evidence packets for this response; "
+        "general source guidance is not current web evidence."
     )
 
     memory_class = _normalize_memory_class_name(
@@ -621,9 +635,7 @@ def compose_response(
         caveats.append(f"Mode profile warning: {warning}")
 
     if asks_public_research:
-        caveats.append(
-            "Bounded SearXNG research did not run for this chat response; treat any source guidance as local model context, not current web evidence."
-        )
+        caveats.append(research_notice)
 
     # Bounded math execution caveats
     if _coerce_bool(math_execution.get("used", False), False):
@@ -816,14 +828,8 @@ def compose_response(
             + ". No web search, private vault access, Aider invocation, file mutation, shell command, or git action was performed."
         )
 
-    if asks_public_research and "Bounded SearXNG research did not run" not in final_response_text:
-        bounded_research_notice = (
-            "Bounded research note: bounded SearXNG research did not run for this "
-            "chat response. If local SearXNG is disabled or not running, start and "
-            "enable the local worker and use the bounded research route before "
-            "treating an answer as current-source evidence. I did not fetch web "
-            "pages or produce evidence packets for this response."
-        )
+    if asks_public_research and research_notice not in final_response_text:
+        bounded_research_notice = f"Bounded research note: {research_notice}"
         final_response_text = f"{bounded_research_notice}\n\n{final_response_text}".strip()
 
     approval_notice = (
