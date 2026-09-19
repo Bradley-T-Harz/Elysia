@@ -8,12 +8,18 @@ from urllib.request import Request, urlopen
 from .config import is_loopback_base_url
 
 
+class SearxngProtocolError(RuntimeError):
+    """The local SearXNG endpoint responded without the required JSON contract."""
+
+
 def _normalize_result(raw: dict[str, Any], rank: int) -> dict[str, Any]:
     return {
         "title": str(raw.get("title") or "").strip(),
         "url": str(raw.get("url") or raw.get("href") or "").strip(),
         "snippet": str(raw.get("content") or raw.get("snippet") or "").strip(),
-        "source_engine": str(raw.get("engine") or raw.get("source_engine") or "").strip(),
+        "source_engine": str(
+            raw.get("engine") or raw.get("source_engine") or ""
+        ).strip(),
         "rank": rank,
     }
 
@@ -30,7 +36,9 @@ def _safe_search_value(value: str) -> str:
         "2": "2",
     }
     if normalized not in mapping:
-        raise ValueError("SearXNG safe-search posture must be off, moderate, or strict.")
+        raise ValueError(
+            "SearXNG safe-search posture must be off, moderate, or strict."
+        )
     return mapping[normalized]
 
 
@@ -51,40 +59,96 @@ def search_searxng(
     This is search-result-only. It never fetches result URLs.
     """
     if not is_loopback_base_url(base_url):
-        raise ValueError("SearXNG client only accepts loopback base_url values.")
+        raise ValueError(
+            "SearXNG client only accepts loopback base_url values."
+        )
 
     endpoint = str(search_endpoint or "/search")
     if endpoint != "/search":
-        raise ValueError("SearXNG client only accepts the configured /search endpoint.")
+        raise ValueError(
+            "SearXNG client only accepts the configured /search endpoint."
+        )
 
     params: dict[str, str] = {
         "q": str(query),
         "format": "json",
         "safesearch": _safe_search_value(safe_search),
     }
+
     if categories:
-        params["categories"] = ",".join(str(item) for item in categories if str(item).strip())
+        params["categories"] = ",".join(
+            str(item)
+            for item in categories
+            if str(item).strip()
+        )
+
     if language:
         params["language"] = str(language)
 
-    url = f"{urljoin(base_url.rstrip('/') + '/', endpoint.lstrip('/'))}?{urlencode(params)}"
-    request = Request(url, headers={"Accept": "application/json"})
+    url = (
+        f"{urljoin(base_url.rstrip('/') + '/', endpoint.lstrip('/'))}"
+        f"?{urlencode(params)}"
+    )
 
-    with urlopen(request, timeout=max(1, int(timeout_seconds))) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+    request = Request(
+        url,
+        headers={"Accept": "application/json"},
+    )
 
-    raw_results = payload.get("results", []) if isinstance(payload, dict) else []
+    with urlopen(
+        request,
+        timeout=max(1, int(timeout_seconds)),
+    ) as response:
+        try:
+            decoded = response.read().decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise SearxngProtocolError(
+                "SearXNG returned a response that was not valid UTF-8: "
+                f"{exc}"
+            ) from exc
+
+        try:
+            payload = json.loads(decoded)
+        except json.JSONDecodeError as exc:
+            raise SearxngProtocolError(
+                f"SearXNG returned invalid JSON: {exc}"
+            ) from exc
+
+    if not isinstance(payload, dict):
+        raise SearxngProtocolError(
+            "SearXNG JSON response must be an object."
+        )
+
+    if "results" not in payload:
+        raise SearxngProtocolError(
+            "SearXNG JSON response is missing the results list."
+        )
+
+    raw_results = payload["results"]
+
     if not isinstance(raw_results, list):
-        return []
+        raise SearxngProtocolError(
+            "SearXNG JSON response field 'results' must be a list."
+        )
 
     normalized: list[dict[str, Any]] = []
-    for index, item in enumerate(raw_results[: max(0, int(max_results))], start=1):
-        if isinstance(item, dict):
-            result = _normalize_result(item, index)
-            if result["url"]:
-                normalized.append(result)
+
+    for index, item in enumerate(
+        raw_results[: max(0, int(max_results))],
+        start=1,
+    ):
+        if not isinstance(item, dict):
+            continue
+
+        result = _normalize_result(item, index)
+
+        if result["url"]:
+            normalized.append(result)
 
     return normalized
 
 
-__all__ = ("search_searxng",)
+__all__ = (
+    "SearxngProtocolError",
+    "search_searxng",
+)

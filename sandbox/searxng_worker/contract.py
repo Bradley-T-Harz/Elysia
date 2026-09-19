@@ -79,6 +79,7 @@ class SearxngWorkerResult:
     ticket_id: str = ""
     queries_requested: list[str] = field(default_factory=list)
     queries_sent: list[str] = field(default_factory=list)
+    query_outcomes: list[dict[str, Any]] = field(default_factory=list)
     query_hashes: list[str] = field(default_factory=list)
     blocked_query_preview: str = ""
     results_considered: list[dict[str, Any]] = field(default_factory=list)
@@ -106,6 +107,10 @@ class SearxngWorkerResult:
             "ticket_id": self.ticket_id,
             "queries_requested": list(self.queries_requested),
             "queries_sent": list(self.queries_sent),
+            "query_outcomes": [
+                dict(item)
+                for item in self.query_outcomes
+            ],
             "query_hashes": list(self.query_hashes),
             "blocked_query_preview": self.blocked_query_preview,
             "results_considered": list(self.results_considered),
