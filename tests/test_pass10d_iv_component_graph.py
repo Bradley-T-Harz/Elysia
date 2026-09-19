@@ -18,7 +18,7 @@ from app.install.component_graph_service import (
 def test_authoritative_graph_has_every_profile_field_and_local_capability_owner() -> None:
     graph = load_component_graph()
     assert graph["authority"] == "authoritative"
-    assert graph["release_target"] == "1.0.0"
+    assert graph["release_target"] == "1.1.0"
     assert set(graph["profiles"]) == {
         "core",
         "workstation_research",

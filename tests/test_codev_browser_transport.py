@@ -4,6 +4,60 @@ import subprocess
 import pytest
 
 
+_SYNTHETIC_SUPABASE = "https://readiness-fixture.supabase.co"
+_SYNTHETIC_ONLINE_BUILD_READY = False
+
+
+def _online_dist_has_synthetic_fixture(online: Path) -> bool:
+    assets = online / "dist" / "assets"
+    if not assets.is_dir():
+        return False
+
+    for path in assets.glob("*.js"):
+        try:
+            if _SYNTHETIC_SUPABASE in path.read_text(
+                encoding="utf-8",
+                errors="ignore",
+            ):
+                return True
+        except OSError:
+            continue
+
+    return False
+
+
+def _ensure_synthetic_online_build(online: Path) -> None:
+    global _SYNTHETIC_ONLINE_BUILD_READY
+
+    if (
+        _SYNTHETIC_ONLINE_BUILD_READY
+        and _online_dist_has_synthetic_fixture(online)
+    ):
+        return
+
+    if not _online_dist_has_synthetic_fixture(online):
+        result = subprocess.run(
+            [
+                "node",
+                "scripts/runReadinessChecks.mjs",
+                "build",
+            ],
+            cwd=online,
+            env=os.environ.copy(),
+            capture_output=True,
+            text=True,
+            timeout=240,
+        )
+        assert result.returncode == 0, result.stderr + result.stdout
+
+    assert _online_dist_has_synthetic_fixture(online), (
+        "Codev browser qualification requires the isolated synthetic "
+        "Online readiness build."
+    )
+
+    _SYNTHETIC_ONLINE_BUILD_READY = True
+
+
 @pytest.mark.parametrize("browser_family", ["chromium", "firefox"])
 def test_actual_browser_signed_broker_transport(browser_family):
     online = Path(__file__).resolve().parents[2] / "Elysia-Ecobotics-Online"
@@ -27,8 +81,9 @@ def test_actual_browser_signed_broker_transport(browser_family):
 @pytest.mark.parametrize("browser_family", ["chromium", "firefox"])
 def test_actual_codev_website_pages(browser_family):
     online = Path(__file__).resolve().parents[2] / "Elysia-Ecobotics-Online"
-    if not (online / "dist" / "index.html").is_file():
-        pytest.skip("Build the isolated Online frontend before full-page qualification")
+    if not (online / "node_modules" / "playwright").is_dir():
+        pytest.skip("Online Playwright dependency is unavailable")
+    _ensure_synthetic_online_build(online)
     environment = os.environ.copy()
     environment["ELYSIA_CODEV_FORGE_BROWSER"] = "1"
     environment["ELYSIA_CODEV_BROWSER_FAMILY"] = browser_family

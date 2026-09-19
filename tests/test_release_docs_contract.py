@@ -7,7 +7,6 @@ ROOT = Path(__file__).resolve().parents[1]
 RELEASE_ROOT = ROOT / "docs" / "release"
 
 REQUIRED_DOCS = {
-    "ELYSIA_V1_IMPLEMENTATION_PASS_PLAN.md",
     "ELYSIA_V1_PUBLIC_RELEASE_SCOPE.md",
     "INSTALL_PROFILES.md",
     "PUBLIC_PRIVATE_BOUNDARY.md",
@@ -30,27 +29,32 @@ def test_required_release_documents_exist() -> None:
     assert REQUIRED_DOCS <= {path.name for path in RELEASE_ROOT.glob("*.md")}
 
 
-def test_durable_pass_plan_covers_all_passes_and_future_reminder() -> None:
-    text = _text("ELYSIA_V1_IMPLEMENTATION_PASS_PLAN.md")
-    for pass_number in range(1, 11):
-        assert f"Pass {pass_number}" in text
-    assert "Read this file completely" in text
-    assert "blocked by default" in text
-    assert "never build" in text
-    assert "Elysia and Codev commits separate" in text
+def test_internal_pass_plan_is_explicitly_excluded_from_public_source() -> None:
+    manifest = (ROOT / "packaging" / "public_manifest.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert (
+        "docs/release/ELYSIA_V1_IMPLEMENTATION_PASS_PLAN.md"
+        in manifest
+    )
+    assert not (
+        RELEASE_ROOT / "ELYSIA_V1_IMPLEMENTATION_PASS_PLAN.md"
+    ).exists()
 
 
 def test_official_codev_sibling_path_is_canonical_and_consistent() -> None:
     canonical_path = "Add-ons/Official_Addons/elysia-codev"
-    pass_plan = _text("ELYSIA_V1_IMPLEMENTATION_PASS_PLAN.md")
-    approved_repos = (ROOT / "config" / "coder" / "approved_repos.yaml").read_text(
-        encoding="utf-8"
-    )
+    approved_repos = (
+        ROOT / "config" / "coder" / "approved_repos.yaml"
+    ).read_text(encoding="utf-8")
+    doctrine = (
+        RELEASE_ROOT / "ADDON_DEVELOPER_FORGE_MARKETPLACE_DOCTRINE.md"
+    ).read_text(encoding="utf-8")
 
-    assert canonical_path in pass_plan
     assert f"../{canonical_path}" in approved_repos
+    assert "Codev is the first official add-on" in doctrine
+
     legacy_codev_path = "Add-ons/" + "elysia-codev"
-    assert legacy_codev_path not in pass_plan
     assert f"../{legacy_codev_path}" not in approved_repos
 
 
