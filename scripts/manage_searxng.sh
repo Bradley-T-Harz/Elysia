@@ -27,18 +27,85 @@ case "$ACTION" in
   *) usage >&2; exit 2 ;;
 esac
 
-if command -v podman >/dev/null 2>&1; then
-  RUNTIME="podman"
-elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-  RUNTIME="docker"
-else
-  echo "Podman or an accessible Docker service is required for the optional local SearXNG profile." >&2
+runtime_available() {
+  case "$1" in
+    podman)
+      command -v podman >/dev/null 2>&1
+      ;;
+    docker)
+      command -v docker >/dev/null 2>&1         && docker info >/dev/null 2>&1
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+container_exists_in() {
+  case "$1" in
+    podman)
+      podman container exists "$CONTAINER_NAME" >/dev/null 2>&1
+      ;;
+    docker)
+      docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+container_owned_in() {
+  local runtime="$1"
+
+  container_exists_in "$runtime" || return 1
+
+  [[ "$(
+    "$runtime" inspect "$CONTAINER_NAME"       --format '{{ index .Config.Labels "llc.ecosyneva.elysia.owner" }}'       2>/dev/null || true
+  )" == "managed-searxng" ]]
+}
+
+PODMAN_AVAILABLE=false
+DOCKER_AVAILABLE=false
+PODMAN_CONTAINER=false
+DOCKER_CONTAINER=false
+
+runtime_available podman && PODMAN_AVAILABLE=true
+runtime_available docker && DOCKER_AVAILABLE=true
+
+if [[ "$PODMAN_AVAILABLE" == true ]]   && container_exists_in podman; then
+  PODMAN_CONTAINER=true
+fi
+
+if [[ "$DOCKER_AVAILABLE" == true ]]   && container_exists_in docker; then
+  DOCKER_CONTAINER=true
+fi
+
+if [[ "$PODMAN_CONTAINER" == true       && "$DOCKER_CONTAINER" == true ]]; then
+  echo     "SearXNG runtime ambiguity: a container named $CONTAINER_NAME exists in both Podman and Docker. Refusing to choose one implicitly."     >&2
+  echo     "Resolve the duplicate container identity before managing or verifying the Elysia SearXNG service."     >&2
   exit 1
 fi
 
-exists() { "$RUNTIME" container exists "$CONTAINER_NAME" >/dev/null 2>&1; }
+if [[ "$PODMAN_CONTAINER" == true ]]; then
+  RUNTIME="podman"
+elif [[ "$DOCKER_CONTAINER" == true ]]; then
+  RUNTIME="docker"
+elif [[ "$PODMAN_AVAILABLE" == true ]]; then
+  RUNTIME="podman"
+elif [[ "$DOCKER_AVAILABLE" == true ]]; then
+  RUNTIME="docker"
+else
+  echo     "Podman or an accessible Docker service is required for the optional local SearXNG profile."     >&2
+  exit 1
+fi
+
+exists() {
+  container_exists_in "$RUNTIME"
+}
+
 owned() {
-  exists && [[ "$("$RUNTIME" inspect "$CONTAINER_NAME" --format '{{ index .Config.Labels "llc.ecosyneva.elysia.owner" }}' 2>/dev/null || true)" == "managed-searxng" ]]
+  container_owned_in "$RUNTIME"
 }
 
 write_receipt() {

@@ -5,16 +5,25 @@ from pathlib import Path
 import pytest
 
 
-MARKETPLACE_ROOT = Path(__file__).resolve().parents[2] / "elysia-marketplace"
-MIGRATION_PATH = MARKETPLACE_ROOT / "supabase/migrations/2026_06_02_saved_addons_permissions.sql"
-BOOTSTRAP_MIGRATION_PATH = MARKETPLACE_ROOT / "supabase/migrations/2026_06_02_profile_bootstrap_for_saved_addons.sql"
+MARKETPLACE_ROOT = (
+    Path(__file__).resolve().parents[2]
+    / "Elysia-Ecobotics-Online"
+)
+MIGRATION_PATH = (
+    MARKETPLACE_ROOT
+    / "supabase/legacy-migrations/2026_06_02_saved_addons_permissions.sql"
+)
+BOOTSTRAP_MIGRATION_PATH = (
+    MARKETPLACE_ROOT
+    / "supabase/legacy-migrations/2026_06_02_profile_bootstrap_for_saved_addons.sql"
+)
 POLICIES_PATH = MARKETPLACE_ROOT / "supabase/policies.sql"
 ADDONS_CLIENT_PATH = Path("apps/elysia-desktop/src/api/addonsClient.ts")
 
 
 def test_saved_addons_permission_migration_grants_authenticated_with_rls_guard():
     if not MARKETPLACE_ROOT.exists():
-        pytest.skip("Sibling elysia-marketplace repo is not present in this checkout.")
+        pytest.skip("Sibling Elysia-Ecobotics-Online repo is not present in this checkout.")
 
     migration = MIGRATION_PATH.read_text(encoding="utf-8").lower()
     policies = POLICIES_PATH.read_text(encoding="utf-8").lower()
@@ -30,7 +39,7 @@ def test_saved_addons_permission_migration_grants_authenticated_with_rls_guard()
 
 def test_profile_bootstrap_migration_creates_minimal_profiles_without_admin_promotion():
     if not MARKETPLACE_ROOT.exists():
-        pytest.skip("Sibling elysia-marketplace repo is not present in this checkout.")
+        pytest.skip("Sibling Elysia-Ecobotics-Online repo is not present in this checkout.")
 
     migration = BOOTSTRAP_MIGRATION_PATH.read_text(encoding="utf-8").lower()
 

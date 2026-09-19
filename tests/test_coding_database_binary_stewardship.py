@@ -20,12 +20,36 @@ from app.api.coding_data_type_registry import detect_data_type
 from app.api.coding_file_type_registry import detect_file_type
 from app.api.coding_operation_service import approve_operation
 from app.api.main import create_app
+from app.api.project_paths import config_path
+from app.api.worker_runtime_path_service import resolve_worker_python
 from app.api.schemas.coding_data import CodingDataEditPlanRequest, CodingDataExportPlanRequest
 from app.api.schemas.coding_operations import CodingOperationApproveRequest
 from app.api.schemas.database_binary import BinaryInspectRequest, DatabaseInspectRequest, DatabaseSchemaPreviewRequest
 
 
-DATABASE_PYTHON = Path(os.environ.get("ELYSIA_DATABASEFORGE_PYTHON", ""))
+def _databaseforge_python() -> Path:
+    try:
+        import yaml
+
+        config = yaml.safe_load(
+            config_path(
+                "workers",
+                "databaseforge_worker.yaml",
+            ).read_text(encoding="utf-8")
+        ) or {}
+
+        resolved = resolve_worker_python(
+            config,
+            override_env="ELYSIA_DATABASEFORGE_PYTHON",
+            allow_current_interpreter=False,
+        )
+
+        return resolved or Path()
+    except Exception:
+        return Path()
+
+
+DATABASE_PYTHON = _databaseforge_python()
 
 
 @pytest.fixture

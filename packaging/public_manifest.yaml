@@ -43,6 +43,7 @@ reviewed_source:
     - CONTRIBUTING.md
     - SECURITY.md
     - README.md
+    - launch_elysia_dev.sh
     - requirements.txt
     - .gitignore
   exclude_globs:

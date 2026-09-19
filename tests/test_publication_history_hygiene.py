@@ -70,7 +70,7 @@ def test_reviewed_publication_artifact_passes_hygiene_gate() -> None:
     assert completed.returncode == 0, completed.stdout + completed.stderr
 
 
-def test_strict_internal_tree_scan_still_reports_excluded_historical_evidence() -> None:
+def test_strict_internal_tree_scan_is_clean_after_publication_sanitization() -> None:
     completed = subprocess.run(
         [sys.executable, str(SCRIPT), "--scope", "tree"],
         cwd=ROOT,
@@ -79,13 +79,10 @@ def test_strict_internal_tree_scan_still_reports_excluded_historical_evidence() 
         stderr=subprocess.PIPE,
     )
     payload = json.loads(completed.stdout)
-    assert completed.returncode == 1
-    assert payload["status"] == "failed"
-    assert payload["finding_count"] >= 1
-    assert all(
-        str(item.get("path", "")).startswith("docs/reports/")
-        for item in payload["findings"]
-    )
+    assert completed.returncode == 0
+    assert payload["status"] == "passed"
+    assert payload["finding_count"] == 0
+    assert payload["findings"] == []
 
 
 def test_publication_artifact_uses_manifest_and_excludes_internal_reports() -> None:
