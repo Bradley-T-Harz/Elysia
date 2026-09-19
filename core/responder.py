@@ -515,19 +515,169 @@ def compose_response(
         )
     )
     research = internal_result.get("research", {}) or {}
-    research_executed = bool(research.get("network_access_used"))
-    research_reason = str(research.get("reason") or research.get("state") or "not_attempted")
-    research_notice = (
-        "Bounded SearXNG research ran through the governed public route; private context remained local."
-        if research_executed else
-        "bounded SearXNG research did not run: Internet setting is OFF."
-        if research_reason == "internet_master_off" else
-        "bounded SearXNG research did not run: the enabled worker is unavailable."
-        if research_reason == "unavailable" else
-        f"bounded SearXNG research did not run; research state: {research_reason}. "
-        "I did not fetch web pages or produce evidence packets for this response; "
-        "general source guidance is not current web evidence."
+
+    research_state = str(
+        research.get("state") or "not_attempted"
+    ).casefold()
+
+    research_reason = str(
+        research.get("reason")
+        or research_state
+        or "not_attempted"
     )
+
+    research_attempted = bool(
+        research.get("research_attempted")
+    )
+
+    research_worker_used = bool(
+        research.get("worker_used")
+    )
+
+    research_network_used = bool(
+        research.get("network_access_used")
+    )
+
+    research_searxng_used = bool(
+        research.get("searxng_used")
+    )
+
+    research_budget_exhausted = bool(
+        research.get("budget_exhausted")
+    )
+
+    research_evidence_count = len(
+        research.get("evidence_ids")
+        or []
+    )
+
+    if research_reason == "internet_master_off":
+        research_notice = (
+            "bounded SearXNG research did not run: "
+            "Internet setting is OFF."
+        )
+
+    elif research_state == "approval_required":
+        research_notice = (
+            "Bounded public research is paused pending the "
+            "exact required research-egress approval. "
+            "No broader outward authority was granted."
+        )
+
+    elif research_state == "blocked":
+        research_notice = (
+            "Bounded public research was blocked by the "
+            "current privacy, policy, or research-egress boundary."
+        )
+
+    elif research_state == "cancelled":
+        research_notice = (
+            "Bounded public research was cancelled after "
+            "partial execution; evidence gathered before "
+            "cancellation was retained."
+            if (
+                research_evidence_count > 0
+                or research_worker_used
+                or research_network_used
+            )
+            else
+            "Bounded public research was cancelled before "
+            "public research executed."
+        )
+
+    elif research_state == "unavailable":
+        research_notice = (
+            "Bounded SearXNG research was attempted, but "
+            "the local SearXNG service could not be reached. "
+            "No usable web evidence was retrieved."
+            if research_worker_used
+            else
+            "bounded SearXNG research did not start: the "
+            "configured SearXNG worker is unavailable. "
+            "No usable web evidence was retrieved."
+        )
+
+    elif research_state == "failed":
+        research_notice = (
+            "Bounded SearXNG research was attempted but "
+            "failed before a valid research result completed. "
+            "No usable web evidence was retained from the "
+            "failed research step."
+            if (
+                research_attempted
+                or research_worker_used
+            )
+            else
+            "Bounded SearXNG research failed before worker "
+            "execution. No usable web evidence was retained."
+        )
+
+    elif research_state == "degraded":
+        if research_budget_exhausted:
+            research_notice = (
+                "Bounded public research reached its configured "
+                "research budget before all planned work completed. "
+                "Any evidence gathered before the budget boundary "
+                "was retained; the result is degraded."
+            )
+
+        elif research_evidence_count > 0:
+            research_notice = (
+                "Bounded public research completed only partially. "
+                "Some public evidence was retained, but one or more "
+                "governed search or fetch steps did not complete "
+                "successfully."
+            )
+
+        elif (
+            research_searxng_used
+            or research_network_used
+        ):
+            research_notice = (
+                "Bounded SearXNG research ran through the "
+                "governed public route, but no usable evidence "
+                "packet was retained. Treat the final answer as "
+                "locally synthesized, not web-supported."
+            )
+
+        else:
+            research_notice = (
+                "Bounded public research was attempted but "
+                "completed only partially, with no usable "
+                "web evidence retained."
+            )
+
+    elif research_state in {
+        "complete",
+        "completed",
+    }:
+        research_notice = (
+            "Bounded SearXNG research ran through the governed "
+            "public route; private context remained local and "
+            "public evidence was retained."
+            if research_evidence_count > 0
+            else
+            "Bounded public research reported completion without "
+            "durable evidence. Treat the final answer as locally "
+            "synthesized, not web-supported."
+        )
+
+    elif research_attempted:
+        research_notice = (
+            "Bounded SearXNG research was attempted but did not "
+            "reach a recognized terminal state; research state: "
+            f"{research_reason}. General source guidance is not "
+            "current web evidence."
+        )
+
+    else:
+        research_notice = (
+            "bounded SearXNG research did not run; research state: "
+            f"{research_reason}. I did not fetch web pages or "
+            "produce evidence packets for this response; general "
+            "source guidance is not current web evidence."
+        )
+
 
     memory_class = _normalize_memory_class_name(
         plan.get("memory_class", ""),

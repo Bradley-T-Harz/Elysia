@@ -273,44 +273,193 @@ def verify_research_ticket_payload(payload: Any) -> dict[str, Any]:
             issues.append("Bounded fetch ticket is missing evidence packets")
     elif bounded_searxng_ticket:
         if ticket.live_research_enabled is True:
-            checks_passed.append("research_ticket_live_research_enabled_true_for_searxng")
+            checks_passed.append(
+                "research_ticket_live_research_enabled_true_for_searxng"
+            )
         else:
-            issues.append("Bounded SearXNG ticket must truthfully enable live research")
+            issues.append(
+                "Bounded SearXNG attempt must truthfully "
+                "enable live research"
+            )
 
         if ticket.query_execution_allowed is True:
-            checks_passed.append("research_ticket_query_execution_allowed_true_for_searxng")
+            checks_passed.append(
+                "research_ticket_query_execution_allowed_true_for_searxng"
+            )
         else:
-            issues.append("Bounded SearXNG ticket must truthfully allow query execution")
+            issues.append(
+                "Bounded SearXNG attempt must truthfully "
+                "allow query execution"
+            )
 
         if ticket.retrieval_allowed is False:
-            checks_passed.append("research_ticket_retrieval_allowed_false_for_search_only")
+            checks_passed.append(
+                "research_ticket_retrieval_allowed_false_for_search_only"
+            )
         else:
-            issues.append("Bounded SearXNG ticket must not allow page/source retrieval")
+            issues.append(
+                "Bounded SearXNG ticket must not allow "
+                "page/source retrieval"
+            )
 
-        if ticket.network_access_used is True:
-            checks_passed.append("research_ticket_network_access_used_true_for_searxng")
+        if ticket.page_fetch_used is False:
+            checks_passed.append(
+                "research_ticket_page_fetch_used_false_for_searxng"
+            )
         else:
-            issues.append("Bounded SearXNG ticket must truthfully mark network_access_used true")
+            issues.append(
+                "Bounded SearXNG search ticket must not "
+                "mark page fetch use"
+            )
 
-        if ticket.live_web_research_used is True:
-            checks_passed.append("research_ticket_live_web_research_used_true_for_searxng")
-        else:
-            issues.append("Bounded SearXNG ticket must truthfully mark live_web_research_used true")
+        boundary_state = _enum_value(
+            ticket.outward_boundary_state
+        )
 
-        if _enum_value(ticket.outward_boundary_state) == EvidenceBoundaryState.EXTERNAL_BOUNDARY_CROSSED.value:
-            checks_passed.append("research_ticket_outward_boundary_crossed_for_searxng")
-        else:
-            issues.append("Bounded SearXNG ticket must mark external_boundary_crossed")
+        if status == ResearchTicketStatus.COMPLETED.value:
+            if ticket.network_access_used is True:
+                checks_passed.append(
+                    "research_ticket_network_access_used_true_for_searxng"
+                )
+            else:
+                issues.append(
+                    "Completed SearXNG ticket must truthfully "
+                    "mark network_access_used true"
+                )
 
-        if getattr(ticket, "queries_sent", []):
-            checks_passed.append("research_ticket_queries_sent_present_for_searxng")
-        else:
-            issues.append("Bounded SearXNG ticket crossed boundary without queries_sent")
+            if ticket.live_web_research_used is True:
+                checks_passed.append(
+                    "research_ticket_live_web_research_used_true_for_searxng"
+                )
+            else:
+                issues.append(
+                    "Completed SearXNG ticket must truthfully "
+                    "mark live_web_research_used true"
+                )
 
-        if ticket.evidence_packets:
-            checks_passed.append("research_ticket_searxng_has_evidence_packets")
+            if (
+                boundary_state
+                == EvidenceBoundaryState.EXTERNAL_BOUNDARY_CROSSED.value
+            ):
+                checks_passed.append(
+                    "research_ticket_outward_boundary_crossed_for_searxng"
+                )
+            else:
+                issues.append(
+                    "Completed SearXNG ticket must mark "
+                    "external_boundary_crossed"
+                )
+
+            if getattr(
+                ticket,
+                "queries_sent",
+                [],
+            ):
+                checks_passed.append(
+                    "research_ticket_queries_sent_present_for_searxng"
+                )
+            else:
+                issues.append(
+                    "Completed SearXNG ticket crossed boundary "
+                    "without queries_sent"
+                )
+
+            if ticket.evidence_packets:
+                checks_passed.append(
+                    "research_ticket_searxng_has_evidence_packets"
+                )
+            else:
+                issues.append(
+                    "Bounded SearXNG ticket is missing evidence packets"
+                )
+
+        elif status == ResearchTicketStatus.FAILED.value:
+            if ticket.live_web_research_used is False:
+                checks_passed.append(
+                    "failed_searxng_attempt_does_not_claim_"
+                    "completed_live_research"
+                )
+            else:
+                issues.append(
+                    "Failed SearXNG attempt must not claim "
+                    "completed live web research"
+                )
+
+            if not ticket.evidence_packets:
+                checks_passed.append(
+                    "failed_searxng_attempt_has_no_evidence_packets"
+                )
+            else:
+                issues.append(
+                    "Failed SearXNG attempt must not "
+                    "manufacture evidence packets"
+                )
+
+            if (
+                boundary_state
+                == EvidenceBoundaryState.EXTERNAL_BOUNDARY_CROSSED.value
+            ):
+                if (
+                    ticket.network_access_used
+                    and getattr(
+                        ticket,
+                        "queries_sent",
+                        [],
+                    )
+                ):
+                    checks_passed.append(
+                        "failed_searxng_attempt_"
+                        "crossed_boundary_truth_is_consistent"
+                    )
+                else:
+                    issues.append(
+                        "Failed SearXNG attempt cannot claim "
+                        "crossed boundary without confirmed "
+                        "network use and sent query text"
+                    )
+
+            elif (
+                boundary_state
+                == EvidenceBoundaryState.UNKNOWN.value
+            ):
+                checks_passed.append(
+                    "failed_searxng_attempt_boundary_unknown_is_explicit"
+                )
+
+            elif boundary_state in {
+                EvidenceBoundaryState.EXTERNAL_BOUNDARY_PLANNED.value,
+                EvidenceBoundaryState.LOCAL_CONTRACT_ONLY.value,
+            }:
+                if (
+                    ticket.network_access_used
+                    or getattr(
+                        ticket,
+                        "queries_sent",
+                        [],
+                    )
+                ):
+                    issues.append(
+                        "Failed SearXNG attempt cannot claim a "
+                        "local/planned boundary while also claiming "
+                        "confirmed network/query dispatch"
+                    )
+                else:
+                    checks_passed.append(
+                        "failed_searxng_attempt_"
+                        "did_not_claim_boundary_crossing"
+                    )
+
+            else:
+                issues.append(
+                    "Failed SearXNG attempt has an unsupported "
+                    "boundary state"
+                )
+
         else:
-            issues.append("Bounded SearXNG ticket is missing evidence packets")
+            issues.append(
+                "A used SearXNG worker must resolve to a "
+                "completed or failed research ticket"
+            )
     else:
         dangerous_false_fields = {
             "live_research_enabled": "Research ticket must not enable live research",

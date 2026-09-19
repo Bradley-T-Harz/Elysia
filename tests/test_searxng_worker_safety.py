@@ -168,3 +168,51 @@ def test_approval_required_query_does_not_call_client_without_token(tmp_path):
     assert result.network_access_used is False
     assert result.queries_sent == []
     assert calls == []
+
+
+def test_connection_refused_is_unavailable_not_successful_research(tmp_path):
+    def refused_client(**kwargs):
+        del kwargs
+        raise ConnectionRefusedError("synthetic loopback refusal")
+
+    result = run_searxng_worker(
+        make_request(),
+        config_path=write_config(
+            tmp_path / "searxng_worker.yaml",
+            enabled=True,
+        ),
+        search_client=refused_client,
+    )
+
+    assert result.status == SearxngWorkerStatus.UNAVAILABLE
+    assert result.worker_used is True
+    assert result.searxng_used is False
+    assert result.network_access_used is False
+    assert result.queries_sent == []
+    assert result.evidence_packets == []
+    assert any(
+        "synthetic loopback refusal" in error
+        for error in result.errors
+    )
+
+
+def test_successful_search_with_zero_results_is_degraded_but_network_was_used(
+    tmp_path,
+):
+    result = run_searxng_worker(
+        make_request(),
+        config_path=write_config(
+            tmp_path / "searxng_worker.yaml",
+            enabled=True,
+        ),
+        search_client=lambda **_kwargs: [],
+    )
+
+    assert result.status == SearxngWorkerStatus.DEGRADED
+    assert result.worker_used is True
+    assert result.searxng_used is True
+    assert result.network_access_used is True
+    assert result.queries_sent == [
+        "wetland nitrate removal research"
+    ]
+    assert result.evidence_packets == []

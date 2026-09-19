@@ -293,6 +293,135 @@ def _status_to_approval_state(worker_result: SearxngWorkerResult) -> ApprovalSta
     return ApprovalState.NOT_NEEDED
 
 
+def _worker_query_outcomes(
+    worker_result: SearxngWorkerResult,
+) -> list[dict[str, Any]]:
+    outcomes: list[dict[str, Any]] = []
+
+    for item in list(
+        getattr(worker_result, "query_outcomes", [])
+        or []
+    ):
+        if not isinstance(item, dict):
+            continue
+
+        query = " ".join(
+            str(item.get("query") or "").split()
+        )
+
+        state = str(
+            item.get("state") or ""
+        ).casefold()
+
+        if (
+            not query
+            or state
+            not in {"completed", "unavailable", "failed"}
+        ):
+            continue
+
+        outcomes.append(
+            {
+                "query": query,
+                "state": state,
+                "outward_boundary_state": str(
+                    item.get("outward_boundary_state")
+                    or "unknown"
+                ),
+                "network_access_used": bool(
+                    item.get("network_access_used")
+                ),
+                "searxng_used": bool(
+                    item.get("searxng_used")
+                ),
+            }
+        )
+
+    return outcomes
+
+
+def _worker_boundary_state(
+    worker_result: SearxngWorkerResult,
+) -> EvidenceBoundaryState:
+    outcomes = _worker_query_outcomes(worker_result)
+
+    boundary_states = {
+        str(
+            item.get("outward_boundary_state")
+            or ""
+        )
+        for item in outcomes
+    }
+
+    if (
+        EvidenceBoundaryState.EXTERNAL_BOUNDARY_CROSSED.value
+        in boundary_states
+    ):
+        return (
+            EvidenceBoundaryState.EXTERNAL_BOUNDARY_CROSSED
+        )
+
+    if (
+        EvidenceBoundaryState.UNKNOWN.value
+        in boundary_states
+    ):
+        return EvidenceBoundaryState.UNKNOWN
+
+    # Compatibility for injected/legacy worker results that
+    # predate query_outcomes.
+    if worker_result.queries_sent:
+        if worker_result.status in {
+            SearxngWorkerStatus.COMPLETED,
+            SearxngWorkerStatus.DEGRADED,
+        }:
+            return (
+                EvidenceBoundaryState.EXTERNAL_BOUNDARY_CROSSED
+            )
+
+        return EvidenceBoundaryState.UNKNOWN
+
+    return EvidenceBoundaryState.EXTERNAL_BOUNDARY_PLANNED
+
+
+def _worker_locality_state(
+    worker_result: SearxngWorkerResult,
+) -> LocalityState:
+    boundary = _worker_boundary_state(worker_result)
+
+    if (
+        boundary
+        == EvidenceBoundaryState.EXTERNAL_BOUNDARY_CROSSED
+    ):
+        return LocalityState.CROSSED_BOUNDARY
+
+    if boundary == EvidenceBoundaryState.UNKNOWN:
+        return LocalityState.UNKNOWN
+
+    return LocalityState.LOCAL
+
+
+def _worker_completed_queries(
+    worker_result: SearxngWorkerResult,
+) -> list[str]:
+    outcomes = _worker_query_outcomes(worker_result)
+
+    if outcomes:
+        return [
+            str(item["query"])
+            for item in outcomes
+            if item.get("state") == "completed"
+        ]
+
+    # Compatibility for existing injected test workers.
+    if worker_result.status in {
+        SearxngWorkerStatus.COMPLETED,
+        SearxngWorkerStatus.DEGRADED,
+    }:
+        return list(worker_result.queries_sent)
+
+    return []
+
+
 def build_research_ticket_from_request(
     request_model: ResearchSearchRequest,
     worker_result: SearxngWorkerResult,
@@ -300,7 +429,8 @@ def build_research_ticket_from_request(
     """Build a ResearchTicket from one worker result."""
     evidence_packets = list(worker_result.evidence_packets)
     ticket_status = _status_to_ticket_status(worker_result.status)
-    crossed = bool(worker_result.queries_sent)
+    boundary_state = _worker_boundary_state(worker_result)
+    completed_queries = _worker_completed_queries(worker_result)
 
     return ResearchTicket(
         ticket_id=request_model.ticket_id or worker_result.ticket_id or _ticket_id(),
@@ -316,20 +446,16 @@ def build_research_ticket_from_request(
         created_at_utc=_utc_now_iso(),
         completed_at_utc=_utc_now_iso() if ticket_status == ResearchTicketStatus.COMPLETED else None,
         requires_live_research=True,
-        live_research_enabled=crossed,
-        query_execution_allowed=crossed,
+        live_research_enabled=bool(worker_result.worker_used),
+        query_execution_allowed=bool(worker_result.worker_used),
         retrieval_allowed=False,
         private_context_allowed=False,
         private_context_sent=False,
-        outward_boundary_state=(
-            EvidenceBoundaryState.EXTERNAL_BOUNDARY_CROSSED
-            if crossed
-            else EvidenceBoundaryState.EXTERNAL_BOUNDARY_PLANNED
-        ),
+        outward_boundary_state=boundary_state,
         network_access_used=worker_result.network_access_used,
         page_fetch_allowed=False,
         page_fetch_used=False,
-        live_web_research_used=worker_result.network_access_used,
+        live_web_research_used=bool(completed_queries),
         approval_required=worker_result.approval_required,
         worker_key=worker_result.worker_key,
         worker_used=worker_result.worker_used,
@@ -771,19 +897,73 @@ def _persist_research_result(
             budget=budget,
         )
         session_id = str(session["session_id"])
-    sent = set(worker_result.queries_sent)
+    sent = {
+        " ".join(str(query).split())
+        for query in worker_result.queries_sent
+        if str(query).strip()
+    }
+
+    outcome_by_query = {
+        str(item["query"]): str(item["state"])
+        for item in _worker_query_outcomes(worker_result)
+    }
+
     for query in request_model.queries:
-        matching = [item for item in worker_result.results_considered if item.get("query") == query]
+        query_key = " ".join(str(query).split())
+
+        matching = [
+            item
+            for item in worker_result.results_considered
+            if " ".join(
+                str(item.get("query") or "").split()
+            )
+            == query_key
+        ]
+
         domains = {
-            str(item.get("url") or "").split("/", 3)[2].casefold()
+            str(
+                item.get("url") or ""
+            ).split("/", 3)[2].casefold()
             for item in matching
             if "/" in str(item.get("url") or "")
         }
+
+        query_state = outcome_by_query.get(query_key)
+
+        if query_state is None:
+            if (
+                query_key in sent
+                and worker_result.status
+                in {
+                    SearxngWorkerStatus.COMPLETED,
+                    SearxngWorkerStatus.DEGRADED,
+                }
+            ):
+                query_state = "completed"
+
+            elif query_key in sent:
+                query_state = "failed"
+
+            elif (
+                worker_result.status
+                == SearxngWorkerStatus.UNAVAILABLE
+            ):
+                query_state = "unavailable"
+
+            elif worker_result.status in {
+                SearxngWorkerStatus.BLOCKED,
+                SearxngWorkerStatus.APPROVAL_REQUIRED,
+            }:
+                query_state = "blocked"
+
+            else:
+                query_state = "failed"
+
         repository.record_query(
             owner_user_id=owner_user_id,
             session_id=session_id,
             query=query,
-            state="completed" if query in sent else "blocked",
+            state=query_state,
             result_count=len(matching),
             domain_count=len(domains),
         )
@@ -931,9 +1111,7 @@ def _record_trace(
         label="Bounded public research recorded",
         detail="Research worker truth and evidence packet counts were recorded.",
         locality_state=(
-            LocalityState.CROSSED_BOUNDARY.value
-            if worker_result.queries_sent
-            else LocalityState.LOCAL.value
+            _worker_locality_state(worker_result).value
         ),
         approval_state=_status_to_approval_state(worker_result).value,
         approval_needed=worker_result.approval_required,
@@ -942,8 +1120,11 @@ def _record_trace(
         execution_status=worker_result.status.value,
         execution_operation="public_search",
         execution_summary=(
-            f"{len(worker_result.queries_sent)} queries sent; "
-            f"{len(worker_result.evidence_packets)} evidence packets produced."
+            f"{len(worker_result.queries_sent)} queries confirmed sent; "
+            f"{len(_worker_completed_queries(worker_result))} "
+            "queries completed; "
+            f"{len(worker_result.evidence_packets)} "
+            "evidence packets produced."
         ),
         errors=worker_result.errors or worker_result.refusal_reasons,
         warnings=worker_result.warnings,
@@ -1237,14 +1418,19 @@ def run_bounded_public_research(
         contract_version=CONTRACT_VERSION,
         result_type="bounded_public_research",
         capability_state=_status_to_capability_state(worker_result.status),
-        locality=(
-            LocalityState.CROSSED_BOUNDARY
-            if worker_result.queries_sent
-            else LocalityState.LOCAL
-        ),
+        locality=_worker_locality_state(worker_result),
         approval_state=_status_to_approval_state(worker_result),
         warnings=data["warnings"],
-        errors=data["errors"] if envelope_status in {EnvelopeStatus.BLOCKED, EnvelopeStatus.ERROR} else [],
+        errors=(
+            data["errors"]
+            if envelope_status
+            in {
+                EnvelopeStatus.BLOCKED,
+                EnvelopeStatus.ERROR,
+                EnvelopeStatus.UNAVAILABLE,
+            }
+            else []
+        ),
         trace_summary=TraceSummary(
             route_used="research.search",
             log_written=False,
@@ -1370,7 +1556,16 @@ def run_bounded_public_fetch(
         ),
         approval_state=_fetch_approval_state(worker_result),
         warnings=data["warnings"],
-        errors=data["errors"] if envelope_status in {EnvelopeStatus.BLOCKED, EnvelopeStatus.ERROR} else [],
+        errors=(
+            data["errors"]
+            if envelope_status
+            in {
+                EnvelopeStatus.BLOCKED,
+                EnvelopeStatus.ERROR,
+                EnvelopeStatus.UNAVAILABLE,
+            }
+            else []
+        ),
         trace_summary=TraceSummary(
             route_used="research.fetch",
             log_written=False,
@@ -1396,33 +1591,57 @@ class WebResearchPort:
         approval_id: str | None = None,
         approval_token: str | None = None,
         cancel_check: Callable[[], bool] | None = None,
-        search_runner: Callable[..., dict[str, Any]] = run_bounded_public_research,
-        fetch_runner: Callable[..., dict[str, Any]] = run_bounded_public_fetch,
+        search_runner: Callable[
+            ...,
+            dict[str, Any],
+        ] = run_bounded_public_research,
+        fetch_runner: Callable[
+            ...,
+            dict[str, Any],
+        ] = run_bounded_public_fetch,
     ) -> dict[str, Any]:
         started = perf_counter()
+
         safe_search, initiative = _research_controls()
+
         budget = research_budget_for(
             reasoning_gear=reasoning_gear,
             autonomy_level=autonomy_level,
             initiative=initiative,
         )
-        queries, query_privacy = prepare_minimum_necessary_public_queries(
-            question, limit=budget.max_queries
+
+        queries, query_privacy = (
+            prepare_minimum_necessary_public_queries(
+                question,
+                limit=budget.max_queries,
+            )
         )
+
         progress: list[dict[str, Any]] = []
         evidence_ids: list[str] = []
         evidence_packets: list[dict[str, Any]] = []
+
         session_id: str | None = None
+
         network_used = False
         bytes_read = 0
         query_count = 0
         fetch_count = 0
+
         cancelled = False
+        budget_exhausted = False
+
         approval: dict[str, Any] | None = None
+
         errors: list[str] = []
+
         terminal_search_status: str | None = None
+
         attempted = False
+        worker_used = False
         searxng_used = False
+        completed_search_count = 0
+        degraded = False
 
         if not internet_master_enabled():
             return {
@@ -1436,61 +1655,256 @@ class WebResearchPort:
                 "session_id": None,
                 "query_privacy": query_privacy,
                 "research_attempted": False,
+                "worker_used": False,
                 "searxng_used": False,
                 "internet_master_enabled": False,
+                "budget_exhausted": False,
             }
 
         if not queries:
             return {
-                "state": "blocked", "reason": query_privacy.get("blocked_reason", "no_public_safe_query"),
-                "research_attempted": False, "searxng_used": False,
-                "internet_master_enabled": True, "network_access_used": False,
-                "private_context_sent": False, "evidence_ids": [],
+                "state": "blocked",
+                "reason": query_privacy.get(
+                    "blocked_reason",
+                    "no_public_safe_query",
+                ),
+                "research_attempted": False,
+                "worker_used": False,
+                "searxng_used": False,
+                "internet_master_enabled": True,
+                "network_access_used": False,
+                "private_context_sent": False,
+                "evidence_ids": [],
                 "query_privacy": query_privacy,
+                "budget_exhausted": False,
             }
 
-        for sequence, query in enumerate(queries, start=1):
-            if (cancel_check and cancel_check()) or perf_counter() - started >= budget.max_elapsed_seconds:
+        for sequence, query in enumerate(
+            queries,
+            start=1,
+        ):
+            if (
+                cancel_check
+                and cancel_check()
+            ):
                 cancelled = True
                 break
+
+            if (
+                perf_counter() - started
+                >= budget.max_elapsed_seconds
+            ):
+                budget_exhausted = True
+                errors.append(
+                    "Research budget elapsed before all planned "
+                    "search work completed."
+                )
+                break
+
             payload = {
-                "request_id": f"{request_id}:search:{sequence}",
+                "request_id": (
+                    f"{request_id}:search:{sequence}"
+                ),
                 "question": query,
                 "queries": [query],
-                "max_results_per_query": budget.max_results_per_query,
+                "max_results_per_query": (
+                    budget.max_results_per_query
+                ),
                 "project_id": project_id,
                 "conversation_id": conversation_id,
                 "reasoning_gear": reasoning_gear,
                 "research_session_id": session_id,
                 "keep_session_open": True,
             }
-            if sequence == 1 and approval_id and approval_token:
+
+            if (
+                sequence == 1
+                and approval_id
+                and approval_token
+            ):
                 payload["approval_id"] = approval_id
                 payload["approval_token"] = approval_token
+
             attempted = True
+
             result = search_runner(payload)
-            data = dict(result.get("data") or {})
-            status = str(result.get("status") or "error")
-            progress.append({"stage": "search", "sequence": sequence, "state": status})
-            searxng_used = searxng_used or bool(dict(data.get("worker_summary") or {}).get("searxng_used"))
-            if status == "blocked":
-                terminal_search_status = status
-                approval = data.get("approval") if isinstance(data.get("approval"), dict) else None
-                errors.extend(str(item) for item in result.get("errors", []) if str(item))
-                break
-            query_count += len(data.get("queries_sent") or [])
-            network_used = network_used or bool(data.get("network_access_used"))
-            durable = dict(data.get("durable_research") or {})
-            session_id = str(durable.get("session_id") or session_id or "") or None
-            evidence_ids.extend(str(item) for item in durable.get("evidence_ids", []) if str(item))
-            evidence_packets.extend(
-                dict(item) for item in data.get("evidence_packets", []) if isinstance(item, dict)
+
+            data = dict(
+                result.get("data") or {}
             )
-            if status not in {"ok", "degraded"}:
-                terminal_search_status = status
-                errors.extend(str(item) for item in result.get("errors", []) if str(item))
+
+            raw_status = str(
+                result.get("status") or "error"
+            ).casefold()
+
+            status = (
+                "failed"
+                if raw_status == "error"
+                else raw_status
+            )
+
+            progress.append(
+                {
+                    "stage": "search",
+                    "sequence": sequence,
+                    "state": status,
+                }
+            )
+
+            worker_summary = dict(
+                data.get("worker_summary") or {}
+            )
+
+            worker_used = (
+                worker_used
+                or bool(
+                    worker_summary.get(
+                        "worker_used"
+                    )
+                )
+            )
+
+            searxng_used = (
+                searxng_used
+                or bool(
+                    worker_summary.get(
+                        "searxng_used"
+                    )
+                )
+            )
+
+            query_outcomes = [
+                dict(item)
+                for item in worker_summary.get(
+                    "query_outcomes",
+                    [],
+                )
+                if isinstance(item, dict)
+            ]
+
+            completed_search_count += sum(
+                1
+                for item in query_outcomes
+                if item.get("state") == "completed"
+            )
+
+            query_count += len(
+                data.get("queries_sent") or []
+            )
+
+            network_used = (
+                network_used
+                or bool(
+                    data.get("network_access_used")
+                )
+            )
+
+            durable = dict(
+                data.get("durable_research") or {}
+            )
+
+            session_id = (
+                str(
+                    durable.get("session_id")
+                    or session_id
+                    or ""
+                )
+                or None
+            )
+
+            evidence_ids.extend(
+                str(item)
+                for item in durable.get(
+                    "evidence_ids",
+                    [],
+                )
+                if str(item)
+            )
+
+            evidence_packets.extend(
+                dict(item)
+                for item in data.get(
+                    "evidence_packets",
+                    [],
+                )
+                if isinstance(item, dict)
+            )
+
+            if raw_status == "blocked":
+                terminal_search_status = "blocked"
+
+                approval = (
+                    data.get("approval")
+                    if isinstance(
+                        data.get("approval"),
+                        dict,
+                    )
+                    else None
+                )
+
+                errors.extend(
+                    str(item)
+                    for item in result.get(
+                        "errors",
+                        [],
+                    )
+                    if str(item)
+                )
+
                 break
+
+            if raw_status == "unavailable":
+                terminal_search_status = "unavailable"
+
+                errors.extend(
+                    str(item)
+                    for item in result.get(
+                        "errors",
+                        [],
+                    )
+                    if str(item)
+                )
+
+                break
+
+            if raw_status == "error":
+                terminal_search_status = "failed"
+
+                errors.extend(
+                    str(item)
+                    for item in result.get(
+                        "errors",
+                        [],
+                    )
+                    if str(item)
+                )
+
+                break
+
+            if raw_status == "degraded":
+                degraded = True
+
+                errors.extend(
+                    str(item)
+                    for item in data.get(
+                        "errors",
+                        [],
+                    )
+                    if str(item)
+                )
+
+            elif raw_status != "ok":
+                terminal_search_status = "failed"
+
+                errors.append(
+                    "Unrecognized research search state: "
+                    f"{raw_status}"
+                )
+
+                break
+
             owner = _authenticated_owner()
+
             if owner and session_id:
                 EvidenceRepository().record_progress(
                     owner_user_id=owner,
@@ -1499,150 +1913,518 @@ class WebResearchPort:
                     state=status,
                     detail={
                         "query_sequence": sequence,
-                        "result_count": len(data.get("evidence_packets") or []),
+                        "result_count": len(
+                            data.get(
+                                "evidence_packets"
+                            )
+                            or []
+                        ),
                     },
                 )
-            if sequence == 1 and approval_id and approval_token:
-                # The exact grant covers only the first bound query hash. Do
-                # not manufacture broader reuse for derived follow-up queries.
+
+            if (
+                sequence == 1
+                and approval_id
+                and approval_token
+            ):
+                # The exact grant covers only the first
+                # bound query hash.
                 break
 
-        # Prefer authority-class diversity, then domain diversity, before
-        # filling remaining slots. Classification guides comparison only; it
-        # never promotes web text into policy or canonical Memory.
-        selected_urls: list[tuple[str, str]] = []
+        # Prefer authority-class diversity, then domain
+        # diversity, before filling remaining slots.
+        selected_urls: list[
+            tuple[str, str]
+        ] = []
+
         seen_domains: set[str] = set()
         seen_authorities: set[str] = set()
-        candidates_by_authority: dict[str, list[str]] = {}
+
+        candidates_by_authority: dict[
+            str,
+            list[str],
+        ] = {}
+
         for packet in evidence_packets:
-            url = str(packet.get("source_url") or "")
-            domain = str(urlparse(url).hostname or "").casefold()
+            url = str(
+                packet.get("source_url") or ""
+            )
+
+            domain = str(
+                urlparse(url).hostname or ""
+            ).casefold()
+
             if not url or not domain:
                 continue
+
             authority = source_authority_class(url)
-            candidates_by_authority.setdefault(authority, []).append(url)
-        for authority in sorted(candidates_by_authority):
+
+            candidates_by_authority.setdefault(
+                authority,
+                [],
+            ).append(url)
+
+        for authority in sorted(
+            candidates_by_authority
+        ):
             url = next(
                 (
                     candidate
-                    for candidate in candidates_by_authority[authority]
-                    if str(urlparse(candidate).hostname or "").casefold() not in seen_domains
+                    for candidate
+                    in candidates_by_authority[
+                        authority
+                    ]
+                    if str(
+                        urlparse(
+                            candidate
+                        ).hostname
+                        or ""
+                    ).casefold()
+                    not in seen_domains
                 ),
                 "",
             )
+
             if not url:
                 continue
-            domain = str(urlparse(url).hostname or "").casefold()
+
+            domain = str(
+                urlparse(url).hostname or ""
+            ).casefold()
+
             seen_domains.add(domain)
             seen_authorities.add(authority)
-            selected_urls.append((url, authority))
-            if len(selected_urls) >= min(budget.max_fetches, budget.max_domains):
-                break
-        if len(selected_urls) < min(budget.max_fetches, budget.max_domains):
-            for packet in evidence_packets:
-                url = str(packet.get("source_url") or "")
-                domain = str(urlparse(url).hostname or "").casefold()
-                if not url or not domain or domain in seen_domains:
-                    continue
-                authority = source_authority_class(url)
-                seen_domains.add(domain)
-                seen_authorities.add(authority)
-                selected_urls.append((url, authority))
-                if len(selected_urls) >= min(budget.max_fetches, budget.max_domains):
-                    break
 
-        for sequence, (url, authority_class) in enumerate(selected_urls, start=1):
-            if (cancel_check and cancel_check()) or perf_counter() - started >= budget.max_elapsed_seconds:
-                cancelled = True
+            selected_urls.append(
+                (url, authority)
+            )
+
+            if (
+                len(selected_urls)
+                >= min(
+                    budget.max_fetches,
+                    budget.max_domains,
+                )
+            ):
                 break
-            if bytes_read >= budget.max_bytes:
-                break
-            fetch_payload = {
-                    "request_id": f"{request_id}:fetch:{sequence}",
-                    "question": queries[0],
-                    "url": url,
-                    "research_session_id": session_id,
-                    "project_id": project_id,
-                    "conversation_id": conversation_id,
-                }
-            try:
-                result = fetch_runner(fetch_payload, cancel_check=cancel_check)
-            except TypeError:
-                result = fetch_runner(fetch_payload)
-            data = dict(result.get("data") or {})
-            status = str(result.get("status") or "error")
-            progress.append({"stage": "fetch", "sequence": sequence, "state": status, "domain": str(urlparse(url).hostname or ""), "authority_class": authority_class})
-            bytes_read += int(data.get("bytes_read") or 0)
-            fetch_count += int(bool(data.get("page_fetch_used")))
-            network_used = network_used or bool(data.get("network_access_used"))
-            durable = dict(data.get("durable_research") or {})
-            evidence_ids.extend(str(item) for item in durable.get("evidence_ids", []) if str(item))
-            if status not in {"ok", "degraded"}:
-                errors.extend(str(item) for item in result.get("errors", []) if str(item))
-            owner = _authenticated_owner()
-            if owner and session_id:
-                EvidenceRepository().record_progress(
-                    owner_user_id=owner,
-                    session_id=session_id,
-                    stage="fetch",
-                    state=status,
-                    detail={
-                        "fetch_sequence": sequence,
-                        "domain": str(urlparse(url).hostname or ""),
-                        "authority_class": authority_class,
-                        "bytes_read": int(data.get("bytes_read") or 0),
-                    },
+
+        if (
+            len(selected_urls)
+            < min(
+                budget.max_fetches,
+                budget.max_domains,
+            )
+        ):
+            for packet in evidence_packets:
+                url = str(
+                    packet.get("source_url")
+                    or ""
                 )
 
+                domain = str(
+                    urlparse(url).hostname
+                    or ""
+                ).casefold()
+
+                if (
+                    not url
+                    or not domain
+                    or domain in seen_domains
+                ):
+                    continue
+
+                authority = (
+                    source_authority_class(url)
+                )
+
+                seen_domains.add(domain)
+                seen_authorities.add(
+                    authority
+                )
+
+                selected_urls.append(
+                    (url, authority)
+                )
+
+                if (
+                    len(selected_urls)
+                    >= min(
+                        budget.max_fetches,
+                        budget.max_domains,
+                    )
+                ):
+                    break
+
+        # A governance block or approval interruption
+        # ends further outward work.
+        #
+        # A non-policy search failure may leave earlier
+        # valid public evidence eligible for bounded fetch,
+        # but the parent result remains degraded.
+        if (
+            terminal_search_status != "blocked"
+            and approval is None
+        ):
+            for sequence, (
+                url,
+                authority_class,
+            ) in enumerate(
+                selected_urls,
+                start=1,
+            ):
+                if (
+                    cancel_check
+                    and cancel_check()
+                ):
+                    cancelled = True
+                    break
+
+                if (
+                    perf_counter() - started
+                    >= budget.max_elapsed_seconds
+                ):
+                    budget_exhausted = True
+
+                    errors.append(
+                        "Research budget elapsed before "
+                        "all planned fetch work completed."
+                    )
+
+                    break
+
+                if bytes_read >= budget.max_bytes:
+                    budget_exhausted = True
+
+                    errors.append(
+                        "Research byte budget was exhausted "
+                        "before all planned fetch work completed."
+                    )
+
+                    break
+
+                fetch_payload = {
+                    "request_id": (
+                        f"{request_id}:fetch:{sequence}"
+                    ),
+                    "question": queries[0],
+                    "url": url,
+                    "research_session_id": (
+                        session_id
+                    ),
+                    "project_id": project_id,
+                    "conversation_id": (
+                        conversation_id
+                    ),
+                }
+
+                try:
+                    result = fetch_runner(
+                        fetch_payload,
+                        cancel_check=cancel_check,
+                    )
+
+                except TypeError:
+                    result = fetch_runner(
+                        fetch_payload
+                    )
+
+                data = dict(
+                    result.get("data") or {}
+                )
+
+                raw_status = str(
+                    result.get("status") or "error"
+                ).casefold()
+
+                status = (
+                    "failed"
+                    if raw_status == "error"
+                    else raw_status
+                )
+
+                # Catch cancellation that occurs inside
+                # a bounded fetch call.
+                if (
+                    cancel_check
+                    and cancel_check()
+                ):
+                    cancelled = True
+                    status = "cancelled"
+
+                progress.append(
+                    {
+                        "stage": "fetch",
+                        "sequence": sequence,
+                        "state": status,
+                        "domain": str(
+                            urlparse(url).hostname
+                            or ""
+                        ),
+                        "authority_class": (
+                            authority_class
+                        ),
+                    }
+                )
+
+                bytes_read += int(
+                    data.get("bytes_read") or 0
+                )
+
+                fetch_count += int(
+                    bool(
+                        data.get(
+                            "page_fetch_used"
+                        )
+                    )
+                )
+
+                network_used = (
+                    network_used
+                    or bool(
+                        data.get(
+                            "network_access_used"
+                        )
+                    )
+                )
+
+                durable = dict(
+                    data.get(
+                        "durable_research"
+                    )
+                    or {}
+                )
+
+                evidence_ids.extend(
+                    str(item)
+                    for item in durable.get(
+                        "evidence_ids",
+                        [],
+                    )
+                    if str(item)
+                )
+
+                if cancelled:
+                    errors.extend(
+                        str(item)
+                        for item in result.get(
+                            "errors",
+                            [],
+                        )
+                        if str(item)
+                    )
+
+                elif raw_status == "degraded":
+                    degraded = True
+
+                    errors.extend(
+                        str(item)
+                        for item in data.get(
+                            "errors",
+                            [],
+                        )
+                        if str(item)
+                    )
+
+                elif raw_status != "ok":
+                    degraded = True
+
+                    errors.extend(
+                        str(item)
+                        for item in result.get(
+                            "errors",
+                            [],
+                        )
+                        if str(item)
+                    )
+
+                owner = _authenticated_owner()
+
+                if owner and session_id:
+                    EvidenceRepository().record_progress(
+                        owner_user_id=owner,
+                        session_id=session_id,
+                        stage="fetch",
+                        state=status,
+                        detail={
+                            "fetch_sequence": (
+                                sequence
+                            ),
+                            "domain": str(
+                                urlparse(
+                                    url
+                                ).hostname
+                                or ""
+                            ),
+                            "authority_class": (
+                                authority_class
+                            ),
+                            "bytes_read": int(
+                                data.get(
+                                    "bytes_read"
+                                )
+                                or 0
+                            ),
+                        },
+                    )
+
+                if cancelled:
+                    break
+
+        if cancelled:
+            final_state = "cancelled"
+
+        elif approval is not None:
+            final_state = "approval_required"
+
+        elif terminal_search_status == "blocked":
+            final_state = "blocked"
+
+        elif terminal_search_status in {
+            "unavailable",
+            "failed",
+        }:
+            final_state = (
+                "degraded"
+                if (
+                    completed_search_count > 0
+                    or bool(evidence_ids)
+                )
+                else terminal_search_status
+            )
+
+        elif budget_exhausted or degraded:
+            final_state = "degraded"
+
+        elif evidence_ids:
+            final_state = "completed"
+
+        elif (
+            completed_search_count > 0
+            or searxng_used
+            or network_used
+        ):
+            final_state = "degraded"
+
+        else:
+            final_state = "failed"
+
         owner = _authenticated_owner()
-        final_state = "cancelled" if cancelled else "completed" if evidence_ids else terminal_search_status or "failed"
+
         if owner and session_id:
             repository = EvidenceRepository()
+
             repository.update_session_budget(
                 owner,
                 session_id,
                 {
                     **budget.to_payload(),
-                    "safe_search_level": safe_search,
-                    "research_initiative": initiative,
-                    "actual_queries": query_count,
-                    "actual_fetches": fetch_count,
-                    "actual_domains": len(seen_domains),
-                    "actual_authority_classes": len(seen_authorities),
-                    "authority_classes": sorted(seen_authorities),
+                    "safe_search_level": (
+                        safe_search
+                    ),
+                    "research_initiative": (
+                        initiative
+                    ),
+                    "actual_queries": (
+                        query_count
+                    ),
+                    "actual_fetches": (
+                        fetch_count
+                    ),
+                    "actual_domains": len(
+                        seen_domains
+                    ),
+                    "actual_authority_classes": len(
+                        seen_authorities
+                    ),
+                    "authority_classes": sorted(
+                        seen_authorities
+                    ),
                     "actual_bytes": bytes_read,
                 },
             )
+
+            if final_state in {
+                "completed",
+                "degraded",
+            }:
+                durable_state = "completed"
+
+            elif final_state == "cancelled":
+                durable_state = "cancelled"
+
+            elif (
+                final_state
+                == "approval_required"
+            ):
+                durable_state = "paused"
+
+            else:
+                durable_state = "failed"
+
             repository.transition_session(
                 owner,
                 session_id,
-                final_state if final_state in {"cancelled", "completed"} else "failed",
-                working_conclusion=f"{len(set(evidence_ids))} quarantined evidence records retained across {len(seen_domains)} domains.",
-                contradiction_state="not_evaluated",
+                durable_state,
+                working_conclusion=(
+                    f"{len(set(evidence_ids))} "
+                    "quarantined evidence records retained "
+                    f"across {len(seen_domains)} domains."
+                ),
+                contradiction_state=(
+                    "not_evaluated"
+                ),
             )
+
         return {
-            "state": "approval_required" if approval else final_state,
+            "state": final_state,
             "session_id": session_id,
-            "evidence_ids": list(dict.fromkeys(evidence_ids)),
+            "evidence_ids": list(
+                dict.fromkeys(evidence_ids)
+            ),
             "query_count": query_count,
             "fetch_count": fetch_count,
-            "domain_count": len(seen_domains),
-            "authority_class_count": len(seen_authorities),
-            "authority_classes": sorted(seen_authorities),
+            "domain_count": len(
+                seen_domains
+            ),
+            "authority_class_count": len(
+                seen_authorities
+            ),
+            "authority_classes": sorted(
+                seen_authorities
+            ),
             "bytes_read": bytes_read,
-            "elapsed_ms": round((perf_counter() - started) * 1000, 3),
+            "elapsed_ms": round(
+                (
+                    perf_counter()
+                    - started
+                )
+                * 1000,
+                3,
+            ),
             "budget": budget.to_payload(),
-            "safe_search_level": safe_search,
-            "research_initiative": initiative,
+            "safe_search_level": (
+                safe_search
+            ),
+            "research_initiative": (
+                initiative
+            ),
             "progress": progress,
             "approval": approval,
-            "network_access_used": network_used,
-            "research_attempted": attempted,
+            "network_access_used": (
+                network_used
+            ),
+            "research_attempted": (
+                attempted
+            ),
+            "worker_used": worker_used,
             "searxng_used": searxng_used,
             "internet_master_enabled": True,
             "private_context_sent": False,
             "untrusted_content_quarantined": True,
             "query_privacy": query_privacy,
+            "budget_exhausted": (
+                budget_exhausted
+            ),
             "errors": errors,
         }
 

@@ -30,6 +30,8 @@ from tests.test_runtime_invoker_integration import (
     ("public", True, False, True),
     ("private_attachment", True, True, True),
     ("unavailable", True, False, False),
+    ("transport_unavailable", True, False, True),
+    ("zero_results", True, False, True),
     ("private_export", True, True, True),
 ])
 def test_live_setting_to_outbound_http_partition(
@@ -80,16 +82,44 @@ def test_live_setting_to_outbound_http_partition(
     # Capture the actual Request built by the real SearXNG HTTP client, not
     # the claimed private_context_sent flag. No test traffic leaves the process.
     outbound = []
+    transport_attempts = []
 
     def http_capture(request, **kwargs):
-        outbound.append({"url": request.full_url, "data": request.data,
-                         "headers": dict(request.header_items())})
-        return io.BytesIO(json.dumps({"results": [{
-            "url": "https://www.rfc-editor.org/rfc/rfc7946",
-            "title": "GeoJSON RFC guidance", "content": "Public GeoJSON guidance",
-        }]}).encode())
+        del kwargs
+        outbound.append({
+            "url": request.full_url,
+            "data": request.data,
+            "headers": dict(request.header_items()),
+        })
 
-    monkeypatch.setattr(client, "urlopen", http_capture)
+        results = (
+            []
+            if case == "zero_results"
+            else [{
+                "url": "https://www.rfc-editor.org/rfc/rfc7946",
+                "title": "GeoJSON RFC guidance",
+                "content": "Public GeoJSON guidance",
+            }]
+        )
+
+        return io.BytesIO(
+            json.dumps({"results": results}).encode()
+        )
+
+    def http_refused(request, **kwargs):
+        del kwargs
+        transport_attempts.append(request.full_url)
+        raise ConnectionRefusedError(
+            "synthetic SearXNG loopback refusal"
+        )
+
+    monkeypatch.setattr(
+        client,
+        "urlopen",
+        http_refused
+        if case == "transport_unavailable"
+        else http_capture,
+    )
     monkeypatch.setattr(research_service, "run_fetch_worker", lambda request:
         FetchWorkerResult(status=FetchWorkerStatus.UNAVAILABLE,
                           request_id=request.request_id, ticket_id=request.ticket_id))
@@ -141,11 +171,29 @@ def test_live_setting_to_outbound_http_partition(
     data = result["data"]
     activity = data["research"]
     response = data["response_text"]
-    if case in {"public", "private_attachment"}:
+    if case == "zero_results":
         assert outbound
+        assert activity["state"] == "degraded"
+        assert activity["research_attempted"] is True
         assert activity["network_access_used"] is True
         assert activity["searxng_used"] is True
-        assert "research ran" in response
+        assert activity["evidence_ids"] == []
+        assert "no usable evidence packet was retained" in response
+        assert "not web-supported" in response
+    elif case in {"public", "private_attachment"}:
+        # This fixture intentionally makes the bounded page-fetch worker
+        # unavailable. Search succeeds and retains evidence, but the whole
+        # iterative research operation is therefore degraded rather than
+        # falsely reported as fully completed.
+        assert outbound
+        assert activity["state"] == "degraded"
+        assert activity["research_attempted"] is True
+        assert activity["worker_used"] is True
+        assert activity["network_access_used"] is True
+        assert activity["searxng_used"] is True
+        assert activity["evidence_ids"]
+        assert "completed only partially" in response
+        assert "Some public evidence was retained" in response
         assert "research did not run" not in response
         for request in outbound:
             query = parse_qs(urlparse(request["url"]).query)["q"][0]
@@ -166,10 +214,25 @@ def test_live_setting_to_outbound_http_partition(
             assert activity["research_attempted"] is False
             assert "Internet setting is OFF" in response
             assert model_calls  # Internet OFF does not disable local reasoning.
-        elif case == "unavailable":
+        elif case in {"unavailable", "transport_unavailable"}:
             assert activity["state"] == "unavailable"
             assert activity["research_attempted"] is True
-            assert "worker is unavailable" in response
+            assert activity["network_access_used"] is False
+            assert activity["searxng_used"] is False
+
+            if case == "transport_unavailable":
+                # The governed worker did run and attempted transport, but the
+                # local SearXNG endpoint refused the connection. That is
+                # distinct from pre-execution worker/service unavailability.
+                assert activity["worker_used"] is True
+                assert "research was attempted" in response
+                assert "could not be reached" in response
+                assert "worker is unavailable" not in response
+                assert transport_attempts
+                assert "GeoJSON" in transport_attempts[0]
+            else:
+                assert activity["worker_used"] is False
+                assert "worker is unavailable" in response
         else:
             assert activity["reason"] == "explicit_private_egress"
             assert activity["state"] == "blocked"

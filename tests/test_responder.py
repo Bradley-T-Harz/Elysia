@@ -555,5 +555,102 @@ class TestResponder(unittest.TestCase):
 
 
 
+
+    def test_unavailable_public_research_is_not_reported_as_ran(self):
+        plan = {
+            "intent": "research",
+            "mode": "researcher",
+            "governed_public_research_candidate": True,
+            "uses_memory_context": False,
+            "memory_context_source": "",
+            "memory_class": "research_memory",
+            "memory_class_source": "primary_memory_class",
+            "forced_memory_class": "",
+            "memory_class_boundary_sensitive": False,
+            "memory_class_requires_boundary_check": False,
+        }
+        policy_review = {
+            "allowed": True,
+            "boundary_flags": [],
+        }
+        verification = {"verified": True}
+        internal_result = {
+            "status": "ok",
+            "response_text": "Local synthesis only.",
+            "research": {
+                "state": "unavailable",
+                "research_attempted": True,
+                "network_access_used": False,
+                "searxng_used": False,
+                "evidence_ids": [],
+            },
+        }
+
+        result = compose_response(
+            "Search the public web for current GeoJSON guidance.",
+            plan,
+            policy_review,
+            verification,
+            internal_result=internal_result,
+        )
+
+        self.assertIn(
+            "worker is unavailable",
+            result["response_text"],
+        )
+        self.assertNotIn(
+            "research ran through the governed public route",
+            result["response_text"],
+        )
+
+    def test_successful_public_search_without_retained_evidence_is_truthful(
+        self,
+    ):
+        plan = {
+            "intent": "research",
+            "mode": "researcher",
+            "governed_public_research_candidate": True,
+            "uses_memory_context": False,
+            "memory_context_source": "",
+            "memory_class": "research_memory",
+            "memory_class_source": "primary_memory_class",
+            "forced_memory_class": "",
+            "memory_class_boundary_sensitive": False,
+            "memory_class_requires_boundary_check": False,
+        }
+        policy_review = {
+            "allowed": True,
+            "boundary_flags": [],
+        }
+        verification = {"verified": True}
+        internal_result = {
+            "status": "ok",
+            "response_text": "Local synthesis only.",
+            "research": {
+                "state": "degraded",
+                "research_attempted": True,
+                "network_access_used": True,
+                "searxng_used": True,
+                "evidence_ids": [],
+            },
+        }
+
+        result = compose_response(
+            "Search the public web for current GeoJSON guidance.",
+            plan,
+            policy_review,
+            verification,
+            internal_result=internal_result,
+        )
+
+        self.assertIn(
+            "no usable evidence packet was retained",
+            result["response_text"],
+        )
+        self.assertIn(
+            "not web-supported",
+            result["response_text"],
+        )
+
 if __name__ == "__main__":
     unittest.main()
