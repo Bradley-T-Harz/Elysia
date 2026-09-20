@@ -7,6 +7,8 @@ import socket
 from typing import Any
 from urllib.error import HTTPError, URLError
 
+from sandbox.cancellation import cancellation_requested
+
 from .client import SearxngProtocolError, search_searxng
 from .config import (
     DEFAULT_SEARXNG_WORKER_CONFIG_PATH,
@@ -260,6 +262,7 @@ def run_searxng_worker(
     *,
     config_path: str | Path = DEFAULT_SEARXNG_WORKER_CONFIG_PATH,
     search_client: Callable[..., list[dict[str, Any]]] | None = None,
+    cancel_check: Callable[[], bool] | None = None,
 ) -> SearxngWorkerResult:
     """
     Run bounded public SearXNG search through the worker boundary.
@@ -374,25 +377,40 @@ def run_searxng_worker(
     )
 
     for query in guard.queries_sent:
+        if cancellation_requested(cancel_check):
+            query_outcomes.append(
+                _outcome(
+                    query,
+                    state="cancelled",
+                    outward_boundary_state=_BOUNDARY_PLANNED,
+                    network_access_used=False,
+                    searxng_used=False,
+                )
+            )
+            errors.append(
+                "SearXNG search cancelled before query dispatch."
+            )
+            break
+
         attempted_queries.append(query)
 
         try:
-            results = client(
-                base_url=str(
+            client_kwargs = {
+                "base_url": str(
                     config.service.get("base_url")
                     or "http://127.0.0.1:8888"
                 ),
-                search_endpoint=str(
+                "search_endpoint": str(
                     config.service.get("search_endpoint")
                     or "/search"
                 ),
-                query=query,
-                max_results=max_results,
-                timeout_seconds=int(
+                "query": query,
+                "max_results": max_results,
+                "timeout_seconds": int(
                     config.service.get("timeout_seconds")
                     or 10
                 ),
-                safe_search=(
+                "safe_search": (
                     request.safe_search_level
                     if request.safe_search_level
                     in {"strict", "moderate", "off"}
@@ -401,15 +419,39 @@ def run_searxng_worker(
                         or "strict"
                     )
                 ),
-                categories=list(
+                "categories": list(
                     config.service.get("categories")
                     or ["general"]
                 ),
-                language=str(
+                "language": str(
                     config.service.get("language")
                     or "en"
                 ),
+            }
+
+            if search_client is None:
+                results = client(
+                    **client_kwargs,
+                    cancel_check=cancel_check,
+                )
+            else:
+                # Keep the existing injected-client testing contract stable.
+                results = client(**client_kwargs)
+
+        except InterruptedError as exc:
+            query_outcomes.append(
+                _outcome(
+                    query,
+                    state="cancelled",
+                    outward_boundary_state=_BOUNDARY_UNKNOWN,
+                    network_access_used=True,
+                    searxng_used=True,
+                )
             )
+            errors.append(
+                f"SearXNG search cancelled during transport: {exc}"
+            )
+            break
 
         except HTTPError as exc:
             # An HTTP response proves that the configured local
@@ -661,7 +703,23 @@ def run_searxng_worker(
         if item.get("state") == "unavailable"
     )
 
-    if completed_count:
+    cancelled_count = sum(
+        1
+        for item in query_outcomes
+        if item.get("state") == "cancelled"
+    )
+
+    if cancelled_count and completed_count:
+        status = SearxngWorkerStatus.DEGRADED
+        warnings.append(
+            "SearXNG research was cancelled after retaining earlier "
+            "completed search evidence."
+        )
+
+    elif cancelled_count:
+        status = SearxngWorkerStatus.FAILED
+
+    elif completed_count:
         if failed_count or unavailable_count:
             status = SearxngWorkerStatus.DEGRADED
             warnings.append(

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import json
 from urllib.parse import parse_qs, urlparse
 
@@ -102,9 +101,9 @@ def test_live_setting_to_outbound_http_partition(
             }]
         )
 
-        return io.BytesIO(
-            json.dumps({"results": results}).encode()
-        )
+        return json.dumps(
+            {"results": results}
+        ).encode()
 
     def http_refused(request, **kwargs):
         del kwargs
@@ -115,7 +114,7 @@ def test_live_setting_to_outbound_http_partition(
 
     monkeypatch.setattr(
         client,
-        "urlopen",
+        "_cancellable_loopback_get",
         http_refused
         if case == "transport_unavailable"
         else http_capture,

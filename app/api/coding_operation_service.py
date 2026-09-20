@@ -30,6 +30,8 @@ class _ApprovalRecord:
     expires_at: datetime
     consumed_at: datetime | None = None
     actor: str = ""
+    revoked_at: datetime | None = None
+    revoked_reason: str = ""
 
 
 _APPROVALS: dict[str, _ApprovalRecord] = {}
@@ -175,8 +177,24 @@ def _consume_operation_approval_locked(
     if not approval_id:
         return CodingApprovalConsumption(allowed=False, approval_id="", reason="approval_id_required")
     record = _APPROVALS.get(approval_id)
-    if record is None or record.token is None:
-        return CodingApprovalConsumption(allowed=False, approval_id=approval_id, reason="unknown_or_unapproved_approval_id")
+    if record is None:
+        return CodingApprovalConsumption(
+            allowed=False,
+            approval_id=approval_id,
+            reason="unknown_or_unapproved_approval_id",
+        )
+    if record.revoked_at is not None:
+        return CodingApprovalConsumption(
+            allowed=False,
+            approval_id=approval_id,
+            reason="approval_revoked",
+        )
+    if record.token is None:
+        return CodingApprovalConsumption(
+            allowed=False,
+            approval_id=approval_id,
+            reason="unknown_or_unapproved_approval_id",
+        )
     if not approval_token or not compare_digest(approval_token, record.token):
         return CodingApprovalConsumption(allowed=False, approval_id=approval_id, reason="approval_token_mismatch")
     if record.actor != approval_actor():
@@ -245,6 +263,39 @@ def consume_operation_approval(
             plan_hash=plan_hash,
             allowed_mutation_class=allowed_mutation_class,
         )
+
+
+def revoke_all_operation_approvals(
+    reason: str = "emergency_stop",
+) -> int:
+    """
+    Revoke all outstanding unconsumed exact-operation approvals.
+
+    Emergency STOP invalidates authority that existed before the stop.
+    Consumed approvals remain historical receipts and are not rewritten.
+    """
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    normalized_reason = (
+        " ".join(str(reason or "emergency_stop").split())[:160]
+        or "emergency_stop"
+    )
+    revoked = 0
+
+    with _APPROVAL_LOCK:
+        for record in _APPROVALS.values():
+            if record.token is None:
+                continue
+            if record.consumed_at is not None:
+                continue
+            if record.revoked_at is not None:
+                continue
+
+            record.revoked_at = now
+            record.revoked_reason = normalized_reason
+            record.token = None
+            revoked += 1
+
+    return revoked
 
 
 def record_operation_result(payload: CodingOperationResultRequest) -> CodingOperationResult:

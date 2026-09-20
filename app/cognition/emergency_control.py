@@ -175,6 +175,12 @@ def _cancel_known_subsystems(paths: ElysiaPaths) -> dict[str, Any]:
         ("videoforge", "app.api.videoforge_service", "cancel_all_video_jobs"),
         ("archiveforge", "app.api.coding_archive_job_service", "cancel_all_archive_jobs"),
         ("engineeringforge", "app.api.coding_engineering_job_service", "cancel_all_engineering_jobs"),
+        ("coding_commands", "app.api.coding_process_service", "cancel_all_commands"),
+        (
+            "operation_approvals_revoked",
+            "app.api.coding_operation_service",
+            "revoke_all_operation_approvals",
+        ),
         ("coding_tasks", "app.api.coding_task_service", "stop_all_coding_tasks"),
         ("sustained_goals", "app.api.project_capability_service", "emergency_stop_all_goals"),
         (

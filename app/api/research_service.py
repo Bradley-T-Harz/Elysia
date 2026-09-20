@@ -19,6 +19,8 @@ from urllib.parse import urlparse
 
 from pydantic import ValidationError
 
+from sandbox.cancellation import cancellation_requested
+
 from app.ids import new_id
 from app.cognition.evidence_repository import EvidenceRepository
 
@@ -87,6 +89,28 @@ class ResearchBudget:
             "max_elapsed_seconds": self.max_elapsed_seconds,
             "max_bytes": self.max_bytes,
         }
+
+
+def _combined_cancel_check(
+    cancel_check: Callable[[], bool] | None,
+) -> Callable[[], bool]:
+    """
+    Combine per-request cancellation with the system emergency STOP event.
+
+    Failure to inspect emergency state fails closed for outward research.
+    """
+    def check() -> bool:
+        if cancellation_requested(cancel_check):
+            return True
+
+        try:
+            from app.cognition.emergency_control import emergency_stop_event
+
+            return emergency_stop_event().is_set()
+        except Exception:
+            return True
+
+    return check
 
 
 def research_budget_for(
@@ -1297,6 +1321,7 @@ def run_bounded_public_research(
     *,
     worker_runner: Callable[[SearxngWorkerRequest], SearxngWorkerResult] | None = None,
     internet_enabled_reader: Callable[[], bool] | None = None,
+    cancel_check: Callable[[], bool] | None = None,
 ) -> dict[str, Any]:
     """Validate request data, run the worker, verify evidence, and build envelope."""
     envelope_request_id = _new_request_id("research")
@@ -1319,6 +1344,10 @@ def run_bounded_public_research(
             data={},
         )
         return envelope.to_payload()
+
+    effective_cancel_check = _combined_cancel_check(
+        cancel_check
+    )
 
     internet_is_enabled = (internet_enabled_reader or internet_master_enabled)()
     invalid_link = _validate_research_scope_links(
@@ -1383,8 +1412,15 @@ def run_bounded_public_research(
         exact_approval_validated=guard.approval_required,
         safe_search_level=safe_search_level,
     )
-    runner = worker_runner or run_searxng_worker
-    worker_result = runner(worker_request)
+    if worker_runner is None:
+        worker_result = run_searxng_worker(
+            worker_request,
+            cancel_check=effective_cancel_check,
+        )
+    else:
+        worker_result = worker_runner(
+            worker_request
+        )
     ticket = build_research_ticket_from_request(request_model, worker_result)
     evidence_verification = verify_research_ticket_payload(ticket)
     envelope_status = _status_to_envelope_status(
@@ -1474,6 +1510,10 @@ def run_bounded_public_fetch(
         )
         return envelope.to_payload()
 
+    effective_cancel_check = _combined_cancel_check(
+        cancel_check
+    )
+
     internet_is_enabled = (internet_enabled_reader or internet_master_enabled)()
     invalid_link = _validate_research_scope_links(
         project_id=request_model.project_id,
@@ -1513,7 +1553,10 @@ def run_bounded_public_fetch(
     worker_request = _build_fetch_worker_request(request_model)
     if worker_runner is None:
         try:
-            worker_result = run_fetch_worker(worker_request, cancel_check=cancel_check)
+            worker_result = run_fetch_worker(
+                worker_request,
+                cancel_check=effective_cancel_check,
+            )
         except TypeError:
             # Compatibility for injected workers that implement the original
             # single-argument contract.
@@ -1727,7 +1770,15 @@ class WebResearchPort:
 
             attempted = True
 
-            result = search_runner(payload)
+            if search_runner is run_bounded_public_research:
+                result = search_runner(
+                    payload,
+                    cancel_check=cancel_check,
+                )
+            else:
+                result = search_runner(
+                    payload
+                )
 
             data = dict(
                 result.get("data") or {}
@@ -1829,6 +1880,33 @@ class WebResearchPort:
                 )
                 if isinstance(item, dict)
             )
+
+            search_cancelled = any(
+                item.get("state") == "cancelled"
+                for item in query_outcomes
+            )
+
+            if (
+                search_cancelled
+                or (
+                    cancel_check
+                    and cancel_check()
+                )
+            ):
+                cancelled = True
+                progress[-1]["state"] = "cancelled"
+
+                errors.extend(
+                    str(item)
+                    for item in (
+                        data.get("errors")
+                        or result.get("errors")
+                        or []
+                    )
+                    if str(item)
+                )
+
+                break
 
             if raw_status == "blocked":
                 terminal_search_status = "blocked"

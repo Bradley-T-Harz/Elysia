@@ -30,8 +30,6 @@ async def stop_everything(
 ) -> dict[str, Any]:
     try:
         data = activate_emergency_stop(reason=payload.reason)
-        from app.api.coding_process_service import cancel_all_commands
-        cancel_all_commands()
     except account_service.AccountServiceError as exc:
         return _error_envelope(exc, result_type="emergency_stop")
     return _envelope(result_type="emergency_stop", data=data)
