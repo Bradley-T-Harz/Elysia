@@ -448,6 +448,51 @@ class TestPlanner(unittest.TestCase):
         self.assertTrue(result["requires_tools"])
         self.assertTrue(result["touches_external_network"])
 
+    def test_explicit_configured_searxng_path_language_triggers_research_port(self):
+        result = build_plan(
+            {"primary": "research"},
+            "researcher",
+            {
+                "selected_skill_id": "research.research_summary_helper",
+                "selection_basis": "intent_map",
+                "found": True,
+            },
+            {
+                "request_summary": "One short bounded public research phase.",
+                "request_text": (
+                    "Use your already configured SearXNG path, if available, "
+                    "to verify a few methodological issues needed by this job."
+                ),
+                "retrieved_memory_count": 0,
+                "retrieval_mode": "no_local_session_journal_memory",
+            },
+        )
+
+        self.assertTrue(result["governed_public_research_candidate"])
+        self.assertTrue(result["requires_tools"])
+        self.assertTrue(result["touches_external_network"])
+
+    def test_explicit_searxng_refusal_remains_offline(self):
+        result = build_plan(
+            {"primary": "research"},
+            "researcher",
+            {
+                "selected_skill_id": "research.research_summary_helper",
+                "selection_basis": "intent_map",
+                "found": True,
+            },
+            {
+                "request_summary": "Do not use SearXNG or search the web; stay offline.",
+                "request_text": "Do not use SearXNG or search the web; stay offline.",
+                "retrieved_memory_count": 0,
+                "retrieval_mode": "no_local_session_journal_memory",
+            },
+        )
+
+        self.assertFalse(result["governed_public_research_candidate"])
+        self.assertFalse(result["requires_tools"])
+        self.assertFalse(result["touches_external_network"])
+
     def test_researcher_mode_does_not_turn_local_source_analysis_into_egress(self):
         result = build_plan(
             {"primary": "research"},

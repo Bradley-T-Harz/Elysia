@@ -266,6 +266,182 @@ class TestModelRouting(unittest.TestCase):
         )
         self.assertEqual(quality["selected_runtime_tag"], "mistral-small3.1:24b")
 
+    def test_single_historical_failure_does_not_permanently_exile_preferred_model(self):
+        configs = self._build_configs()
+        role = configs["models"]["model_roles"]["roles"]["primary_general"]
+        role["preferred_model_runtime_tags"] = ["preferred:large"]
+        role["fallback_model_runtime_tags"] = ["fallback:small"]
+
+        health = {
+            "captured_at_utc": "2026-09-20T06:30:00Z",
+            "models": [
+                {
+                    "runtime_tag": "preferred:large",
+                    "installed": True,
+                    "size_bytes": 15000,
+                    "expected_ram_mb": 15000,
+                    "history": {
+                        "sample_count": 1,
+                        "success_count": 0,
+                        "failure_count": 1,
+                        "consecutive_failures": 1,
+                        "last_status": "error",
+                        "last_outcome_at_utc": "2026-09-14T06:52:13Z",
+                    },
+                },
+                {
+                    "runtime_tag": "fallback:small",
+                    "installed": True,
+                    "size_bytes": 5000,
+                    "expected_ram_mb": 5000,
+                    "history": {
+                        "sample_count": 14,
+                        "success_count": 14,
+                        "failure_count": 0,
+                        "consecutive_failures": 0,
+                        "last_status": "ok",
+                        "last_outcome_at_utc": "2026-09-20T06:04:57Z",
+                    },
+                },
+            ],
+        }
+
+        result = build_model_routing_decision(
+            configs=configs,
+            mode="researcher",
+            task_type="research_summary",
+            autonomy_level=3,
+            reasoning_gear="research_engineering",
+            performance_preference="balanced",
+            model_health=health,
+            ram_mb_ceiling=16384,
+        )
+
+        self.assertEqual(
+            result["selected_runtime_tag"],
+            "preferred:large",
+        )
+        self.assertIn(
+            "historical_failure_does_not_block_recovery_attempt",
+            result["measured_selection_reasons"],
+        )
+
+    def test_two_recent_consecutive_failures_temporarily_use_healthy_fallback(self):
+        configs = self._build_configs()
+        role = configs["models"]["model_roles"]["roles"]["primary_general"]
+        role["preferred_model_runtime_tags"] = ["preferred:large"]
+        role["fallback_model_runtime_tags"] = ["fallback:small"]
+
+        health = {
+            "captured_at_utc": "2026-09-20T06:30:00Z",
+            "models": [
+                {
+                    "runtime_tag": "preferred:large",
+                    "installed": True,
+                    "size_bytes": 15000,
+                    "expected_ram_mb": 15000,
+                    "history": {
+                        "sample_count": 4,
+                        "success_count": 2,
+                        "failure_count": 2,
+                        "consecutive_failures": 2,
+                        "last_status": "error",
+                        "last_outcome_at_utc": "2026-09-20T06:20:00Z",
+                    },
+                },
+                {
+                    "runtime_tag": "fallback:small",
+                    "installed": True,
+                    "size_bytes": 5000,
+                    "expected_ram_mb": 5000,
+                    "history": {
+                        "sample_count": 5,
+                        "success_count": 5,
+                        "failure_count": 0,
+                        "consecutive_failures": 0,
+                        "last_status": "ok",
+                        "last_outcome_at_utc": "2026-09-20T06:25:00Z",
+                    },
+                },
+            ],
+        }
+
+        result = build_model_routing_decision(
+            configs=configs,
+            mode="researcher",
+            task_type="research_summary",
+            autonomy_level=3,
+            reasoning_gear="research_engineering",
+            performance_preference="balanced",
+            model_health=health,
+            ram_mb_ceiling=16384,
+        )
+
+        self.assertEqual(
+            result["selected_runtime_tag"],
+            "fallback:small",
+        )
+        self.assertIn(
+            "recent_failure_streak_temporary_fallback",
+            result["measured_selection_reasons"],
+        )
+
+    def test_old_failure_streak_exits_cooldown_and_retries_preferred_model(self):
+        configs = self._build_configs()
+        role = configs["models"]["model_roles"]["roles"]["primary_general"]
+        role["preferred_model_runtime_tags"] = ["preferred:large"]
+        role["fallback_model_runtime_tags"] = ["fallback:small"]
+
+        health = {
+            "captured_at_utc": "2026-09-20T06:30:00Z",
+            "models": [
+                {
+                    "runtime_tag": "preferred:large",
+                    "installed": True,
+                    "size_bytes": 15000,
+                    "expected_ram_mb": 15000,
+                    "history": {
+                        "sample_count": 3,
+                        "success_count": 1,
+                        "failure_count": 2,
+                        "consecutive_failures": 2,
+                        "last_status": "error",
+                        "last_outcome_at_utc": "2026-09-20T04:00:00Z",
+                    },
+                },
+                {
+                    "runtime_tag": "fallback:small",
+                    "installed": True,
+                    "size_bytes": 5000,
+                    "expected_ram_mb": 5000,
+                    "history": {
+                        "sample_count": 5,
+                        "success_count": 5,
+                        "failure_count": 0,
+                        "consecutive_failures": 0,
+                        "last_status": "ok",
+                        "last_outcome_at_utc": "2026-09-20T06:25:00Z",
+                    },
+                },
+            ],
+        }
+
+        result = build_model_routing_decision(
+            configs=configs,
+            mode="researcher",
+            task_type="research_summary",
+            autonomy_level=3,
+            reasoning_gear="research_engineering",
+            performance_preference="balanced",
+            model_health=health,
+            ram_mb_ceiling=16384,
+        )
+
+        self.assertEqual(
+            result["selected_runtime_tag"],
+            "preferred:large",
+        )
+
     def test_specialist_task_falls_back_without_explicit_enablement(self):
         result = build_model_routing_decision(
             configs=self._build_configs(),
