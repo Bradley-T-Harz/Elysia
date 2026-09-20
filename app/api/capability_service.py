@@ -1113,36 +1113,67 @@ def _patch_application_state() -> tuple[CapabilityState, list[str]]:
 def _focused_command_state() -> tuple[CapabilityState, list[str]]:
     """
     Determine exact approved focused command execution truth.
+
+    Capability truth follows the live cancellable process service. The legacy
+    sandbox.command_worker module is retained only as compatibility baggage and
+    is not evidence that production command execution is available.
     """
     schema_ready = _module_attr_exists(
-        "app.api.schemas.code",
-        "FocusedCommandRunRequest",
+        "app.api.schemas.coding_commands",
+        "CodingCommandRunApprovedRequest",
     )
-    service_ready = _module_attr_is_callable(
-        "app.api.code_service",
-        "run_approved_focused_command",
+    plan_ready = _module_attr_is_callable(
+        "app.api.coding_command_plan_service",
+        "plan_command",
     )
-    worker_ready = _module_attr_is_callable(
-        "sandbox.command_worker.worker",
-        "run_command_worker",
+    start_ready = _module_attr_is_callable(
+        "app.api.coding_process_service",
+        "start_approved_command",
     )
-    route_ready = _module_attr_exists("app.api.routes.code", "router")
+    status_ready = _module_attr_is_callable(
+        "app.api.coding_process_service",
+        "get_command_status",
+    )
+    cancel_ready = _module_attr_is_callable(
+        "app.api.coding_process_service",
+        "cancel_command",
+    )
+    stop_ready = _module_attr_is_callable(
+        "app.api.coding_process_service",
+        "cancel_all_commands",
+    )
+    route_ready = _module_attr_exists(
+        "app.api.routes.coding_commands",
+        "router",
+    )
+
+    live_parts = (
+        schema_ready,
+        plan_ready,
+        start_ready,
+        status_ready,
+        cancel_ready,
+        stop_ready,
+        route_ready,
+    )
+
     notes = [
-        "Focused command execution is explicit and approval-gated only.",
-        "Allowed commands are narrow exact matches, currently focused tests and frontend typecheck/build.",
-        "The command worker uses shell=False and records command ledger truth; broad shell remains not live.",
+        "Focused command execution is explicit and exact-approval-gated only.",
+        "Allowed commands are narrow exact argv matches; broad shell remains unavailable.",
+        "Live command execution uses the cancellable process service with shell=False, bounded output, timeout enforcement, process-group termination, per-run cancellation, and emergency STOP cancellation.",
+        "The legacy sandbox.command_worker compatibility module is not part of the live execution path.",
     ]
 
-    if schema_ready and service_ready and worker_ready and route_ready:
+    if all(live_parts):
         return CapabilityState.LIVE, notes
 
-    if schema_ready or service_ready or worker_ready or route_ready:
+    if any(live_parts):
         return CapabilityState.DEGRADED, notes + [
-            "Focused command foundations are partially present."
+            "The modern governed command lifecycle is only partially available."
         ]
 
     return CapabilityState.PLANNED, [
-        "Approved focused command execution is planned but not wired.",
+        "Approved focused command execution is planned but the modern governed lifecycle is unavailable.",
     ]
 
 
