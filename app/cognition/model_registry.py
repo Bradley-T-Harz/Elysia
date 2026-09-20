@@ -138,25 +138,50 @@ class ModelRegistry:
         self.initialize()
         with self.connect() as conn:
             rows = conn.execute(
-                "SELECT runtime_tag, status, latency_ms, load_duration_ns FROM model_outcomes ORDER BY created_at_utc DESC LIMIT 500"
+                "SELECT runtime_tag, status, latency_ms, load_duration_ns, created_at_utc FROM model_outcomes ORDER BY created_at_utc DESC LIMIT 500"
             ).fetchall()
         grouped: dict[str, list[sqlite3.Row]] = {}
         for row in rows:
             grouped.setdefault(str(row["runtime_tag"]), []).append(row)
-        return {
-            tag: {
+        history: dict[str, dict[str, Any]] = {}
+
+        for tag, items in grouped.items():
+            consecutive_failures = 0
+            for item in items:
+                if str(item["status"]) == "ok":
+                    break
+                consecutive_failures += 1
+
+            history[tag] = {
                 "sample_count": len(items),
                 "success_count": sum(str(item["status"]) == "ok" for item in items),
                 "failure_count": sum(str(item["status"]) != "ok" for item in items),
-                "median_latency_ms": int(median(int(item["latency_ms"]) for item in items)),
+                "consecutive_failures": consecutive_failures,
+                "last_status": str(items[0]["status"]) if items else None,
+                "last_outcome_at_utc": (
+                    str(items[0]["created_at_utc"]) if items else None
+                ),
+                "median_latency_ms": int(
+                    median(int(item["latency_ms"]) for item in items)
+                ),
                 "median_load_duration_ms": (
-                    round(median(int(item["load_duration_ns"]) for item in items if item["load_duration_ns"] is not None) / 1_000_000, 3)
-                    if any(item["load_duration_ns"] is not None for item in items)
+                    round(
+                        median(
+                            int(item["load_duration_ns"])
+                            for item in items
+                            if item["load_duration_ns"] is not None
+                        ) / 1_000_000,
+                        3,
+                    )
+                    if any(
+                        item["load_duration_ns"] is not None
+                        for item in items
+                    )
                     else None
                 ),
             }
-            for tag, items in grouped.items()
-        }
+
+        return history
 
     def snapshot(self, timeout: float = 1.0) -> dict[str, Any]:
         try:

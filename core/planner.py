@@ -1174,6 +1174,44 @@ def _detect_governed_public_research_candidate(
             "https://",
         )
     )
+
+    # Explicit SearXNG requests should not depend on one exact adjacent phrase.
+    # Examples such as "Use your already configured SearXNG path..." are still
+    # direct requests for the governed public-research lane.
+    searxng_action = bool(
+        re.search(
+            r"\b(?:use|using|search|query|research|browse|verify|look\s+up)\b"
+            r"[\s\S]{0,160}\bsearxng\b",
+            lowered,
+        )
+        or re.search(
+            r"\bsearxng\b[\s\S]{0,160}"
+            r"\b(?:search|query|research|browse|verify|look\s+up)\b",
+            lowered,
+        )
+    )
+
+    # An explicit offline/negative instruction outranks incidental web words.
+    explicit_research_refusal = bool(
+        re.search(
+            r"\b(?:do\s+not|don't|never)\s+"
+            r"(?:use|search|query|browse|research)\b"
+            r"[\s\S]{0,120}\b(?:searxng|web|online|internet)\b",
+            lowered,
+        )
+        or any(
+            marker in lowered
+            for marker in (
+                "offline only",
+                "stay offline",
+                "remain offline",
+                "do not use the internet",
+                "do not search the web",
+                "don't search the web",
+            )
+        )
+    )
+
     clearly_current = not local_data_candidate and primary_intent == "research" and any(
         marker in lowered
         for marker in (
@@ -1185,7 +1223,11 @@ def _detect_governed_public_research_candidate(
             "latest news",
         )
     )
-    return explicit_public or clearly_current
+
+    if explicit_research_refusal:
+        return False
+
+    return explicit_public or searxng_action or clearly_current
 
 def build_plan(
     intent: Dict[str, Any],

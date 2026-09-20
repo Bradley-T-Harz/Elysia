@@ -6,6 +6,7 @@ routing cannot silently launch a model or cross an approval/locality boundary.
 """
 
 from copy import deepcopy
+from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -22,6 +23,75 @@ def _role_runtime_candidates(role_entry: Dict[str, Any]) -> List[str]:
     if not preferred:
         preferred = _normalize_string_list(role_entry.get("preferred_model_runtime_tag"))
     return preferred + _normalize_string_list(role_entry.get("fallback_model_runtime_tags"))
+
+
+MODEL_FAILURE_STREAK_THRESHOLD = 2
+MODEL_FAILURE_COOLDOWN_SECONDS = 3600
+
+
+def _parse_utc_timestamp(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+
+    try:
+        return datetime.fromisoformat(
+            text.replace("Z", "+00:00")
+        ).astimezone(UTC)
+    except (TypeError, ValueError):
+        return None
+
+
+def _recent_failure_streak_active(
+    history: Dict[str, Any],
+    *,
+    reference_time_utc: Any = None,
+) -> bool:
+    """Return whether a preferred model is inside a temporary failure cooldown.
+
+    One failure never poisons a model. Two or more consecutive failures may
+    trigger a bounded fallback cooldown. After that cooldown the preferred
+    model is eligible for a recovery attempt instead of remaining permanently
+    exiled by historical outcome counts.
+    """
+    try:
+        consecutive_failures = int(
+            history.get("consecutive_failures")
+            if history.get("consecutive_failures") is not None
+            else (
+                history.get("failure_count", 0)
+                if int(history.get("success_count", 0) or 0) == 0
+                else 0
+            )
+        )
+    except (TypeError, ValueError):
+        consecutive_failures = 0
+
+    if consecutive_failures < MODEL_FAILURE_STREAK_THRESHOLD:
+        return False
+
+    last_outcome = _parse_utc_timestamp(
+        history.get("last_outcome_at_utc")
+    )
+
+    # Legacy/synthetic health snapshots without timestamps fail conservatively:
+    # a proven repeated failure streak remains active.
+    if last_outcome is None:
+        return True
+
+    reference = (
+        _parse_utc_timestamp(reference_time_utc)
+        or datetime.now(UTC)
+    )
+
+    age_seconds = (reference - last_outcome).total_seconds()
+
+    # Future timestamps are anomalous. Do not let them silently defeat the
+    # failure guard.
+    if age_seconds < 0:
+        return True
+
+    return age_seconds <= MODEL_FAILURE_COOLDOWN_SECONDS
 
 
 def _select_measured_runtime_tag(
@@ -80,15 +150,37 @@ def _select_measured_runtime_tag(
     history = _as_mapping(item.get("history"))
     if item.get("loaded"):
         reasons.append("selected_model_resident")
-    if int(history.get("failure_count") or 0) > int(history.get("success_count") or 0):
+
+    if _recent_failure_streak_active(
+        history,
+        reference_time_utc=_as_mapping(model_health or {}).get(
+            "captured_at_utc"
+        ),
+    ):
         healthy_alternatives = [
-            tag for tag in pool
-            if int(_as_mapping(inventory.get(tag, {}).get("history")).get("success_count") or 0)
-            >= int(_as_mapping(inventory.get(tag, {}).get("history")).get("failure_count") or 0)
+            tag
+            for tag in pool
+            if tag != selected
+            and not _recent_failure_streak_active(
+                _as_mapping(
+                    inventory.get(tag, {}).get("history")
+                ),
+                reference_time_utc=_as_mapping(
+                    model_health or {}
+                ).get("captured_at_utc"),
+            )
         ]
+
         if healthy_alternatives:
             selected = healthy_alternatives[0]
-            reasons.append("unhealthy_candidate_bypassed_from_outcome_history")
+            reasons.append(
+                "recent_failure_streak_temporary_fallback"
+            )
+    elif int(history.get("failure_count") or 0) > 0:
+        reasons.append(
+            "historical_failure_does_not_block_recovery_attempt"
+        )
+
     return selected, reasons
 
 
