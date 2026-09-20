@@ -47,11 +47,30 @@ def _install(tmp_path: Path, artifact: Path) -> tuple[Path, list[Path]]:
     mega = home / "MEGA (Elysia)" / "Desktop"
     desktop = home / "Desktop"
     convenience = home / "Projects" / "Elysia_App"
+
+    # The XDG Desktop and a second conventional Desktop both already exist.
+    # Only the unrelated convenience directory is supplied explicitly.
+    mega.mkdir(parents=True, exist_ok=True)
+    desktop.mkdir(parents=True, exist_ok=True)
+
+    helper_root = tmp_path / "bin"
+    helper_root.mkdir(exist_ok=True)
+    xdg_user_dir = helper_root / "xdg-user-dir"
+    xdg_user_dir.write_text(
+        "#!/bin/sh\n"
+        '[ "${1:-}" = "DESKTOP" ] || exit 1\n'
+        'printf "%s\\n" "$TEST_XDG_DESKTOP"\n',
+        encoding="utf-8",
+    )
+    xdg_user_dir.chmod(0o755)
+
     environment = {
         **os.environ,
         "HOME": str(home),
         "XDG_DATA_HOME": str(home / ".local/share"),
         "XDG_STATE_HOME": str(home / ".local/state"),
+        "TEST_XDG_DESKTOP": str(mega),
+        "PATH": str(helper_root) + os.pathsep + os.environ.get("PATH", ""),
     }
     subprocess.run(
         [
@@ -60,10 +79,6 @@ def _install(tmp_path: Path, artifact: Path) -> tuple[Path, list[Path]]:
             "--apply",
             "--deb",
             str(artifact),
-            "--shortcut-dir",
-            str(mega),
-            "--shortcut-dir",
-            str(desktop),
             "--shortcut-dir",
             str(convenience),
         ],
@@ -100,10 +115,10 @@ def test_user_local_installer_converges_every_entry_and_preserves_prior_release(
     expected_exec = f'Exec="{stable_launcher}"'
 
     assert stable_launcher.stat().st_mode & 0o777 == 0o700
-    assert "elysia/current/usr/bin/elysia-desktop" in stable_launcher.read_text(
-        encoding="utf-8"
-    )
-    assert "ELYSIA_LOCAL_API_PORT" in stable_launcher.read_text(encoding="utf-8")
+    launcher_source = stable_launcher.read_text(encoding="utf-8")
+    assert "/usr/bin/elysia-desktop" in launcher_source
+    assert "elysia/current/usr/bin/elysia-desktop" in launcher_source
+    assert "ELYSIA_LOCAL_API_PORT" in launcher_source
     for entry in entries:
         assert entry.is_file()
         assert expected_exec in entry.read_text(encoding="utf-8")
@@ -133,7 +148,10 @@ def test_user_local_launcher_source_is_portable_and_fail_closed() -> None:
     assert "MAIN" + "_Projects" not in source
     assert "MEGA (Elysia)" not in source
     assert "/ho" + "me/" not in source
+    assert "/usr/bin/elysia-desktop" in source
     assert "current/usr/bin/elysia-desktop" in source
+    assert "xdg-user-dir" in source
+    assert "desktop-managed-entries.txt" in source
     assert "-u ELYSIA_LOCAL_API_PORT" in source
     assert "user_data_preserved\":true" in source
 
@@ -143,7 +161,7 @@ def test_user_local_repair_rollback_uninstall_and_reinstall_preserve_xdg_data(
 ) -> None:
     first = _make_deb(tmp_path, "first")
     second = _make_deb(tmp_path, "second")
-    home, _ = _install(tmp_path, first)
+    home, entries = _install(tmp_path, first)
     environment = _environment(home)
     first_id = sha256(first.read_bytes()).hexdigest()[:12]
     first_payload = home / ".local/lib/elysia/releases" / first_id
@@ -168,6 +186,7 @@ def test_user_local_repair_rollback_uninstall_and_reinstall_preserve_xdg_data(
     )
     assert not (home / ".local/lib/elysia").exists()
     assert not (home / ".local/bin/elysia-desktop").exists()
+    assert all(not entry.exists() for entry in entries)
     assert private_data.read_text(encoding="utf-8") == "preserve-me"
     assert list((home / ".local/state/elysia/uninstalled-desktop").iterdir())
 

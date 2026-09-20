@@ -72,6 +72,63 @@ for directory in "${SHORTCUT_DIRS[@]}"; do
   }
 done
 
+# Build one deduplicated set of user-owned desktop shortcut locations.
+#
+# Discovery is intentionally bounded:
+# - the freedesktop/XDG Desktop when it already exists;
+# - an existing conventional $HOME/Desktop when distinct;
+# - explicitly requested shortcut directories;
+# - previously receipt-bound Elysia shortcut directories.
+#
+# We do not recursively search the user's home or create a missing XDG Desktop
+# because a configured Desktop may live on removable/synced storage that is
+# temporarily unavailable.
+REQUESTED_SHORTCUT_DIRS=("${SHORTCUT_DIRS[@]}")
+SHORTCUT_DIRS=()
+
+add_shortcut_dir() {
+  local directory="$1"
+  local existing
+
+  [[ -n "$directory" && "$directory" = /* ]] || return 0
+  [[ "$directory" = "$USER_HOME" || "$directory" = "$USER_HOME"/* ]] || return 0
+
+  for existing in "${SHORTCUT_DIRS[@]}"; do
+    [[ "$existing" == "$directory" ]] && return 0
+  done
+
+  SHORTCUT_DIRS+=("$directory")
+}
+
+if command -v xdg-user-dir >/dev/null 2>&1; then
+  XDG_DESKTOP="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
+  if [[ -n "$XDG_DESKTOP" && -d "$XDG_DESKTOP" ]]; then
+    add_shortcut_dir "$XDG_DESKTOP"
+  fi
+fi
+
+if [[ -d "$USER_HOME/Desktop" ]]; then
+  add_shortcut_dir "$USER_HOME/Desktop"
+fi
+
+for directory in "${REQUESTED_SHORTCUT_DIRS[@]}"; do
+  add_shortcut_dir "$directory"
+done
+
+PRIOR_MANAGED_ENTRIES="$STATE_BASE/elysia/desktop-managed-entries.txt"
+if [[ -f "$PRIOR_MANAGED_ENTRIES" && ! -L "$PRIOR_MANAGED_ENTRIES" ]]; then
+  while IFS= read -r entry; do
+    [[ "$entry" == "$STANDARD_ENTRY" ]] && continue
+    [[ "$entry" = "$USER_HOME"/* ]] || continue
+    [[ "${entry##*/}" == "Elysia.desktop" ]] || continue
+
+    directory="${entry%/*}"
+    if [[ -d "$directory" ]]; then
+      add_shortcut_dir "$directory"
+    fi
+  done <"$PRIOR_MANAGED_ENTRIES"
+fi
+
 RELEASES_ROOT="$LIB_ROOT/releases"
 CURRENT_LINK="$LIB_ROOT/current"
 RECEIPT_ROOT="$STATE_BASE/elysia"
@@ -175,11 +232,22 @@ cat >"$LAUNCHER_TEMP" <<'EOF'
 #!/usr/bin/env sh
 set -eu
 USER_HOME="${HOME:?HOME is required}"
-TARGET="$USER_HOME/.local/lib/elysia/current/usr/bin/elysia-desktop"
-if [ ! -x "$TARGET" ]; then
+
+SYSTEM_TARGET="/usr/bin/elysia-desktop"
+USER_LOCAL_TARGET="$USER_HOME/.local/lib/elysia/current/usr/bin/elysia-desktop"
+
+# A physical Desktop shortcut must survive a change between supported install
+# forms. Prefer the conventional system package when it is installed; otherwise
+# fall back to the current verified user-local payload.
+if [ -x "$SYSTEM_TARGET" ]; then
+  TARGET="$SYSTEM_TARGET"
+elif [ -x "$USER_LOCAL_TARGET" ]; then
+  TARGET="$USER_LOCAL_TARGET"
+else
   echo "The canonical Elysia Desktop installation is unavailable." >&2
   exit 1
 fi
+
 exec env \
   -u PYTHONPATH \
   -u LD_LIBRARY_PATH \
