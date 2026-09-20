@@ -38,9 +38,18 @@ AppImage remains relocatable while all account, Memory, project, configuration,
 and state roots remain governed by XDG; moving the AppImage does not move or
 duplicate personal state. The user-local extraction lane is implemented by
 `scripts/install_desktop_user.sh`; it provides digest-keyed install/repair and
-receipt-bound rollback without sudo. `scripts/uninstall_desktop_user.sh` removes
-only receipted application bytes and launchers into private recoverable state,
-preserving XDG personal data for reinstall.
+receipt-bound rollback without sudo. On every install or repair it automatically
+discovers an existing XDG Desktop, an existing conventional `$HOME/Desktop`,
+explicit shortcut directories, and previously receipt-bound shortcut locations.
+Those locations converge on one stable user launcher. The launcher recognizes a
+conventional `/usr/bin/elysia-desktop` installation first and otherwise falls
+back to the current verified user-local payload, so reinstalling or changing
+between supported installation forms does not strand an old physical Desktop
+shortcut. `scripts/uninstall_desktop_user.sh` removes only receipt-bound
+application bytes and shortcuts into private recoverable state, preserving XDG
+personal data for reinstall. Missing configured Desktop directories are not
+created automatically because they may represent temporarily unavailable
+removable or synchronized storage.
 
 ## Build Command
 
