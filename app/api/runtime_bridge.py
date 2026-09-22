@@ -42,6 +42,7 @@ from app.api.artifact_service import (
     artifact_summary_from_record,
     create_data_summary_artifact,
     create_plot_image_artifact,
+    create_scientific_result_artifact,
 )
 from app.api.file_ingest_service import build_attached_file_context_packet
 from core.codev.runtime_scope import current_context as codev_context
@@ -807,98 +808,356 @@ def _build_artifact_summaries_for_chat_response(
     request_model: ChatSendRequest,
     runtime_packet: dict[str, Any],
 ) -> tuple[list[ArtifactSummary], list[str]]:
-    """
-    Build compact local artifact summaries for a chat response.
+    """Build local artifact summaries from already-completed governed work.
 
-    Completed bounded local data execution can create a saved data_summary
-    artifact. When the user explicitly asks for a plot/chart/graph/visualization,
-    the bridge may also create one simple local SVG plot_image artifact from the
-    completed numeric summary. These are local output receipts, not memory, not
-    notebook execution, not arbitrary Python, not shell, not web, and not
-    source-file mutation.
+    ScientificForge results and bounded data summaries share the existing
+    account-scoped artifact authority. Artifact creation does not grant new
+    execution authority and never exposes a raw scientific workspace root.
     """
-    response = _as_mapping(runtime_packet.get("response", {}))
-    data_execution = (
-        _as_mapping(runtime_packet.get("data_execution", {}))
-        or _as_mapping(response.get("data_execution", {}))
+
+    response = _as_mapping(
+        runtime_packet.get(
+            "response",
+            {},
+        )
     )
 
-    if not data_execution:
-        return [], []
+    internal_result = _as_mapping(
+        runtime_packet.get(
+            "internal_result",
+            {},
+        )
+    )
 
-    if not _coerce_bool(data_execution.get("used"), False):
-        return [], []
+    scientific_execution = (
+        _as_mapping(
+            runtime_packet.get(
+                "scientific_execution",
+                {},
+            )
+        )
+        or _as_mapping(
+            internal_result.get(
+                "scientific_execution",
+                {},
+            )
+        )
+        or _as_mapping(
+            response.get(
+                "scientific_execution",
+                {},
+            )
+        )
+    )
 
-    status = _coerce_string(data_execution.get("status"), "").lower()
-    if status != "completed":
-        return [], []
+    data_execution = (
+        _as_mapping(
+            runtime_packet.get(
+                "data_execution",
+                {},
+            )
+        )
+        or _as_mapping(
+            response.get(
+                "data_execution",
+                {},
+            )
+        )
+    )
 
-    tool_kind = _coerce_string(data_execution.get("tool_kind"), "").lower()
-    if tool_kind != "data_executor":
-        return [], []
+    artifact_summaries: list[
+        ArtifactSummary
+    ] = []
 
-    operation = _coerce_string(data_execution.get("operation"), "").lower()
-    if operation != "summarize_csv":
-        return [], []
-
-    artifact_summaries: list[ArtifactSummary] = []
     artifact_warnings: list[str] = []
 
-    try:
-        data_summary_record = create_data_summary_artifact(
-            data_execution,
-            request_id=request_model.request_id,
-            conversation_id=request_model.conversation_id,
-            project_id=request_model.project_id,
-        )
-        artifact_summaries.append(artifact_summary_from_record(data_summary_record))
-    except ArtifactCreationError as exc:
-        artifact_warnings.append(
-            "Data execution completed, but local data-summary artifact saving was skipped: "
-            f"{exc}"
-        )
-    except Exception as exc:
-        LOGGER.exception("Data summary artifact creation failed", exc_info=exc)
-        artifact_warnings.append(
-            "Data execution completed, but local data-summary artifact saving failed: "
-            f"{exc}"
-        )
+    # --------------------------------------------------------------
+    # Governed ScientificForge result.
+    # --------------------------------------------------------------
 
-    if not _message_requests_plot_artifact(request_model.message):
-        return artifact_summaries, artifact_warnings
+    if scientific_execution.get("protocol_version") == "scientific-ir-v0.2":
+        # Save only individually verified nodes. A failed/cancelled parent is
+        # never turned into a completed aggregate artifact.
+        for node in list(scientific_execution.get("node_receipts") or [])[:12]:
+            if not isinstance(node, dict) or node.get("status") != "completed" or node.get("verification") != "passed":
+                continue
+            try:
+                scientific_record = create_scientific_result_artifact(
+                    {
+                        "protocol_version": "scientific-ir-v0.2", "status": "completed",
+                        "used": True, "ok": True, "source_mutated": False,
+                        "network_used": False, "shell_used": False,
+                        "workflow_id": scientific_execution.get("workflow_id"),
+                        "node_id": node.get("node_id"), "backend_family": node.get("backend_family"),
+                        "solver_method": node.get("solver_method"),
+                        "resource_controls": node.get("resource_controls", {}),
+                        "scientific_operation": node.get("operation"),
+                        "scientific_job_id": node.get("job_id"),
+                        "staged_file_id": node.get("source_file_id"),
+                        "result": node.get("result", {}),
+                        "upstream_result_hashes": node.get("upstream_result_hashes", []),
+                        "diagnostics": node.get("diagnostics", {}),
+                        "verification": node.get("verification"),
+                        "provenance": {
+                            "parameter_sha256": node.get("parameter_sha256"),
+                            "result_sha256": node.get("result_sha256"),
+                            "source_sha256": node.get("source_sha256"),
+                            "seed": node.get("seed"),
+                            "engine_versions": node.get("engine_versions", {}),
+                            "deterministic": True,
+                        },
+                    },
+                    request_id=request_model.request_id,
+                    conversation_id=request_model.conversation_id,
+                    project_id=request_model.project_id,
+                )
+                artifact_summaries.append(artifact_summary_from_record(scientific_record))
+            except ArtifactCreationError as exc:
+                artifact_warnings.append("Verified scientific node artifact was skipped: " + str(exc))
+            except Exception as exc:
+                LOGGER.exception("Scientific workflow node artifact saving failed", exc_info=exc)
+                artifact_warnings.append("Verified scientific node artifact saving failed.")
 
-    try:
-        plot_build_result = build_numeric_summary_bar_svg(data_execution)
-
-        if not getattr(plot_build_result, "ok", False):
-            errors = list(getattr(plot_build_result, "errors", []) or [])
-            reason = "; ".join(str(error) for error in errors if str(error).strip())
-            artifact_warnings.append(
-                "Data execution completed, but plot artifact creation was skipped: "
-                + (reason or "plot builder did not return a completed result")
+    if (
+        scientific_execution
+        and scientific_execution.get("protocol_version") != "scientific-ir-v0.2"
+        and _coerce_bool(
+            scientific_execution.get(
+                "used"
+            ),
+            False,
+        )
+        and _coerce_string(
+            scientific_execution.get(
+                "status"
+            ),
+            "",
+        ).lower()
+        == "completed"
+        and _coerce_string(
+            scientific_execution.get(
+                "tool_kind"
+            ),
+            "scientificforge",
+        ).lower()
+        == "scientificforge"
+    ):
+        try:
+            scientific_record = (
+                create_scientific_result_artifact(
+                    scientific_execution,
+                    request_id=request_model.request_id,
+                    conversation_id=request_model.conversation_id,
+                    project_id=request_model.project_id,
+                )
             )
-            return artifact_summaries, artifact_warnings
 
-        plot_record = create_plot_image_artifact(
-            plot_build_result,
-            request_id=request_model.request_id,
-            conversation_id=request_model.conversation_id,
-            project_id=request_model.project_id,
+            artifact_summaries.append(
+                artifact_summary_from_record(
+                    scientific_record
+                )
+            )
+
+        except ArtifactCreationError as exc:
+            artifact_warnings.append(
+                "Scientific execution completed, but the local scientific-result "
+                "artifact was skipped: "
+                + str(exc)
+            )
+
+        except Exception as exc:
+            LOGGER.exception(
+                "Scientific result artifact creation failed",
+                exc_info=exc,
+            )
+
+            artifact_warnings.append(
+                "Scientific execution completed, but local scientific-result "
+                "artifact saving failed: "
+                + str(exc)
+            )
+
+    # --------------------------------------------------------------
+    # Established bounded-data artifacts.
+    # --------------------------------------------------------------
+
+    if not data_execution:
+        return (
+            artifact_summaries,
+            artifact_warnings,
         )
-        artifact_summaries.append(artifact_summary_from_record(plot_record))
+
+    if not _coerce_bool(
+        data_execution.get(
+            "used"
+        ),
+        False,
+    ):
+        return (
+            artifact_summaries,
+            artifact_warnings,
+        )
+
+    status = _coerce_string(
+        data_execution.get(
+            "status"
+        ),
+        "",
+    ).lower()
+
+    if status != "completed":
+        return (
+            artifact_summaries,
+            artifact_warnings,
+        )
+
+    tool_kind = _coerce_string(
+        data_execution.get(
+            "tool_kind"
+        ),
+        "",
+    ).lower()
+
+    if tool_kind != "data_executor":
+        return (
+            artifact_summaries,
+            artifact_warnings,
+        )
+
+    operation = _coerce_string(
+        data_execution.get(
+            "operation"
+        ),
+        "",
+    ).lower()
+
+    if operation != "summarize_csv":
+        return (
+            artifact_summaries,
+            artifact_warnings,
+        )
+
+    try:
+        data_summary_record = (
+            create_data_summary_artifact(
+                data_execution,
+                request_id=request_model.request_id,
+                conversation_id=request_model.conversation_id,
+                project_id=request_model.project_id,
+            )
+        )
+
+        artifact_summaries.append(
+            artifact_summary_from_record(
+                data_summary_record
+            )
+        )
+
     except ArtifactCreationError as exc:
         artifact_warnings.append(
-            "Data execution completed, but local plot artifact saving was skipped: "
-            f"{exc}"
+            "Data execution completed, but local data-summary artifact saving "
+            "was skipped: "
+            + str(exc)
         )
+
     except Exception as exc:
-        LOGGER.exception("Plot artifact creation failed", exc_info=exc)
+        LOGGER.exception(
+            "Data summary artifact creation failed",
+            exc_info=exc,
+        )
+
+        artifact_warnings.append(
+            "Data execution completed, but local data-summary artifact saving "
+            "failed: "
+            + str(exc)
+        )
+
+    if not _message_requests_plot_artifact(
+        request_model.message
+    ):
+        return (
+            artifact_summaries,
+            artifact_warnings,
+        )
+
+    try:
+        plot_build_result = (
+            build_numeric_summary_bar_svg(
+                data_execution
+            )
+        )
+
+        if not getattr(
+            plot_build_result,
+            "ok",
+            False,
+        ):
+            errors = list(
+                getattr(
+                    plot_build_result,
+                    "errors",
+                    [],
+                )
+                or []
+            )
+
+            reason = "; ".join(
+                str(error)
+                for error in errors
+                if str(error).strip()
+            )
+
+            artifact_warnings.append(
+                "Data execution completed, but plot artifact creation was "
+                "skipped: "
+                + (
+                    reason
+                    or "plot builder did not return a completed result"
+                )
+            )
+
+            return (
+                artifact_summaries,
+                artifact_warnings,
+            )
+
+        plot_record = (
+            create_plot_image_artifact(
+                plot_build_result,
+                request_id=request_model.request_id,
+                conversation_id=request_model.conversation_id,
+                project_id=request_model.project_id,
+            )
+        )
+
+        artifact_summaries.append(
+            artifact_summary_from_record(
+                plot_record
+            )
+        )
+
+    except ArtifactCreationError as exc:
+        artifact_warnings.append(
+            "Data execution completed, but local plot artifact saving was "
+            "skipped: "
+            + str(exc)
+        )
+
+    except Exception as exc:
+        LOGGER.exception(
+            "Plot artifact creation failed",
+            exc_info=exc,
+        )
+
         artifact_warnings.append(
             "Data execution completed, but local plot artifact saving failed: "
-            f"{exc}"
+            + str(exc)
         )
 
-    return artifact_summaries, artifact_warnings
+    return (
+        artifact_summaries,
+        artifact_warnings,
+    )
 
 
 def _translate_runtime_packet_to_chat_data(
@@ -978,6 +1237,21 @@ def _translate_runtime_packet_to_chat_data(
         math_execution=(
             _as_mapping(runtime_packet.get("math_execution", {}))
             or _as_mapping(response.get("math_execution", {}))
+            or None
+        ),
+        scientific_execution=(
+            _as_mapping(runtime_packet.get("scientific_execution", {}))
+            or _as_mapping(
+                _as_mapping(
+                    runtime_packet.get(
+                        "internal_result",
+                        {},
+                    )
+                ).get(
+                    "scientific_execution",
+                    {},
+                )
+            )
             or None
         ),
         repo_context=(
@@ -1139,6 +1413,206 @@ def _build_tool_ledger_from_chat_data(
                 "cloud_used": False,
                 "warnings": list(math_execution.get("warnings", []) or []),
                 "errors": list(math_execution.get("errors", []) or []),
+            }
+        )
+
+    scientific_execution = _as_mapping(
+        chat_data.scientific_execution
+    )
+
+    if scientific_execution.get("protocol_version") == "scientific-ir-v0.2":
+        workflow_status = _coerce_string(scientific_execution.get("status"), "unknown")
+        receipts = [item for item in list(scientific_execution.get("node_receipts") or [])[:12] if isinstance(item, dict)]
+        tools_used.append({
+            "tool_key": "scientificforge_workflow", "tool_label": "ScientificForge workflow",
+            "tool_kind": "scientificforge", "state": workflow_status,
+            "available": scientific_execution.get("reason") != "scientific_backend_unavailable",
+            "used": _coerce_bool(scientific_execution.get("used"), False),
+            "approval_required": False, "approval_state": "not_needed",
+            "locality": "local", "boundary_kind": "typed_scientific_workflow",
+            "operation": "scientific_workflow",
+            "summary": "Bounded typed scientific workflow; each node has its own verified receipt.",
+            "input_count": _coerce_int(scientific_execution.get("attempted_node_count"), 0),
+            "output_count": _coerce_int(scientific_execution.get("completed_node_count"), 0),
+            "operation_id": _coerce_string(scientific_execution.get("workflow_id"), ""),
+            "mutated_files": False, "network_access_used": False,
+            "private_context_sent": False, "shell_used": False,
+            "git_mutation_used": False, "cloud_used": False,
+            "errors": list(scientific_execution.get("errors") or
+                           ([scientific_execution.get("reason")] if workflow_status != "completed" and scientific_execution.get("reason") else [])),
+        })
+        for item in receipts:
+            tools_used.append({
+                "tool_key": "scientificforge", "tool_label": "ScientificForge node",
+                "tool_kind": "scientificforge", "state": _coerce_string(item.get("status"), "unknown"),
+                "available": True, "used": _coerce_bool(item.get("worker_attempted"), False),
+                "approval_required": False, "approval_state": "not_needed",
+                "locality": "local", "boundary_kind": "typed_scientific_workflow",
+                "operation": _coerce_string(item.get("operation"), ""),
+                "summary": "Isolated local mathematical operation with independent verification truth.",
+                "input_count": 1, "output_count": len(_as_mapping(item.get("result"))),
+                "operation_id": _coerce_string(item.get("job_id"), ""),
+                "source_hash": _coerce_string(item.get("source_sha256"), ""),
+                "parameter_hash": _coerce_string(item.get("parameter_sha256"), ""),
+                "result_hash": _coerce_string(item.get("result_sha256"), ""),
+                "mutated_files": False, "network_access_used": False,
+                "private_context_sent": False, "shell_used": False,
+                "git_mutation_used": False, "cloud_used": False,
+                "errors": [str(item["reason"])] if item.get("reason") else [],
+            })
+
+    if _coerce_bool(
+        scientific_execution.get(
+            "used"
+        ),
+        False,
+    ) and scientific_execution.get("protocol_version") != "scientific-ir-v0.2":
+        provenance = _as_mapping(
+            scientific_execution.get(
+                "provenance",
+                {},
+            )
+        )
+
+        relative_path = _coerce_string(
+            scientific_execution.get(
+                "relative_path"
+            ),
+            "",
+        )
+
+        scientific_result = _as_mapping(
+            scientific_execution.get(
+                "result",
+                {},
+            )
+        )
+
+        source_mutated = _coerce_bool(
+            scientific_execution.get(
+                "source_mutated"
+            ),
+            False,
+        )
+
+        shell_used = _coerce_bool(
+            scientific_execution.get(
+                "shell_used"
+            ),
+            False,
+        )
+
+        extra["mutated_files"] = bool(
+            extra["mutated_files"]
+            or source_mutated
+        )
+
+        extra["shell_used"] = bool(
+            extra["shell_used"]
+            or shell_used
+        )
+
+        tools_used.append(
+            {
+                "tool_key": "scientificforge",
+                "tool_label": "ScientificForge",
+                "tool_kind": "scientificforge",
+                "state": _coerce_string(
+                    scientific_execution.get(
+                        "status"
+                    ),
+                    "unknown",
+                ),
+                "available": True,
+                "used": True,
+                "approval_required": False,
+                "approval_state": "not_needed",
+                "locality": "local",
+                "boundary_kind": (
+                    "approved_scientific_workspace"
+                ),
+                "operation": _coerce_string(
+                    scientific_execution.get(
+                        "scientific_operation"
+                    ),
+                    "",
+                ),
+                "summary": (
+                    "Governed ScientificForge execution over an "
+                    "account/project-approved scientific workspace source."
+                ),
+                "input_count": 1,
+                "output_count": (
+                    len(scientific_result)
+                    if scientific_result
+                    else 0
+                ),
+                "mutated_files": source_mutated,
+                "network_access_used": _coerce_bool(
+                    scientific_execution.get(
+                        "network_used"
+                    ),
+                    False,
+                ),
+                "private_context_sent": False,
+                "shell_used": shell_used,
+                "git_mutation_used": False,
+                "cloud_used": False,
+                "operation_id": _coerce_string(
+                    scientific_execution.get(
+                        "scientific_job_id"
+                    ),
+                    "",
+                ),
+                "workspace_root_hash": _coerce_string(
+                    scientific_execution.get(
+                        "workspace_root_hash"
+                    ),
+                    "",
+                ),
+                "relative_paths": (
+                    [relative_path]
+                    if relative_path
+                    else []
+                ),
+                "source_type_id": _coerce_string(
+                    scientific_execution.get(
+                        "source_type_id"
+                    ),
+                    "",
+                ),
+                "source_hash": _coerce_string(
+                    provenance.get(
+                        "source_sha256"
+                    ),
+                    "",
+                ),
+                "parameter_hash": _coerce_string(
+                    provenance.get(
+                        "parameter_sha256"
+                    ),
+                    "",
+                ),
+                "result_hash": _coerce_string(
+                    provenance.get(
+                        "result_sha256"
+                    ),
+                    "",
+                ),
+                "warnings": list(
+                    scientific_execution.get(
+                        "warnings",
+                        [],
+                    )
+                    or []
+                ),
+                "errors": list(
+                    scientific_execution.get(
+                        "errors",
+                        [],
+                    )
+                    or []
+                ),
             }
         )
 

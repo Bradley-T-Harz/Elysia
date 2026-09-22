@@ -35,6 +35,7 @@ from app.api.schemas.artifacts import (
     DataSummaryArtifactPayload,
     GeneratedMediaArtifactPayload,
     PlotArtifactPayload,
+    ScientificResultArtifactPayload,
 )
 from app.api.schemas.common import ApprovalState, LocalityState
 from app.api.schemas.execution import ExecutionToolKind
@@ -44,6 +45,7 @@ from app.ownership import current_user_id
 
 DEFAULT_ARTIFACT_ROOT = resolve_elysia_paths().artifact_dir
 DATA_SUMMARY_ARTIFACT_PREFIX = "artifact_data_summary"
+SCIENTIFIC_RESULT_ARTIFACT_PREFIX = "artifact_scientific_result"
 PLOT_IMAGE_ARTIFACT_PREFIX = "artifact_plot_image"
 GENERATED_MEDIA_ARTIFACT_PREFIX = "artifact_generated_media"
 MAX_ARTIFACT_LIST_LIMIT = 200
@@ -283,6 +285,9 @@ def _is_completed_data_execution(data_execution: Any) -> bool:
 
 def _artifact_prefix_for_kind(kind: ArtifactKind) -> str:
     """Return the local filename prefix for one artifact kind."""
+    if kind == ArtifactKind.SCIENTIFIC_RESULT:
+        return SCIENTIFIC_RESULT_ARTIFACT_PREFIX
+
     if kind == ArtifactKind.PLOT_IMAGE:
         return PLOT_IMAGE_ARTIFACT_PREFIX
 
@@ -443,6 +448,328 @@ def build_data_summary_artifact_record(
         payload=payload,
         warnings=[str(value) for value in _get_list(data_execution, "warnings")],
         errors=[str(value) for value in _get_list(data_execution, "errors")],
+    )
+
+
+def _is_completed_scientific_execution(
+    scientific_execution: Any,
+) -> bool:
+    """Require completed, used, provenance-backed ScientificForge truth."""
+
+    status = _enum_value(
+        _get_field(
+            scientific_execution,
+            "status",
+            "",
+        )
+    ).lower()
+
+    used = _get_field(
+        scientific_execution,
+        "used",
+        None,
+    )
+
+    ok = _get_field(
+        scientific_execution,
+        "ok",
+        None,
+    )
+
+    provenance = _get_dict(
+        scientific_execution,
+        "provenance",
+    )
+
+    parameter_sha256 = str(
+        provenance.get(
+            "parameter_sha256"
+        )
+        or ""
+    ).strip()
+
+    result_sha256 = str(
+        provenance.get(
+            "result_sha256"
+        )
+        or ""
+    ).strip()
+
+    if status != "completed":
+        return False
+
+    if used is False:
+        return False
+
+    if ok is False:
+        return False
+
+    if (
+        len(parameter_sha256) != 64
+        or len(result_sha256) != 64
+    ):
+        return False
+
+    return True
+
+
+def _scientific_payload(
+    scientific_execution: Any,
+) -> ScientificResultArtifactPayload:
+    provenance = _get_dict(
+        scientific_execution,
+        "provenance",
+    )
+
+    return ScientificResultArtifactPayload(
+        operation=_get_str(
+            scientific_execution,
+            "scientific_operation",
+            "scientific_operation",
+        ),
+        workflow_id=_get_optional_str(scientific_execution, "workflow_id"),
+        node_id=_get_optional_str(scientific_execution, "node_id"),
+        backend_family=_get_optional_str(scientific_execution, "backend_family"),
+        solver_method=_get_optional_str(scientific_execution, "solver_method"),
+        resource_controls=_get_dict(scientific_execution, "resource_controls"),
+        upstream_result_hashes=[str(value) for value in _get_list(scientific_execution, "upstream_result_hashes")],
+        diagnostics=_get_dict(scientific_execution, "diagnostics"),
+        verification=_get_optional_str(scientific_execution, "verification"),
+        result=_model_to_jsonable(
+            _get_dict(
+                scientific_execution,
+                "result",
+            )
+        ),
+        parameter_sha256=str(
+            provenance.get(
+                "parameter_sha256"
+            )
+            or ""
+        ),
+        result_sha256=str(
+            provenance.get(
+                "result_sha256"
+            )
+            or ""
+        ),
+        source_sha256=(
+            str(
+                provenance.get(
+                    "source_sha256"
+                )
+                or ""
+            )
+            or None
+        ),
+        seed=provenance.get(
+            "seed"
+        ),
+        deterministic=bool(
+            provenance.get(
+                "deterministic",
+                True,
+            )
+        ),
+        engine_versions={
+            str(key): str(value)
+            for key, value in (
+                provenance.get(
+                    "engine_versions"
+                )
+                or {}
+            ).items()
+        }
+        if isinstance(
+            provenance.get(
+                "engine_versions"
+            ),
+            Mapping,
+        )
+        else {},
+        source_type_id=_get_str(
+            scientific_execution,
+            "source_type_id",
+            "",
+        ),
+        source_category=_get_str(
+            scientific_execution,
+            "source_category",
+            "",
+        ),
+        relative_path=_get_str(
+            scientific_execution,
+            "relative_path",
+            "",
+        ),
+        staged_file_id=_get_optional_str(
+            scientific_execution,
+            "staged_file_id",
+        ),
+        scientific_job_id=_get_optional_str(
+            scientific_execution,
+            "scientific_job_id",
+        ),
+        workspace_root_hash=_get_str(
+            scientific_execution,
+            "workspace_root_hash",
+            "",
+        ),
+    )
+
+
+def build_scientific_result_artifact_record(
+    scientific_execution: Any,
+    *,
+    request_id: str | None = None,
+    conversation_id: str | None = None,
+    project_id: str | None = None,
+    artifact_root: str | Path | None = None,
+    artifact_id: str | None = None,
+    created_at_utc: str | None = None,
+) -> ArtifactRecord:
+    """Build one unsaved scientific-result artifact from governed execution."""
+
+    if not _is_completed_scientific_execution(
+        scientific_execution
+    ):
+        status = _enum_value(
+            _get_field(
+                scientific_execution,
+                "status",
+                "unknown",
+            )
+        )
+
+        raise ArtifactCreationError(
+            "Scientific result artifacts require completed, provenance-backed "
+            f"ScientificForge execution. Received status={status!r}."
+        )
+
+    if _get_bool(
+        scientific_execution,
+        "source_mutated",
+        False,
+    ):
+        raise ArtifactCreationError(
+            "Scientific result artifact refused because source mutation was reported."
+        )
+
+    if _get_bool(
+        scientific_execution,
+        "network_used",
+        False,
+    ):
+        raise ArtifactCreationError(
+            "Scientific result artifact refused because network use was reported."
+        )
+
+    if _get_bool(
+        scientific_execution,
+        "shell_used",
+        False,
+    ):
+        raise ArtifactCreationError(
+            "Scientific result artifact refused because shell use was reported."
+        )
+
+    root = _resolve_artifact_root(
+        artifact_root
+    )
+
+    artifact_kind = (
+        ArtifactKind.SCIENTIFIC_RESULT
+    )
+
+    resolved_artifact_id = (
+        artifact_id
+        or create_artifact_id(
+            "artifact"
+        )
+    )
+
+    artifact_path = _artifact_file_path(
+        artifact_root=root,
+        artifact_id=resolved_artifact_id,
+        kind=artifact_kind,
+    )
+
+    payload = _scientific_payload(
+        scientific_execution
+    )
+
+    is_typed_workflow_node = _get_str(scientific_execution, "protocol_version", "") == "scientific-ir-v0.2"
+    relative_name = Path(payload.relative_path).name or (
+        "selected local source" if payload.staged_file_id else "inline mathematical inputs"
+    )
+
+    operation = payload.operation
+
+    return ArtifactRecord(
+        artifact_id=resolved_artifact_id,
+        owner_user_id=current_user_id(),
+        kind=artifact_kind,
+        title=(
+            "Scientific result: "
+            + operation
+        ),
+        summary=(
+            "Saved governed ScientificForge "
+            f"{operation} result for {relative_name}."
+        ),
+        created_at_utc=(
+            created_at_utc
+            or utc_now_iso()
+        ),
+        request_id=request_id,
+        conversation_id=conversation_id,
+        project_id=project_id,
+        artifact_path=str(
+            artifact_path
+        ),
+        producer_tool_kind="scientificforge",
+        producer_operation=operation,
+        source=ArtifactSourceRef(
+            source_kind=(
+                ("authenticated_attached_ingest_copy" if payload.staged_file_id else "inline_scientific_ir")
+                if is_typed_workflow_node else "approved_scientific_workspace_via_governed_ingest"
+            ),
+            source_file_id=payload.staged_file_id,
+            source_file_name=relative_name,
+            source_file_kind=payload.source_type_id,
+            source_path=None,
+        ),
+        boundary=ArtifactBoundaryTruth(
+            locality=LocalityState.LOCAL,
+            approval_state=ApprovalState.NOT_NEEDED,
+            memory_posture=ArtifactMemoryPosture.NOT_MEMORY,
+            artifact_saved_locally=True,
+            source_file_mutated=False,
+            network_access_used=False,
+            memory_promoted=False,
+            arbitrary_python_used=False,
+            shell_used=False,
+            notes=[
+                "Saved from completed governed ScientificForge execution.",
+                ("Scientific source was bound to the authenticated selected attachment."
+                 if is_typed_workflow_node and payload.staged_file_id else
+                 "Inline mathematical inputs remained local under ScientificForge governance."
+                 if is_typed_workflow_node else
+                 "Scientific source authority was project/account/workspace bound before execution."),
+                "Source bytes were not mutated.",
+                "Raw scientific workspace path is not stored in this artifact.",
+                "Artifact is local and is not memory by default.",
+            ],
+        ),
+        payload=payload,
+        warnings=[
+            str(value)
+            for value in _get_list(
+                scientific_execution,
+                "warnings",
+            )
+        ],
+        errors=[],
     )
 
 
@@ -824,6 +1151,12 @@ def artifact_summary_from_record(record: ArtifactRecord) -> ArtifactSummary:
         source_file_id=record.source.source_file_id,
         source_file_name=record.source.source_file_name,
         source_file_kind=record.source.source_file_kind,
+        scientific_operation=getattr(payload, "operation", None),
+        scientific_job_id=getattr(payload, "scientific_job_id", None),
+        parameter_sha256=getattr(payload, "parameter_sha256", None),
+        result_sha256=getattr(payload, "result_sha256", None),
+        source_sha256=getattr(payload, "source_sha256", None),
+        workspace_root_hash=getattr(payload, "workspace_root_hash", None),
         row_count=getattr(payload, "row_count", None),
         column_count=getattr(payload, "column_count", None),
         plot_kind=getattr(payload, "plot_kind", None),
@@ -845,6 +1178,7 @@ def artifact_summary_from_record(record: ArtifactRecord) -> ArtifactSummary:
         preview_available=record.kind
         in {
             ArtifactKind.DATA_SUMMARY,
+            ArtifactKind.SCIENTIFIC_RESULT,
             ArtifactKind.PLOT_IMAGE,
             ArtifactKind.TRANSCRIPT,
             ArtifactKind.SPEECH_AUDIO,
@@ -876,6 +1210,88 @@ def _safe_preview_from_record(record: ArtifactRecord) -> dict[str, Any]:
             "preview_rows": preview_rows,
             "preview_truncated": len(preview_rows)
             < len(list(getattr(payload, "preview_rows", []) or [])),
+        }
+
+    if record.kind == ArtifactKind.SCIENTIFIC_RESULT:
+        return {
+            "operation": getattr(payload, "operation", None),
+            "workflow_id": getattr(payload, "workflow_id", None),
+            "node_id": getattr(payload, "node_id", None),
+            "backend_family": getattr(payload, "backend_family", None),
+            "solver_method": getattr(payload, "solver_method", None),
+            "diagnostics": dict(getattr(payload, "diagnostics", {}) or {}),
+            "resource_controls": dict(getattr(payload, "resource_controls", {}) or {}),
+            "verification": getattr(payload, "verification", None),
+            "upstream_result_hashes": list(getattr(payload, "upstream_result_hashes", []) or []),
+            "result": dict(
+                getattr(
+                    payload,
+                    "result",
+                    {},
+                )
+                or {}
+            ),
+            "parameter_sha256": getattr(
+                payload,
+                "parameter_sha256",
+                None,
+            ),
+            "result_sha256": getattr(
+                payload,
+                "result_sha256",
+                None,
+            ),
+            "source_sha256": getattr(
+                payload,
+                "source_sha256",
+                None,
+            ),
+            "seed": getattr(
+                payload,
+                "seed",
+                None,
+            ),
+            "deterministic": bool(
+                getattr(
+                    payload,
+                    "deterministic",
+                    True,
+                )
+            ),
+            "engine_versions": dict(
+                getattr(
+                    payload,
+                    "engine_versions",
+                    {},
+                )
+                or {}
+            ),
+            "source_type_id": getattr(
+                payload,
+                "source_type_id",
+                None,
+            ),
+            "source_category": getattr(
+                payload,
+                "source_category",
+                None,
+            ),
+            "relative_path": getattr(
+                payload,
+                "relative_path",
+                None,
+            ),
+            "scientific_job_id": getattr(
+                payload,
+                "scientific_job_id",
+                None,
+            ),
+            "workspace_root_hash": getattr(
+                payload,
+                "workspace_root_hash",
+                None,
+            ),
+            "raw_workspace_root_included": False,
         }
 
     if record.kind == ArtifactKind.PLOT_IMAGE:
@@ -1038,6 +1454,36 @@ def create_data_summary_artifact(
     return save_artifact_record(record)
 
 
+def create_scientific_result_artifact(
+    scientific_execution: Any,
+    *,
+    request_id: str | None = None,
+    conversation_id: str | None = None,
+    project_id: str | None = None,
+    artifact_root: str | Path | None = None,
+) -> ArtifactRecord:
+    """Build and save one governed ScientificForge result artifact."""
+
+    if artifact_root is None:
+        _validate_new_authority_links(
+            request_id=request_id,
+            conversation_id=conversation_id,
+            project_id=project_id,
+        )
+
+    record = build_scientific_result_artifact_record(
+        scientific_execution,
+        request_id=request_id,
+        conversation_id=conversation_id,
+        project_id=project_id,
+        artifact_root=artifact_root,
+    )
+
+    return save_artifact_record(
+        record
+    )
+
+
 def create_plot_image_artifact(
     plot_build_result: Any,
     *,
@@ -1096,10 +1542,12 @@ __all__ = (
     "artifact_summary_from_record",
     "build_data_summary_artifact_record",
     "build_plot_image_artifact_record",
+    "build_scientific_result_artifact_record",
     "build_generated_media_artifact_record",
     "create_artifact_id",
     "create_data_summary_artifact",
     "create_plot_image_artifact",
+    "create_scientific_result_artifact",
     "create_generated_media_artifact",
     "default_artifact_root",
     "get_artifact_detail",

@@ -1,0 +1,46 @@
+version: 1
+# Measured local development profile; not universal hardware or installed-app qualification.
+# This chooses placement only after normal role eligibility and fresh Compute Governor admission.
+profiles:
+  - profile_id: mistral_ada16_hybrid32_v1
+    runtime_tag: mistral-small3.1:24b
+    manifest_sha256: b9aaf0c2586a8ed8105feab808c0f034bd4d346203822f048e2366165a13f4ea
+    gpu_name: NVIDIA RTX 5000 Ada Generation Laptop GPU
+    gpu_layers: 32
+    context_tokens: 4096
+    cpu_threads: 1
+    batch_tokens: 64
+    cpu_affinity: [30, 31]
+    run_fraction: 0.5
+    ram_mb: 16384
+    vram_mb: 12288
+    maximum_gpu_used_mb: 14000
+    wall_seconds: 180
+  - profile_id: granite_ada16_gpu_v1
+    runtime_tag: granite3.3:8b
+    manifest_sha256: fd429f23b90980ed1bef53b990894e7b0199331f6ae90c5650240a7d5b70f1f7
+    gpu_name: NVIDIA RTX 5000 Ada Generation Laptop GPU
+    gpu_layers: 256
+    context_tokens: 4096
+    cpu_threads: 1
+    batch_tokens: 64
+    cpu_affinity: [30, 31]
+    run_fraction: 0.5
+    ram_mb: 8192
+    vram_mb: 6144
+    maximum_gpu_used_mb: 14000
+    wall_seconds: 120
+  - profile_id: starcoder_ada16_gpu_v1
+    runtime_tag: starcoder2:instruct
+    manifest_sha256: 432973cfbc4c4e158ada3f3cd22196a3204742697d0cee9301fd875e531668e8
+    gpu_name: NVIDIA RTX 5000 Ada Generation Laptop GPU
+    gpu_layers: 256
+    context_tokens: 4096
+    cpu_threads: 1
+    batch_tokens: 64
+    cpu_affinity: [30, 31]
+    run_fraction: 0.5
+    ram_mb: 12288
+    vram_mb: 11264
+    maximum_gpu_used_mb: 14000
+    wall_seconds: 120

@@ -483,6 +483,38 @@ def _file_context_retrieval_state() -> tuple[CapabilityState, list[str]]:
     ]
 
 
+def _scientific_workflow_state() -> tuple[CapabilityState, list[str]]:
+    """Expose the existing scientific lane without importing native backends.
+
+    Catalog availability is not execution, convergence, or package qualification.
+    Those remain properties of the request's node/workflow receipts.
+    """
+    from core.scientific_registry import BACKEND_MODULES, OPERATIONS
+
+    missing = []
+    for backend in sorted({spec.backend for spec in OPERATIONS.values()}):
+        try:
+            available = importlib.util.find_spec(BACKEND_MODULES[backend]) is not None
+        except (ImportError, ValueError, AttributeError):
+            available = False
+        if not available:
+            missing.append(backend)
+    wired = _module_attr_is_callable("app.api.scientific_workflow_service", "run_scientific_workflow")
+    notes = [
+        "Typed scientific workflows are reached through governed chat; models propose mathematics and cannot grant execution authority.",
+        "Registered operations: " + ", ".join(OPERATIONS) + ".",
+        "Selected files require authenticated owner/project authority; workspace roots remain private.",
+        "Finite workflows use isolated workers, Compute Governor admission, central STOP, cancellation and numerical verification.",
+        "Module availability does not prove worker execution or installed-product qualification; inspect node, workflow and artifact receipts for actual outcomes.",
+        "Existing ScientificForge v0.1 and legacy math remain separate supported paths.",
+    ]
+    if missing:
+        notes.append("Optional scientific backends absent: " + ", ".join(missing)
+                     + ". Operations with available backends remain independently usable.")
+    return (CapabilityState.UNAVAILABLE if not wired else
+            CapabilityState.DEGRADED if missing else CapabilityState.LIVE), notes
+
+
 def _media_stewardship_state() -> tuple[CapabilityState, list[str]]:
     """Determine truthful metadata-only audio/video stewardship readiness."""
     registry_ready = _module_attr_is_callable(
@@ -1113,36 +1145,67 @@ def _patch_application_state() -> tuple[CapabilityState, list[str]]:
 def _focused_command_state() -> tuple[CapabilityState, list[str]]:
     """
     Determine exact approved focused command execution truth.
+
+    Capability truth follows the live cancellable process service. The legacy
+    sandbox.command_worker module is retained only as compatibility baggage and
+    is not evidence that production command execution is available.
     """
     schema_ready = _module_attr_exists(
-        "app.api.schemas.code",
-        "FocusedCommandRunRequest",
+        "app.api.schemas.coding_commands",
+        "CodingCommandRunApprovedRequest",
     )
-    service_ready = _module_attr_is_callable(
-        "app.api.code_service",
-        "run_approved_focused_command",
+    plan_ready = _module_attr_is_callable(
+        "app.api.coding_command_plan_service",
+        "plan_command",
     )
-    worker_ready = _module_attr_is_callable(
-        "sandbox.command_worker.worker",
-        "run_command_worker",
+    start_ready = _module_attr_is_callable(
+        "app.api.coding_process_service",
+        "start_approved_command",
     )
-    route_ready = _module_attr_exists("app.api.routes.code", "router")
+    status_ready = _module_attr_is_callable(
+        "app.api.coding_process_service",
+        "get_command_status",
+    )
+    cancel_ready = _module_attr_is_callable(
+        "app.api.coding_process_service",
+        "cancel_command",
+    )
+    stop_ready = _module_attr_is_callable(
+        "app.api.coding_process_service",
+        "cancel_all_commands",
+    )
+    route_ready = _module_attr_exists(
+        "app.api.routes.coding_commands",
+        "router",
+    )
+
+    live_parts = (
+        schema_ready,
+        plan_ready,
+        start_ready,
+        status_ready,
+        cancel_ready,
+        stop_ready,
+        route_ready,
+    )
+
     notes = [
-        "Focused command execution is explicit and approval-gated only.",
-        "Allowed commands are narrow exact matches, currently focused tests and frontend typecheck/build.",
-        "The command worker uses shell=False and records command ledger truth; broad shell remains not live.",
+        "Focused command execution is explicit and exact-approval-gated only.",
+        "Allowed commands are narrow exact argv matches; broad shell remains unavailable.",
+        "Live command execution uses the cancellable process service with shell=False, bounded output, timeout enforcement, process-group termination, per-run cancellation, and emergency STOP cancellation.",
+        "The legacy sandbox.command_worker compatibility module is not part of the live execution path.",
     ]
 
-    if schema_ready and service_ready and worker_ready and route_ready:
+    if all(live_parts):
         return CapabilityState.LIVE, notes
 
-    if schema_ready or service_ready or worker_ready or route_ready:
+    if any(live_parts):
         return CapabilityState.DEGRADED, notes + [
-            "Focused command foundations are partially present."
+            "The modern governed command lifecycle is only partially available."
         ]
 
     return CapabilityState.PLANNED, [
-        "Approved focused command execution is planned but not wired.",
+        "Approved focused command execution is planned but the modern governed lifecycle is unavailable.",
     ]
 
 
@@ -1968,6 +2031,7 @@ def _build_capability_entries() -> list[CapabilityEntry]:
     engineering_stewardship_state, engineering_stewardship_notes = _engineering_stewardship_state()
     media_worker_states = _governed_media_worker_states()
     math_execution_state, math_execution_notes = _math_execution_state()
+    scientific_workflow_state, scientific_workflow_notes = _scientific_workflow_state()
     data_execution_state, data_execution_notes = _data_execution_state()
     bounded_research_state, bounded_research_notes = _bounded_public_research_state()
     mode_profiles_state, mode_profiles_notes = _mode_profiles_state()
@@ -2306,8 +2370,21 @@ def _build_capability_entries() -> list[CapabilityEntry]:
                 approval_state=ApprovalState.NOT_NEEDED,
                 read_only=False,
                 ui_surfaces=["conversations_room", "requests_room", "capabilities_room"],
-                supporting_endpoint="/execution/math",
+                supporting_endpoint="/chat/send",
                 notes=math_execution_notes,
+            ),
+            CapabilityEntry(
+                capability_key="scientific_workflows",
+                display_name="ScientificForge workflows",
+                group=CapabilityGroup.EXECUTION,
+                state=scientific_workflow_state,
+                summary="Typed, bounded mathematical workflows with verified results and owner-scoped scientific artifacts.",
+                locality=LocalityState.LOCAL,
+                approval_state=ApprovalState.NEEDED,
+                read_only=False,
+                ui_surfaces=["conversations_room", "requests_room", "artifacts_room", "capabilities_room"],
+                supporting_endpoint="/chat/send",
+                notes=scientific_workflow_notes,
             ),
             CapabilityEntry(
                 capability_key="data_execution",
@@ -2319,7 +2396,7 @@ def _build_capability_entries() -> list[CapabilityEntry]:
                 approval_state=ApprovalState.NOT_NEEDED,
                 read_only=True,
                 ui_surfaces=["conversations_room", "requests_room", "capabilities_room"],
-                supporting_endpoint="/execution/data",
+                supporting_endpoint="/chat/send",
                 notes=data_execution_notes,
             ),
             CapabilityEntry(
@@ -2348,7 +2425,7 @@ def _build_capability_entries() -> list[CapabilityEntry]:
                 approval_state=ApprovalState.NEEDED,
                 read_only=True,
                 ui_surfaces=["conversations_room", "requests_room", "capabilities_room"],
-                supporting_endpoint="/coder/repo-context",
+                supporting_endpoint="/chat/send",
                 notes=repo_context_notes,
             ),
             CapabilityEntry(
@@ -2361,7 +2438,7 @@ def _build_capability_entries() -> list[CapabilityEntry]:
                 approval_state=ApprovalState.NEEDED,
                 read_only=True,
                 ui_surfaces=["conversations_room", "requests_room", "capabilities_room"],
-                supporting_endpoint="/coder/patch-review",
+                supporting_endpoint="/chat/send",
                 notes=code_patch_plan_notes,
             ),
             CapabilityEntry(
@@ -2514,7 +2591,7 @@ def _build_capability_entries() -> list[CapabilityEntry]:
                 approval_state=ApprovalState.NOT_NEEDED,
                 read_only=True,
                 ui_surfaces=["requests_room", "right_drawer", "capabilities_room"],
-                supporting_endpoint="/research/evidence",
+                supporting_endpoint="/research/records",
                 notes=evidence_packets_notes,
             ),
             CapabilityEntry(

@@ -13,10 +13,10 @@ rules:
 components:
   core_python_runtime:
     method: package_bound
-    source: exact Elysia v1.1.0 release package
+    source: exact Elysia v1.2.0 release package
     publisher: EcoSyneva Commons LLC
     identity: config/install/locks/core-py312.lock.txt
-    digest: sha256:d009afa72031c7377b04114218f364d4bae3319d6f3f320e41ca4acd0a787214
+    digest: sha256:717fc321c80521dce12e1e618a9a62cdc848480bbb17298d563727842e8a8e4c
     size_state: exact_release_receipt_bound
     estimated_download_bytes: 0
     estimated_installed_bytes: 0
@@ -28,7 +28,7 @@ components:
 
   desktop_shell:
     method: package_bound
-    source: exact Elysia v1.1.0 release package
+    source: exact Elysia v1.2.0 release package
     publisher: EcoSyneva Commons LLC
     identity: Tauri desktop bound to package receipt
     digest: exact_release_artifact_bound
@@ -43,7 +43,7 @@ components:
 
   identity_memory_fabric:
     method: package_bound
-    source: exact Elysia v1.1.0 release package
+    source: exact Elysia v1.2.0 release package
     publisher: EcoSyneva Commons LLC
     identity: canonical-memory-schema-v4 + identity-schema-v1
     digest: exact_release_artifact_bound
@@ -58,7 +58,7 @@ components:
 
   personal_onboarding:
     method: package_bound
-    source: exact Elysia v1.1.0 release package
+    source: exact Elysia v1.2.0 release package
     publisher: EcoSyneva Commons LLC
     identity: elysia-personal-onboarding-1.0
     digest: exact_release_artifact_bound
@@ -91,7 +91,7 @@ components:
     source: https://pypi.org/simple
     publisher: respective upstream Python projects
     identity: config/install/locks/workstation-py312.lock.txt
-    digest: sha256:ceae506d23ac7d4c2536c3a856153a6c7f86121e8949cbf808b020a09c0c9c2f
+    digest: sha256:75510ae5e154b666c6d51296bf525cd07b34d638e2ae7303dcc92bde801546c5
     size_state: exact_wheel_set_resolved_in_staging_before_install
     estimated_download_bytes: 700000000
     estimated_installed_bytes: 2200000000
@@ -136,7 +136,7 @@ components:
     source: https://pypi.org/simple plus individually approved model sources
     publisher: respective upstream Python and model projects
     identity: hardware-selected exact hash lock
-    digest: cpu=sha256:564fcbcb26d02fa0026d9335f725cc46161c15d346a4339b47d03fa325ba7c3d;cuda=sha256:1dc3afd76f80af0155d3aca2546eef4e4580b670dd17fa8045c68f59be195efd
+    digest: cpu=sha256:7f697fdfad1131e6383a7453dcd00e1db160f93ba3b7792e525cefbee9f107ab;cuda=sha256:ea845c098798b2c65cb7146135c20e11d9dfad509099e3f5ec046bccb4493fdf
     size_state: exact_wheel_and_each_selected_model_set_resolved_before_transfer
     estimated_download_bytes: 38000000000
     estimated_installed_bytes: 50000000000
@@ -178,7 +178,7 @@ components:
 
   local_connectors:
     method: package_bound
-    source: exact Elysia v1.1.0 release package
+    source: exact Elysia v1.2.0 release package
     publisher: EcoSyneva Commons LLC
     identity: source-contract-v1 connectors
     digest: exact_release_artifact_bound

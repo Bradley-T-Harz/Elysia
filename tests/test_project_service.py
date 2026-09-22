@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import app.api.artifact_service as artifact_service
 import app.api.account_service as account_service
 import app.api.conversation_service as conversation_service
 import app.api.project_service as project_service
@@ -11,27 +10,27 @@ from app.memory.canonical_models import MemoryCreateRequest, MemoryPrincipal
 from app.memory.canonical_repository import MemoryRepository
 from app.memory.fabric_service import MemoryFabricService
 from app.api.artifact_service import create_data_summary_artifact
+from app.api.request_trace_service import start_request_trace
 from tests.test_artifact_service import completed_data_execution_payload, write_file
 
 
-def _patch_project_store(monkeypatch, tmp_path):
-    projects_dir = tmp_path / "projects"
+def _patch_project_store(monkeypatch, paths):
+    projects_dir = paths.project_dir
     monkeypatch.setattr(project_service, "PROJECTS_DIR", projects_dir)
     monkeypatch.setattr(
         project_service,
         "ACTIVE_PROJECT_PATH",
         projects_dir / "_active_project.json",
     )
-    monkeypatch.setattr(conversation_service, "CONVERSATIONS_DIR", tmp_path / "conversations")
+    monkeypatch.setattr(conversation_service, "CONVERSATIONS_DIR", paths.conversation_dir)
 
 
 def test_project_continuity_summary_includes_manual_fields_and_artifacts(
     monkeypatch,
     tmp_path,
+    isolated_account_store,
 ):
-    _patch_project_store(monkeypatch, tmp_path)
-    artifact_root = tmp_path / "artifacts"
-    monkeypatch.setattr(artifact_service, "DEFAULT_ARTIFACT_ROOT", artifact_root)
+    _patch_project_store(monkeypatch, isolated_account_store.elysia_paths)
 
     project = project_service.create_project(
         name="Chunk 3",
@@ -48,12 +47,14 @@ def test_project_continuity_summary_includes_manual_fields_and_artifacts(
     )
 
     source_csv = write_file(tmp_path / "sites.csv", "site,value\nA,1\n")
+    request_id = "req_project_artifact"
+    start_request_trace(request_id=request_id, related_project_id=project_id)
     artifact = create_data_summary_artifact(
         completed_data_execution_payload(source_csv),
-        request_id="req_project_artifact",
+        request_id=request_id,
         project_id=project_id,
-        artifact_root=artifact_root,
     )
+    assert artifact.owner_user_id == isolated_account_store.state().active_user_id
 
     continuity = project_service.build_project_continuity_summary(project_id)
 

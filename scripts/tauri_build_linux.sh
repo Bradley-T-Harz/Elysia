@@ -24,11 +24,6 @@ if [[ -n "${RUSTFLAGS:-}" || -n "${CARGO_ENCODED_RUSTFLAGS:-}" ]]; then
   exit 2
 fi
 
-# Every supported Linux package invocation must bind current Python source to
-# the Tauri sidecar. Reusing a previously built Core can produce green desktop
-# bytes that silently omit the latest backend repair.
-"$ROOT_DIR/scripts/build_packaged_core_runtime.sh"
-
 # Cargo and third-party crates can embed compiler source paths in panic metadata.
 # Use Cargo's unit-separator encoding so homes containing spaces remain one flag.
 export CARGO_ENCODED_RUSTFLAGS="--remap-path-prefix=${HOME}=/build/user"$'\x1f'"--remap-path-prefix=${ROOT_DIR}=/build/elysia"
@@ -45,9 +40,12 @@ if [[ ",$TAURI_BUNDLES," == *,appimage,* ]]; then
     exit 2
   fi
   export PATH="$APPSTREAM_SHIM_DIR:$PATH"
+  # Tauri follows XDG_CACHE_HOME. Verify the cache it will actually consume;
+  # verifying a different HOME cache could permit fresh unverified downloads.
+  TAURI_CACHE_ROOT="${XDG_CACHE_HOME:-$HOME/.cache}/tauri"
   python3 "$ROOT_DIR/scripts/package_build_tools.py" verify-tauri-cache \
-    --cache "$HOME/.cache/tauri"
-  APPIMAGE_RUNTIME_FILE="$HOME/.cache/tauri/runtime-x86_64"
+    --cache "$TAURI_CACHE_ROOT"
+  APPIMAGE_RUNTIME_FILE="$TAURI_CACHE_ROOT/runtime-x86_64"
   python3 "$ROOT_DIR/scripts/package_build_tools.py" prepare-runtime \
     --output "$APPIMAGE_RUNTIME_FILE"
   # New appimagetool releases acquire the type-2 runtime separately. Bind the
@@ -57,6 +55,10 @@ if [[ ",$TAURI_BUNDLES," == *,appimage,* ]]; then
   export ELYSIA_APPIMAGE_RUNTIME_FILE="$APPIMAGE_RUNTIME_FILE"
 fi
 
+# Bind current source only after all external build inputs pass preflight.
+# Reusing an older Core could silently omit the current backend repair.
+"$ROOT_DIR/scripts/build_packaged_core_runtime.sh"
+
 npm --prefix "$DESKTOP_DIR" run tauri -- build --bundles "$TAURI_BUNDLES"
 python3 "$ROOT_DIR/scripts/validate_desktop_csp_assets.py" \
   --config "$DESKTOP_DIR/src-tauri/tauri.conf.json" \
@@ -65,7 +67,7 @@ python3 "$ROOT_DIR/scripts/validate_desktop_csp_assets.py" \
 case ",$TAURI_BUNDLES," in
   *,deb,*)
     python3 "$ROOT_DIR/scripts/normalize_deb_bundle.py" \
-      "$DESKTOP_DIR/src-tauri/target/release/bundle/deb/Elysia_1.1.0_amd64.deb"
+      "$DESKTOP_DIR/src-tauri/target/release/bundle/deb/Elysia_1.2.0_amd64.deb"
     ;;
 esac
 
@@ -94,8 +96,8 @@ esac
 if [[ ",$TAURI_BUNDLES," == *,deb,* && ",$TAURI_BUNDLES," == *,appimage,* ]]; then
   FAMILY_VERIFY_ROOT="$(mktemp -d /tmp/elysia-package-family.XXXXXXXX)"
   trap 'rm -rf -- "$FAMILY_VERIFY_ROOT"' EXIT
-  DEB_ARTIFACT="$DESKTOP_DIR/src-tauri/target/release/bundle/deb/Elysia_1.1.0_amd64.deb"
-  APPIMAGE_ARTIFACT="$DESKTOP_DIR/src-tauri/target/release/bundle/appimage/Elysia_1.1.0_amd64.AppImage"
+  DEB_ARTIFACT="$DESKTOP_DIR/src-tauri/target/release/bundle/deb/Elysia_1.2.0_amd64.deb"
+  APPIMAGE_ARTIFACT="$DESKTOP_DIR/src-tauri/target/release/bundle/appimage/Elysia_1.2.0_amd64.AppImage"
   dpkg-deb -x "$DEB_ARTIFACT" "$FAMILY_VERIFY_ROOT/deb"
   (
     cd "$FAMILY_VERIFY_ROOT"

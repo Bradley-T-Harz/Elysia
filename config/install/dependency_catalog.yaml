@@ -14,6 +14,8 @@ dependency_groups:
       - zstandard
       - pillow
       - numpy
+      - sympy
+      - pint
       - defusedxml
       - cairosvg
       - imageio
@@ -271,6 +273,26 @@ dependencies:
     allowed_in_core: true
     import_check: numpy
     license_provenance_note: Version range preserves current runtime compatibility; verify locked artifact provenance.
+  sympy:
+    package_name: sympy==1.14.0
+    profile: core
+    purpose: Preserve established local symbolic math and fixed ScientificForge symbolic adapters.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: sympy
+    license_provenance_note: BSD license retained in Python notices; exact pure-Python wheel and compatible mpmath hashes are bound by the Core lock.
+  pint:
+    package_name: Pint==0.25.3
+    profile: core
+    purpose: Deterministic scientific dimension validation before execution and fixed quantity operations.
+    required: true
+    kind: python
+    external_download_required: true
+    allowed_in_core: true
+    import_check: pint
+    license_provenance_note: BSD license retained in Python notices; exact wheel and transitive dependency hashes are bound by the Core lock.
   defusedxml:
     package_name: defusedxml
     profile: core

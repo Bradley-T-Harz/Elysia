@@ -126,3 +126,32 @@ def test_capability_route_serves_pass4_truth_through_async_asgi() -> None:
     assert payload["status"] == "ok"
     assert capabilities["desktop_settings_preferences"]["state"] == "live"
     assert capabilities["publish_queue_profile"]["state"] == "planned"
+
+
+def test_catalog_entrypoints_resolve_to_real_routes(isolated_account_store):
+    """Supporting endpoints are actual authority surfaces, not invented aliases."""
+    routes = {route.path for route in create_app().routes}
+    capabilities = _capabilities()
+    for entry in capabilities.values():
+        endpoint = entry.get("supporting_endpoint")
+        if endpoint:
+            assert endpoint in routes, (entry["capability_key"], endpoint)
+    for name in ("math_execution", "data_execution", "repo_context", "patch_review"):
+        assert capabilities[name]["supporting_endpoint"] == "/chat/send"
+    assert capabilities["evidence_packets"]["supporting_endpoint"] == "/research/records"
+
+
+def test_engineering_worker_truth_route_does_not_launch_workers(isolated_account_store, monkeypatch):
+    import subprocess
+    from app.api.routes.coding_engineering import get_engineering_workers
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k:
+                        (_ for _ in ()).throw(AssertionError("read-only status launched process")))
+    payload = asyncio.run(get_engineering_workers())
+    assert payload["result_type"] == "engineering_workers"
+    workers = payload["data"]["workers"]
+    assert len(workers) == 6
+    parametric = next(row for row in workers if row["worker_key"] == "parametricforge_worker")
+    assert parametric["live_route_handoff"] is False
+    assert parametric["state"] == "experimental_dependency_warning"
+    assert all(row["live_route_handoff"] is False for row in workers)
+    assert all("python_path" not in row for row in workers)

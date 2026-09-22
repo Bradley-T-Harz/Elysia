@@ -132,6 +132,12 @@ def _select_measured_runtime_tag(
             item = inventory.get(tag, {})
             history = _as_mapping(item.get("history"))
             latency = history.get("median_latency_ms")
+            if performance_preference == "resource":
+                return (
+                    float(item.get("size_bytes") or 2**63 - 1),
+                    int(latency) if latency is not None else 2**63 - 1,
+                    candidates.index(tag),
+                )
             # Measured latency wins when present. Artifact size is the truthful
             # cold-start/resource proxy when no benchmark exists.
             return (

@@ -39,6 +39,8 @@ component_dependency_ids:
     - zstandard
     - pillow
     - numpy
+    - sympy
+    - pint
     - defusedxml
     - cairosvg
     - imageio
@@ -105,6 +107,8 @@ categories:
     - zstandard
     - pillow
     - numpy
+    - sympy
+    - pint
     - defusedxml
     - cairosvg
     - imageio

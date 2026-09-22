@@ -78,3 +78,59 @@ def test_runtime_acquisition_is_atomic_and_hash_verified(tmp_path: Path, monkeyp
     assert output.stat().st_mode & 0o077 == 0
     assert result["source_channel_mutable"] is True
     assert result["exact_hash_mismatch_fails_closed"] is True
+
+
+@pytest.mark.parametrize("active_cache", ["absent", "mismatched", "matching"])
+def test_linux_wrapper_verifies_actual_xdg_cache_before_build(tmp_path, active_cache):
+    """A valid HOME cache must not authorize Tauri's different XDG cache."""
+    import os
+    import shutil
+    import subprocess
+    import sys
+
+    source = Path(__file__).resolve().parents[1]
+    root = tmp_path / "repo"
+    scripts = root / "scripts"
+    scripts.mkdir(parents=True)
+    shutil.copy2(source / "scripts/tauri_build_linux.sh", scripts)
+    shutil.copy2(source / "scripts/package_build_tools.py", scripts)
+    policy, _ = _policy(tmp_path)
+    policy_target = root / "config/install/package_build_tools.yaml"
+    policy_target.parent.mkdir(parents=True)
+    shutil.copy2(policy, policy_target)
+    core_marker = root / "core-started"
+    core = scripts / "build_packaged_core_runtime.sh"
+    core.write_text('#!/bin/sh\ntouch "$(dirname "$0")/../core-started"\n')
+    core.chmod(0o700)
+    shim = scripts / "packaging_bin/appstreamcli"
+    shim.parent.mkdir()
+    shim.write_text("#!/bin/sh\nexit 0\n")
+    shim.chmod(0o700)
+    home = tmp_path / "home"
+    home_cache = home / ".cache/tauri"
+    home_cache.mkdir(parents=True)
+    (home_cache / "tool").write_bytes(b"cache")
+    (home_cache / "runtime-x86_64").write_bytes(b"runtime")
+    cache = tmp_path / "isolated-cache/tauri"
+    if active_cache != "absent":
+        cache.mkdir(parents=True)
+        (cache / "tool").write_bytes(b"cache" if active_cache == "matching" else b"changed")
+        (cache / "runtime-x86_64").write_bytes(b"runtime")
+    commands = tmp_path / "bin"
+    commands.mkdir()
+    (commands / "python3").symlink_to(sys.executable)
+    npm = commands / "npm"
+    npm.write_text("#!/bin/sh\nexit 31\n")  # Stop at the real bundler boundary.
+    npm.chmod(0o700)
+    env = {**os.environ, "HOME": str(home), "XDG_CACHE_HOME": str(cache.parent),
+           "PATH": str(commands) + os.pathsep + os.environ["PATH"], "ELYSIA_TAURI_BUNDLES": "appimage"}
+    env.pop("RUSTFLAGS", None)
+    env.pop("CARGO_ENCODED_RUSTFLAGS", None)
+    result = subprocess.run(["bash", str(scripts / "tauri_build_linux.sh")], env=env,
+                            capture_output=True, text=True, timeout=15)
+    if active_cache == "matching":
+        assert result.returncode == 31, result.stderr
+        assert core_marker.exists()
+    else:
+        assert result.returncode != 0
+        assert not core_marker.exists(), "Wrong cache was trusted before starting the build"

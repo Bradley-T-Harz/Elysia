@@ -20,7 +20,7 @@ repos:
     notes:
       - Approved local repo for read-only Coder context gathering.
       - Relative root resolves from the Elysia repo root.
-      - No shell commands, network access, file mutation, or git status/diff inspection is live in v0.
+      - Repo-context approval alone grants no command, network, file-mutation, or Git authority; separate exact-approved patch/file and focused-command paths remain independently governed.
   elysia_codev:
     label: Elysia Codev local repository
     root: ../Add-ons/Official_Addons/elysia-codev

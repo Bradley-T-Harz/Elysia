@@ -375,6 +375,7 @@ def test_runtime_blocked_invoker_path_keeps_runtime_structured_and_captures_hand
     monkeypatch,
     base_configs,
     runtime_skills,
+    isolated_account_store,
 ):
     captured = _install_runtime_environment(monkeypatch, base_configs, runtime_skills)
     invoke_capture = {}
@@ -426,6 +427,10 @@ def test_runtime_blocked_invoker_path_keeps_runtime_structured_and_captures_hand
     result = runtime.handle_user_message(
         "Can you explain derivatives step by step?",
         runtime.SessionState(),
+        request_context={"profile_context": {
+            "name_or_username": "Synthetic Workspace Profile",
+            "unapproved_private_field": "PRIVATE_PROFILE_CANARY_DO_NOT_ADMIT",
+        }},
     )
 
     assert result["status"] == "ok_local_runtime"
@@ -448,7 +453,9 @@ def test_runtime_blocked_invoker_path_keeps_runtime_structured_and_captures_hand
     assert invoke_capture["message"] == "Can you explain derivatives step by step?"
     assert invoke_capture["mode"] == "tutor"
     assert invoke_capture["task_type"] == "tutoring"
-    assert invoke_capture["context_summary"] == ""
+    assert invoke_capture["context_summary"] == result["context"]["global_workspace_context"]
+    assert "Synthetic Workspace Profile" in invoke_capture["context_summary"]
+    assert "PRIVATE_PROFILE_CANARY_DO_NOT_ADMIT" not in invoke_capture["context_summary"]
     assert invoke_capture["conversation_messages"] is None
     assert invoke_capture["model_routing_decision"]["selected_role"] == "primary_general"
     assert invoke_capture["model_routing_decision"]["selected_runtime"] == "ollama"
@@ -667,3 +674,147 @@ def test_codev_runtime_scope_preserves_governed_routing_without_ambient_context(
     assert not result["research"]["network_access_used"]
     assert not captured["journal_policy_arg"]["journal_write_allowed"]
     assert captured["log_payload"]["message_summary"] == "Scoped Codev development request"
+
+
+@pytest.mark.parametrize("fallback_ram_mb, permitted", [(2048, True), (32768, False), (None, False)])
+@pytest.mark.parametrize("accelerated", [False, True])
+def test_provider_fallback_requires_its_own_compute_admission(
+    monkeypatch, base_configs, runtime_skills, prompt_environment,
+    fallback_ram_mb, permitted, accelerated,
+):
+    """A's reservation cannot pay for B, even when both models are local."""
+    _install_runtime_environment(monkeypatch, base_configs, runtime_skills)
+    primary, fallback = "qwen3:8b", "llama3.1:8b"
+    if accelerated:
+        monkeypatch.setattr(runtime, "resource_snapshot", lambda: {
+            "system": {"cpu_percent": 10, "ram_available_mb": 24576},
+            "gpu": {"available": True, "devices": [{"memory_free_mb": 16384,
+                      "temperature_c": 40, "utilization_percent": 0}]}})
+    monkeypatch.setattr(runtime, "resolve_invocation_target", lambda *_args, **_kw: {
+        "runtime_tag": primary, "context_window": 32768})
+    monkeypatch.setattr(invoker, "_list_ollama_models", lambda **_kw: [primary, fallback])
+    monkeypatch.setattr(runtime, "model_resource_estimate", lambda _snapshot, tag: {
+        "runtime_tag": tag, "estimated_ram_mb": 1024 if tag == primary else fallback_ram_mb,
+        "estimated_vram_mb": 1024 if accelerated and tag == fallback else 0,
+        "incremental_vram_mb": 1024 if accelerated and tag == fallback else 0, "loaded": False,
+        "measurement_source": ("model_inventory_unavailable_cpu_safe_default"
+            if tag == fallback and fallback_ram_mb is None else "controlled_fallback_estimate")})
+    events, jobs, leases = [], [], []
+    decide = runtime.decide_compute
+
+    def admitted(workload, **kwargs):
+        events.append(("admit", workload.required_model))
+        return decide(workload, **kwargs)
+
+    def reserve(_self, workload):
+        job = "computejob_" + str(len(jobs))
+        jobs.append(job)
+        events.append(("reserve", job))
+        return job
+
+    def release(_self, job, *, reason):
+        events.append(("release", job))
+        return True
+
+    def acquire(_self, workload, free):
+        assert workload.required_model == fallback and free >= 1024
+        lease = "lease_" + str(len(leases))
+        leases.append(lease)
+        return lease, ["controlled_gpu_lease"]
+
+    def release_lease(_self, lease, **_kwargs):
+        events.append(("release_lease", lease))
+        return True
+
+    monkeypatch.setattr(runtime.ComputeLedger, "acquire", acquire)
+    monkeypatch.setattr(runtime.ComputeLedger, "release", release_lease)
+
+    def provider(**kwargs):
+        tag = kwargs["runtime_tag"]
+        assert kwargs["num_gpu"] == (None if accelerated and tag == fallback else 0)
+        events.append(("invoke", tag))
+        if tag == primary:
+            return {"ok": False, "error": "controlled provider failure", "provider_metadata": {}}
+        return {"ok": True, "response_text": "Fallback answer", "provider_metadata": {"model": tag}}
+
+    monkeypatch.setattr(runtime, "decide_compute", admitted)
+    monkeypatch.setattr(runtime.ComputeLedger, "reserve_job", reserve)
+    monkeypatch.setattr(runtime.ComputeLedger, "release_job", release)
+    monkeypatch.setattr(invoker, "_call_ollama_chat", provider)
+    result = runtime.handle_user_message("Can you explain derivatives step by step?", runtime.SessionState())
+    assert [v for k, v in events if k == "admit"] == ([primary] if fallback_ram_mb is None else [primary, fallback]), events
+    assert [v for k, v in events if k == "invoke"] == ([primary, fallback] if permitted else [primary])
+    if fallback_ram_mb is not None:
+        assert events.index(("release", jobs[0])) < events.index(("admit", fallback))
+    else:
+        assert ("release", jobs[0]) in events
+    assert result["compute"]["workload"]["required_model"] == fallback
+    if permitted:
+        assert len(jobs) == 2 and ("release", jobs[1]) in events
+        assert result["internal_result"]["used_fallback"] is True
+        assert result["internal_result"]["status"] == "ok"
+        if accelerated:
+            assert leases and ("release_lease", leases[0]) in events
+            assert result["compute"]["selected_device"] == "cuda:0"
+    else:
+        assert len(jobs) == 1
+        assert result["internal_result"]["status"] == "error"
+        assert "model_compute_admission_refused" in result["internal_result"]["block_reasons"]
+
+    attempts = result["internal_result"]["model_compute_attempts"]
+    assert [item["runtime_tag"] for item in attempts] == [primary, fallback]
+    expected = ("hybrid" if accelerated else "cpu") if permitted else "rejected"
+    assert attempts[-1]["decision"] == expected
+    if fallback_ram_mb is None:
+        assert attempts[-1]["reservation_id"] is None
+        assert result["compute"]["reasons"] == ("fallback_model_resource_estimate_unavailable",)
+
+
+@pytest.mark.parametrize("preference", ["automatic", "cpu"])
+def test_runtime_binds_qualified_owned_profile_after_real_admission(
+    monkeypatch, base_configs, runtime_skills, prompt_environment, preference,
+):
+    import os
+    from dataclasses import asdict
+    from core.owned_model_provider import OwnedModelProfile
+    profile = OwnedModelProfile("fixture_owned", "qwen3:8b", "a"*64, "Synthetic GPU",
+        2, 4096, 1, 64, (min(os.sched_getaffinity(0)),), 1., 2048, 1024, 4096, 10)
+    base_configs["models"]["execution_profiles"] = {"profiles": [asdict(profile)]}
+    _install_runtime_environment(monkeypatch, base_configs, runtime_skills)
+    monkeypatch.setattr(runtime.ModelRegistry, "snapshot", lambda _self: {
+        "provider_healthy": True, "models": [{"runtime_tag": "qwen3:8b", "digest": "a"*64,
+        "size_bytes": 1024*1024*10}]})
+    monkeypatch.setattr(runtime, "resource_snapshot", lambda: {
+        "system": {"cpu_percent": 5, "ram_available_mb": 32768},
+        "gpu": {"available": True, "devices": [{"name": "Synthetic GPU", "memory_free_mb": 8192,
+                 "temperature_c": 40, "utilization_percent": 0}]}})
+    monkeypatch.setattr(runtime.ComputeLedger, "acquire", lambda *a: ("lease_owned", []))
+    released = []
+    monkeypatch.setattr(runtime.ComputeLedger, "release", lambda _self, lease, **kw: released.append(lease))
+    monkeypatch.setattr(runtime, "resolve_invocation_target", lambda *a, **k:
+                        {"runtime_tag": "qwen3:8b", "context_window": 32768})
+    monkeypatch.setattr(invoker, "_list_ollama_models", lambda **k: ["qwen3:8b"])
+    calls = []
+    def owned(selected, kwargs):
+        calls.append((selected, kwargs))
+        return {"ok": True, "response_text": "Governed owned answer", "provider_metadata": {}}
+    monkeypatch.setattr(invoker, "_call_owned_ollama_chat", owned)
+    shared_calls = []
+    def shared(**kwargs):
+        shared_calls.append(kwargs)
+        return {"ok": True, "response_text": "Explicit CPU response", "provider_metadata": {}}
+    monkeypatch.setattr(invoker, "_call_ollama_chat", shared)
+    result = runtime.handle_user_message("Explain derivatives step by step", runtime.SessionState(),
+                                         request_context={"compute_preference": preference})
+    if preference == "cpu":
+        assert not calls and len(shared_calls) == 1
+        assert shared_calls[0]["num_gpu"] == 0
+        assert result["compute"]["selected_device"] == "cpu"
+        return
+    assert not shared_calls
+    assert calls and calls[0][0] == profile
+    assert result["compute"]["selected_device"] == "cuda:0"
+    assert result["compute"]["workload"]["estimate_source"] == "qualified_owned_profile:fixture_owned"
+    assert result["compute"]["workload"]["incremental_vram_mb"] == 1024
+    assert "lease_owned" in released
+    assert result["internal_result"]["status"] == "ok"

@@ -9,7 +9,7 @@
   },
   "compatibility": {
     "min_elysia_version": "0.1.0",
-    "max_elysia_version": "1.1.0",
+    "max_elysia_version": "1.2.0",
     "addon_api_version": "1"
   },
   "required_profiles": [

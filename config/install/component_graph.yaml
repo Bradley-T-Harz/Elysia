@@ -1,6 +1,6 @@
 version: 1
 contract_version: elysia-component-profile-graph-1.0
-release_target: 1.1.0
+release_target: 1.2.0
 authority: authoritative
 legacy_inputs:
   profiles_yaml: compatibility_runtime_projection
@@ -18,7 +18,7 @@ components:
   core_python_runtime:
     <<: *lifecycle_defaults
     component_id: core_python_runtime
-    exact_version_digest: python-3.12 / config/install/locks/core-py312.lock.txt sha256:d009afa72031c7377b04114218f364d4bae3319d6f3f320e41ca4acd0a787214
+    exact_version_digest: python-3.12 / config/install/locks/core-py312.lock.txt sha256:717fc321c80521dce12e1e618a9a62cdc848480bbb17298d563727842e8a8e4c
     owning_profile: core
     required_components: []
     optional_components: [local_model_provider]
@@ -35,7 +35,7 @@ components:
   desktop_shell:
     <<: *lifecycle_defaults
     component_id: desktop_shell
-    exact_version_digest: Elysia Desktop 1.1.0 package-lock sha256:0809c9597b13ed8485093ca1903788cb15584b85aed29afad93276b8ab8315ea + Cargo.lock sha256:82861842196f91a348f73994c560abbd515471c58fd249b7e17e2470a5a4f347
+    exact_version_digest: Elysia Desktop 1.2.0 package-lock sha256:1453d0946e2ee82c7044d7f6501199d38bd408a6b37cb0d607e26d3ba9e03705 + Cargo.lock sha256:75c69a1d152c7c1f2655a7f437f52296c27cf61bac79fcac2cf7b7aa618ec456
     owning_profile: core
     required_components: [core_python_runtime, identity_memory_fabric]
     optional_components: []
@@ -103,7 +103,7 @@ components:
   workstation_adapters:
     <<: *lifecycle_defaults
     component_id: workstation_adapters
-    exact_version_digest: config/install/locks/workstation-py312.lock.txt sha256:ceae506d23ac7d4c2536c3a856153a6c7f86121e8949cbf808b020a09c0c9c2f
+    exact_version_digest: config/install/locks/workstation-py312.lock.txt sha256:75510ae5e154b666c6d51296bf525cd07b34d638e2ae7303dcc92bde801546c5
     owning_profile: workstation_research
     required_components: [core_python_runtime]
     optional_components: [governed_research, semantic_retrieval]
@@ -154,7 +154,7 @@ components:
   creator_perception:
     <<: *lifecycle_defaults
     component_id: creator_perception
-    exact_version_digest: creator-cpu-py312 sha256:564fcbcb26d02fa0026d9335f725cc46161c15d346a4339b47d03fa325ba7c3d or creator-cuda-py312 sha256:1dc3afd76f80af0155d3aca2546eef4e4580b670dd17fa8045c68f59be195efd + approved model acquisition manifests
+    exact_version_digest: creator-cpu-py312 sha256:7f697fdfad1131e6383a7453dcd00e1db160f93ba3b7792e525cefbee9f107ab or creator-cuda-py312 sha256:ea845c098798b2c65cb7146135c20e11d9dfad509099e3f5ec046bccb4493fdf + approved model acquisition manifests
     owning_profile: creator_perception
     required_components: [workstation_adapters]
     optional_components: []

@@ -51,9 +51,13 @@ def test_core_setup_preview_and_apply_are_exact_private_and_transactional(tmp_pa
     assert preview["dependency_install_dispositions"]["contract_version"] == (
         "elysia-dependency-install-dispositions-1.0"
     )
-    assert preview["dependency_install_dispositions"]["dependency_count"] == 14
+    assert preview["dependency_install_dispositions"]["dependency_count"] == 16
+    bundled = {item["dependency_id"] for item in preview["dependency_install_dispositions"]["dependencies"]
+               if item["setup_category"] == "A"}
+    assert {"sympy", "pint"} <= bundled
+    assert not {"scipy", "highspy", "ortools"} & bundled
     assert preview["dependency_install_dispositions"]["category_counts"] == {
-        "A": 14,
+        "A": 16,
         "B": 0,
         "C": 0,
         "D": 0,

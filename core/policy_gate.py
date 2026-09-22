@@ -67,6 +67,9 @@ def evaluate_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
     bounded_data_execution_candidate = bool(
         plan.get("bounded_data_execution_candidate", False)
     )
+    bounded_scientific_execution_candidate = bool(
+        plan.get("bounded_scientific_execution_candidate", False)
+    )
     repo_context_candidate = bool(
         plan.get("repo_context_candidate", False)
     )
@@ -188,6 +191,18 @@ def evaluate_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
             "bounded local data execution is allowed as read-only local CSV/XLSX inspection of an attached file"
         )
 
+    if bounded_scientific_execution_candidate:
+        _append_once(boundary_flags, "bounded_local_scientific_execution")
+        approval_reasons.append(
+            "bounded local scientific execution may use only an already approved account/project workspace through the governed ScientificForge bridge"
+        )
+
+    if bool(plan.get("bounded_scientific_workflow_candidate", False)):
+        _append_once(boundary_flags, "bounded_local_scientific_workflow")
+        approval_reasons.append(
+            "typed ScientificForge workflow remains subject to server-owned source, compute, STOP and numerical validation"
+        )
+
     if repo_context_candidate:
         _append_once(boundary_flags, "bounded_repo_context")
         approval_reasons.append(
@@ -229,8 +244,8 @@ def evaluate_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
             "approval-bound boundary is touched; tools, outward actions, file "
             "writes, sensitive memory, high-risk plans, and execution requests "
             "remain approval-bound during scaffold phase. Bounded local math "
-            "execution, bounded local CSV/XLSX data inspection, read-only approved "
-            "repo context, and proposal-only patch planning are treated as "
+            "execution, bounded local CSV/XLSX data inspection, bounded approved-workspace "
+            "ScientificForge execution, read-only approved repo context, and proposal-only patch planning are treated as "
             "non-side-effecting local computation when narrowly planned."
         ),
         "checked_step_count": checked_step_count,

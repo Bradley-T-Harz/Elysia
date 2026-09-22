@@ -332,11 +332,22 @@ def cancel_command(payload: CodingCommandCancelRequest) -> CodingCommandRunResul
             warnings=["Cancellation requested. Poll until the worker confirms process cleanup."])
 
 
-def cancel_all_commands() -> None:
-    """Internal emergency control; never exposed as browser authority."""
+def cancel_all_commands() -> int:
+    """Signal every still-active approved command and return the count."""
+    cancelled = 0
+
     with _LOCK:
         for record in _RUNS.values():
+            if record.result is not None:
+                continue
+
+            if record.cancel.is_set():
+                continue
+
             record.cancel.set()
+            cancelled += 1
+
+    return cancelled
 
 
 def clear_process_state_for_tests() -> None:
@@ -346,5 +357,13 @@ def clear_process_state_for_tests() -> None:
         _RUNS.clear()
 
 
-__all__ = ("cancel_command", "clear_process_state_for_tests", "get_command_status", "get_command_result",
-           "run_approved_command", "start_approved_command", "sanitize_command_output")
+__all__ = (
+    "cancel_all_commands",
+    "cancel_command",
+    "clear_process_state_for_tests",
+    "get_command_status",
+    "get_command_result",
+    "run_approved_command",
+    "start_approved_command",
+    "sanitize_command_output",
+)

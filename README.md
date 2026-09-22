@@ -10,7 +10,7 @@ Core principles:
 - strong separation between reasoning, tools, and risky execution
 - privacy, inspectability, and recoverability over convenience
 
-Release target: version `1.1.0`, coordinated release candidate. Final artifact qualification and signing remain required before publication. Canonical availability and exact release downloads are reported by [GitHub Releases](https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.1.0) and the [Elysia Archive](https://elysiaecobotics.com/archive), rather than mutable publication flags embedded in source or package bytes. Release contracts and profile documentation live under [`docs/release/`](docs/release/).
+Release target: version `1.2.0`, coordinated release candidate. Final artifact qualification and signing remain required before publication. Canonical availability and exact release downloads are reported by [GitHub Releases](https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.2.0) and the [Elysia Archive](https://elysiaecobotics.com/archive), rather than mutable publication flags embedded in source or package bytes. Release contracts and profile documentation live under [`docs/release/`](docs/release/).
 
 Public/private hygiene is governed by the [public package manifest](packaging/public_manifest.yaml), [canon classification](docs/release/PUBLIC_CANON_CLASSIFICATION.md), and [risk inventory](docs/release/PUBLIC_RELEASE_RISK_INVENTORY.md). Local model, worker, repository, and machine paths belong in validated XDG user configuration and are never supplied by tracked defaults. Any publication or replacement of release bytes remains an explicit release-steward action.
 
@@ -324,11 +324,11 @@ verification under the package-owned public Ed25519 trust root. See
 | Bounded SearXNG worker path | Present, disabled/inactive by default unless configured |
 | Shared mode profiles | Live config |
 | Request/evidence/tool ledger | Live / partial / maturing |
-| Patch application | Not live |
-| Shell execution | Not live |
+| Patch application | Live in current development through an exact-approved, selected-workspace, source/plan-hash-bound path |
+| Shell execution | Broad/free-form shell is not live; exact approved focused commands run separately with `shell=False` |
 | Git mutation | Not live |
 | OpenHands | Not live |
-| Page fetch | Not live |
+| Page fetch | Live in current development through an exact-approved, single-public-URL bounded worker; not browsing or crawling |
 | Broad cloud routing | Not live by default |
 | Browser automation | Not live |
 | Ecology sovereign subsystems | Future / not live |
@@ -343,10 +343,10 @@ Elysia's safety model is not just refusal text. It is architectural:
 - no private memory outward by default
 - no private file outward by default
 - no vault access by worker/research paths
-- no file mutation from Coder mode
-- no shell execution from Coder mode
+- no file mutation merely from selecting Coder mode; the separate exact-approved patch/file-operation paths remain state-bound
+- no broad/free-form shell execution from Coder mode; the separate exact-approved focused-command path uses `shell=False`
 - no Git mutation from Coder mode
-- no patch application from patch proposals
+- no patch application merely from a proposal; application requires a separate exact, expiring, one-time approval
 - no page fetch in first-pass SearXNG search path
 - search results and snippets are not treated as proof
 - artifacts are not memory by default
@@ -375,16 +375,18 @@ Coder mode currently supports:
 - read-only approved repo context
 - safe tree/context summaries
 - proposal-only patch planning
+- separate exact-approved patch and governed file-operation paths
+- exact-approved focused test/typecheck/build commands through a `shell=False` worker
 - Coder truth cards in the UI
 - command-gate truth
 - Aider worker dry-run/safety lane
 
 Coder mode does not currently support:
 
-- direct file mutation
-- patch application
-- shell commands
-- test execution through Elysia
+- direct or unapproved file mutation
+- applying a proposal without a separate exact approval
+- broad/free-form shell commands
+- arbitrary test or package-script execution
 - package installation
 - Git mutation
 - OpenHands
@@ -680,7 +682,7 @@ privacy before convenience
 
 ## License and publication status
 
-Elysia source in this repository is licensed under the [Apache License 2.0](LICENSE), subject to separately identified third-party licenses. Version `1.1.0` is the coordinated release target; exact downloadable artifacts remain authoritative only when their hashes and signatures match the canonical release manifest.
+Elysia source in this repository is licensed under the [Apache License 2.0](LICENSE), subject to separately identified third-party licenses. Version `1.2.0` is the coordinated release target; exact downloadable artifacts remain authoritative only when their hashes and signatures match the canonical release manifest.
 
 The completed release gate in [`V1_RELEASE_GATE.md`](docs/release/V1_RELEASE_GATE.md) covers packaging, authentication, XDG state paths, public/private hygiene, documentation, manual review, and explicit release approval. Optional profiles may download packages/models or contact external services only after their exact boundary is enabled and approved.
 

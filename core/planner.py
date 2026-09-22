@@ -969,6 +969,269 @@ def _detect_bounded_data_execution_candidate(
     }
 
 
+_SCIENTIFIC_SOURCE_OPERATIONS = {
+    "descriptive_stats",
+    "correlation_matrix",
+    "bootstrap_mean_ci",
+}
+
+
+def _infer_scientific_source_operation(
+    request_text: str,
+    selection: Dict[str, Any],
+) -> str:
+    """Infer one fixed source-backed ScientificForge operation."""
+
+    explicit = str(
+        selection.get("operation") or ""
+    ).strip()
+
+    lowered = str(
+        request_text or ""
+    ).casefold()
+
+    action_terms = (
+        "analyze",
+        "analyse",
+        "compute",
+        "calculate",
+        "run",
+        "statistics",
+        "statistical",
+        "scientific",
+        "selected data",
+        "selected dataset",
+        "selected file",
+    )
+
+    if (
+        explicit in _SCIENTIFIC_SOURCE_OPERATIONS
+        and any(term in lowered for term in action_terms)
+    ):
+        return explicit
+
+    if "correlation" in lowered:
+        return "correlation_matrix"
+
+    if (
+        "bootstrap" in lowered
+        or "confidence interval" in lowered
+        or "confidence intervals" in lowered
+    ):
+        return "bootstrap_mean_ci"
+
+    if any(
+        term in lowered
+        for term in (
+            "descriptive statistics",
+            "descriptive stats",
+            "summary statistics",
+            "basic statistics",
+            "basic stats",
+            "mean",
+            "median",
+            "standard deviation",
+        )
+    ):
+        return "descriptive_stats"
+
+    return ""
+
+
+def _detect_bounded_scientific_execution_candidate(
+    *,
+    intent: Dict[str, Any],
+    mode: str,
+    context: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Detect one approved-workspace ScientificForge candidate.
+
+    Workspace-root text is treated only as an internal selection hint.
+    This planner does not authorize it, inspect it, place it in the plan,
+    or derive filesystem paths from natural-language user text.
+    """
+
+    base = {
+        "bounded_scientific_execution_candidate": False,
+        "scientific_execution_operation": "",
+        "scientific_workspace_relative_path": "",
+        "scientific_execution_columns": [],
+        "scientific_execution_seed": None,
+        "scientific_execution_bootstrap_samples": 10_000,
+        "scientific_execution_confidence_level": 0.95,
+        "scientific_execution_reason": "",
+    }
+
+    request_text = str(
+        context.get("request_summary", "") or ""
+    ).strip()
+
+    project_id = str(
+        context.get("project_id", "") or ""
+    ).strip()
+
+    selection = context.get(
+        "scientific_workspace_selection"
+    )
+
+    if not isinstance(selection, dict):
+        return base
+
+    workspace_root = str(
+        selection.get("workspace_root") or ""
+    ).strip()
+
+    relative_path = str(
+        selection.get("relative_path") or ""
+    ).strip()
+
+    if not project_id:
+        return {
+            **base,
+            "scientific_execution_reason": (
+                "scientific_workspace_project_context_required"
+            ),
+        }
+
+    if not workspace_root or not relative_path:
+        return {
+            **base,
+            "scientific_execution_reason": (
+                "scientific_workspace_selection_incomplete"
+            ),
+        }
+
+    primary_intent = str(
+        intent.get("primary", "") or ""
+    ).strip().lower()
+
+    normalized_mode = str(
+        mode or ""
+    ).strip().lower()
+
+    allowed_context = (
+        primary_intent
+        in {
+            "conversation",
+            "research",
+            "tutoring",
+            "unknown",
+        }
+        or normalized_mode
+        in {
+            "default",
+            "researcher",
+            "tutor",
+            "companion",
+        }
+    )
+
+    if not allowed_context:
+        return base
+
+    operation = _infer_scientific_source_operation(
+        request_text,
+        selection,
+    )
+
+    if not operation:
+        return {
+            **base,
+            "scientific_execution_reason": (
+                "scientific_operation_not_explicitly_resolved"
+            ),
+        }
+
+    raw_columns = selection.get(
+        "columns",
+        [],
+    )
+
+    columns = []
+
+    if isinstance(raw_columns, list):
+        for value in raw_columns[:16]:
+            column = str(value or "").strip()
+
+            if column and column not in columns:
+                columns.append(column)
+
+    if (
+        operation
+        in {
+            "descriptive_stats",
+            "bootstrap_mean_ci",
+        }
+        and len(columns) != 1
+    ):
+        return {
+            **base,
+            "scientific_execution_reason": (
+                "scientific_operation_requires_one_selected_column"
+            ),
+        }
+
+    if (
+        operation == "correlation_matrix"
+        and not 2 <= len(columns) <= 16
+    ):
+        return {
+            **base,
+            "scientific_execution_reason": (
+                "scientific_correlation_requires_2_to_16_columns"
+            ),
+        }
+
+    seed = selection.get("seed")
+
+    if operation == "bootstrap_mean_ci":
+        if not isinstance(seed, int) or isinstance(seed, bool):
+            return {
+                **base,
+                "scientific_execution_reason": (
+                    "scientific_stochastic_operation_requires_seed"
+                ),
+            }
+
+    bootstrap_samples = selection.get(
+        "bootstrap_samples",
+        10_000,
+    )
+
+    confidence_level = selection.get(
+        "confidence_level",
+        0.95,
+    )
+
+    try:
+        bootstrap_samples = int(
+            bootstrap_samples
+        )
+    except (TypeError, ValueError):
+        bootstrap_samples = 10_000
+
+    try:
+        confidence_level = float(
+            confidence_level
+        )
+    except (TypeError, ValueError):
+        confidence_level = 0.95
+
+    return {
+        **base,
+        "bounded_scientific_execution_candidate": True,
+        "scientific_execution_operation": operation,
+        "scientific_workspace_relative_path": relative_path,
+        "scientific_execution_columns": columns,
+        "scientific_execution_seed": seed,
+        "scientific_execution_bootstrap_samples": bootstrap_samples,
+        "scientific_execution_confidence_level": confidence_level,
+        "scientific_execution_reason": (
+            "explicit_approved_scientific_workspace_compute_request"
+        ),
+    }
+
+
 def _extract_code_file_paths_from_text(text: str) -> List[str]:
     """
     Extract explicit path-like file references from a Coder request.
@@ -1229,6 +1492,24 @@ def _detect_governed_public_research_candidate(
 
     return explicit_public or searxng_action or clearly_current
 
+def _detect_scientific_workflow_candidate(
+    request_text: str, *, legacy_math: bool, legacy_scientific: bool,
+) -> bool:
+    """Identify mathematical formulation intent; this grants no execution."""
+    if legacy_scientific:
+        return False
+    lowered = request_text.casefold()[:8192]
+    explicit = bool(re.search(r"\bscientificforge\b|\bscientific\s+workflow\b", lowered))
+    if legacy_math and not explicit:
+        return False  # Preserve the established direct math organ.
+    action = bool(re.search(r"\b(?:solve|calculate|compute|differentiate|integrate|fit|simulate|optimize|convert|verify)\b", lowered))
+    structure = bool(re.search(
+        r"\b(?:equation|system|matrix|linear|regression|covariance|ode|differential|integral|derivative|root|trajectory|unit|dimension|least\s+squares|optimization|constraint)\b|[=∫]",
+        lowered,
+    ))
+    return explicit or (action and structure)
+
+
 def build_plan(
     intent: Dict[str, Any],
     mode: str,
@@ -1279,6 +1560,16 @@ def build_plan(
         mode=mode,
         context=context,
     )
+    scientific_candidate_fields = _detect_bounded_scientific_execution_candidate(
+        intent=intent,
+        mode=mode,
+        context=context,
+    )
+    scientific_workflow_candidate = _detect_scientific_workflow_candidate(
+        str(context.get("public_research_question") or request_text),
+        legacy_math=bool(math_candidate_fields["bounded_math_execution_candidate"]),
+        legacy_scientific=bool(scientific_candidate_fields["bounded_scientific_execution_candidate"]),
+    )
     coder_candidate_fields = _detect_coder_runtime_candidates(
         intent=intent,
         mode=mode,
@@ -1291,6 +1582,9 @@ def build_plan(
         primary_intent=primary_intent,
         local_data_candidate=bool(
             data_candidate_fields["bounded_data_execution_candidate"]
+            or scientific_candidate_fields[
+                "bounded_scientific_execution_candidate"
+            ]
         ),
     )
 
@@ -1420,6 +1714,31 @@ def build_plan(
         ],
         "data_execution_reason": data_candidate_fields[
             "data_execution_reason"
+        ],
+        "bounded_scientific_execution_candidate": scientific_candidate_fields[
+            "bounded_scientific_execution_candidate"
+        ],
+        "bounded_scientific_workflow_candidate": scientific_workflow_candidate,
+        "scientific_execution_operation": scientific_candidate_fields[
+            "scientific_execution_operation"
+        ],
+        "scientific_workspace_relative_path": scientific_candidate_fields[
+            "scientific_workspace_relative_path"
+        ],
+        "scientific_execution_columns": scientific_candidate_fields[
+            "scientific_execution_columns"
+        ],
+        "scientific_execution_seed": scientific_candidate_fields[
+            "scientific_execution_seed"
+        ],
+        "scientific_execution_bootstrap_samples": scientific_candidate_fields[
+            "scientific_execution_bootstrap_samples"
+        ],
+        "scientific_execution_confidence_level": scientific_candidate_fields[
+            "scientific_execution_confidence_level"
+        ],
+        "scientific_execution_reason": scientific_candidate_fields[
+            "scientific_execution_reason"
         ],
         "repo_context_candidate": coder_candidate_fields[
             "repo_context_candidate"

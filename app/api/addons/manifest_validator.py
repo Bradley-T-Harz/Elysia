@@ -41,7 +41,7 @@ NETWORK_CODE_RE = re.compile(
 )
 
 SUPPORTED_SCHEMA_VERSIONS = {"1.0", "1.1"}
-CURRENT_ELYSIA_VERSION = "1.1.0"
+CURRENT_ELYSIA_VERSION = "1.2.0"
 SUPPORTED_ADDON_API_VERSIONS = {"1"}
 VALID_PROFILES = {"core", "workstation", "creator", "developer", "semantic_local"}
 VALID_BRIDGE_PROTOCOLS = {

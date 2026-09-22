@@ -235,7 +235,7 @@ class TestModelRouting(unittest.TestCase):
                     "runtime_tag": "mistral-small3.1:24b", "installed": True,
                     "size_bytes": 15_486_899_116, "expected_ram_mb": 14770,
                     "loaded": False,
-                    "history": {"success_count": 4, "failure_count": 0, "median_latency_ms": 900},
+                    "history": {"success_count": 4, "failure_count": 0, "median_latency_ms": 90},
                 },
                 {
                     "runtime_tag": "granite3.3:8b", "installed": True,

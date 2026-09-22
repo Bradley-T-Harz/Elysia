@@ -213,7 +213,7 @@ def test_doctor_checks_protocol_independently_of_product_release(
     tmp_path: Path, monkeypatch, api_version: str, compatible: bool
 ) -> None:
     # A minor product release need not change the Desktop/API protocol.
-    assert json.loads((ROOT / "apps/elysia-desktop/package.json").read_text())["version"] == "1.1.0"
+    assert json.loads((ROOT / "apps/elysia-desktop/package.json").read_text())["version"] == "1.2.0"
     monkeypatch.setattr("app.install.doctor_service.API_VERSION", api_version)
     values = _environment(tmp_path)
     paths = resolve_elysia_paths(values)

@@ -36,7 +36,9 @@ def model_resource_estimate(
 
     The installed artifact plus a bounded runtime/context allowance is used
     for an unloaded model; Ollama's live ``size_vram`` becomes authoritative
-    while resident. Missing telemetry never earns a speculative GPU lease.
+    for GPU residency only. It does not measure the CPU weights or host-side
+    load buffers of a hybrid model. Missing telemetry never earns a
+    speculative GPU lease.
     """
     model = next(
         (
@@ -61,7 +63,7 @@ def model_resource_estimate(
     unloaded_runtime_mb = artifact_mb + 1024
     return {
         "runtime_tag": runtime_tag,
-        "estimated_ram_mb": live_vram_mb or unloaded_runtime_mb,
+        "estimated_ram_mb": max(unloaded_runtime_mb, live_vram_mb),
         "estimated_vram_mb": live_vram_mb or unloaded_runtime_mb,
         # Ollama owns one resident model allocation. A concurrent governed
         # request leases bounded incremental context/workspace headroom rather

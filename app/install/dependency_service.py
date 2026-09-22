@@ -122,7 +122,10 @@ def _python_status(dependency: dict[str, Any]) -> tuple[DependencyStatus, str | 
 
     try:
         version = importlib.metadata.version(_distribution_name(dependency["package_name"]))
-    except importlib.metadata.PackageNotFoundError:
+    except (importlib.metadata.PackageNotFoundError, FileNotFoundError):
+        # A found module can have unreadable distribution metadata (including
+        # native/optional packages inspected after other adapters import their
+        # metadata finders). Keep module presence truth without inventing a version.
         version = None
     return DependencyStatus.PRESENT, version
 

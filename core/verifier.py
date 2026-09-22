@@ -270,6 +270,123 @@ def verify_result(
     else:
         checks_passed.append("data_execution_not_required")
 
+    bounded_scientific_execution_candidate = bool(
+        plan.get("bounded_scientific_execution_candidate", False)
+    )
+    scientific_execution = internal_result.get("scientific_execution")
+
+    if bool(plan.get("bounded_scientific_workflow_candidate", False)):
+        if not isinstance(scientific_execution, dict) or scientific_execution.get("protocol_version") != "scientific-ir-v0.2":
+            issues.append("typed scientific workflow receipt is missing")
+        elif any(scientific_execution.get(flag) is not False for flag in
+                 ("network_used", "source_mutated", "shell_used", "raw_absolute_path_exposed")):
+            issues.append("typed scientific workflow crossed a forbidden boundary")
+        else:
+            outcome = str(scientific_execution.get("status") or "")
+            nodes = scientific_execution.get("node_receipts") or []
+            completed = sum(isinstance(item, dict) and item.get("status") == "completed" for item in nodes)
+            if completed != scientific_execution.get("completed_node_count", completed):
+                issues.append("scientific workflow completed-node count conflicts with receipts")
+            elif outcome == "completed":
+                if not nodes or completed != len(nodes) or scientific_execution.get("verification") != "passed" or any(
+                    not isinstance(item, dict) or item.get("verification") != "passed" or not item.get("result_sha256") or not item.get("parameter_sha256") for item in nodes
+                ):
+                    issues.append("scientific workflow completion lacks verified node receipts")
+                else:
+                    checks_passed.append("typed_scientific_workflow_verified")
+            elif outcome in {"blocked", "failed", "cancelled", "clarification_required", "reference_required", "unsupported"}:
+                if completed and not scientific_execution.get("partial_completion"):
+                    issues.append("scientific workflow partial completion was hidden")
+                else:
+                    checks_passed.append("typed_scientific_workflow_noncompletion_recorded")
+            else:
+                issues.append("typed scientific workflow has unknown terminal state")
+
+    if bounded_scientific_execution_candidate:
+        if isinstance(scientific_execution, dict):
+            checks_passed.append("scientific_execution_summary_present")
+
+            scientific_status = _enum_payload_value(
+                scientific_execution.get("status", "")
+            )
+
+            scientific_used = bool(
+                scientific_execution.get("used", False)
+            )
+
+            if scientific_status:
+                checks_passed.append("scientific_execution_status_present")
+            else:
+                issues.append("scientific execution summary is missing status")
+
+            if scientific_used:
+                checks_passed.append("scientific_execution_marked_used")
+            else:
+                issues.append("scientific execution candidate was not marked used")
+
+            if scientific_execution.get("source_mutated") is False:
+                checks_passed.append("scientific_execution_source_immutable")
+            else:
+                issues.append("scientific execution must not mutate its source")
+
+            if scientific_execution.get("network_used") is False:
+                checks_passed.append("scientific_execution_network_not_used")
+            else:
+                issues.append("scientific execution must not use network access")
+
+            if scientific_execution.get("shell_used") is False:
+                checks_passed.append("scientific_execution_shell_not_used")
+            else:
+                issues.append("scientific execution must not use shell")
+
+            if scientific_execution.get("raw_absolute_path_exposed") is False:
+                checks_passed.append("scientific_execution_raw_path_not_exposed")
+            else:
+                issues.append("scientific execution must not expose raw absolute paths")
+
+            if scientific_status == "completed":
+                result_payload = scientific_execution.get("result")
+                provenance = scientific_execution.get("provenance")
+
+                if isinstance(result_payload, dict):
+                    checks_passed.append("scientific_execution_completed_with_result")
+                else:
+                    issues.append("completed scientific execution is missing result payload")
+
+                if (
+                    isinstance(provenance, dict)
+                    and provenance.get("result_sha256")
+                    and provenance.get("parameter_sha256")
+                ):
+                    checks_passed.append("scientific_execution_provenance_present")
+                else:
+                    issues.append("completed scientific execution is missing provenance hashes")
+
+            elif scientific_status in {
+                "blocked",
+                "failed",
+                "cancelled",
+                "error",
+            }:
+                if scientific_execution.get("errors"):
+                    checks_passed.append("scientific_execution_failure_has_errors")
+                else:
+                    issues.append("blocked/failed scientific execution is missing errors")
+
+            elif scientific_status in {"not_needed", ""}:
+                issues.append("scientific execution candidate was not attempted")
+
+            else:
+                checks_passed.append("scientific_execution_status_recorded")
+
+        else:
+            issues.append(
+                "plan requested bounded scientific execution but result is missing"
+            )
+
+    else:
+        checks_passed.append("scientific_execution_not_required")
+
 
     repo_context_candidate = bool(
         plan.get("repo_context_candidate", False)

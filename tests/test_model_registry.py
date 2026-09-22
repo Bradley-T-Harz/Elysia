@@ -1,4 +1,4 @@
-from app.cognition.model_registry import ModelRegistry
+from app.cognition.model_registry import ModelRegistry, model_resource_estimate
 from app.install.paths import ElysiaPaths, RuntimeMode
 
 
@@ -12,6 +12,19 @@ def _paths(tmp_path):
         runtime_dir=tmp_path / "runtime",
         runtime_fallback_used=True,
     )
+
+
+def test_hybrid_gpu_residency_does_not_shrink_host_ram_reservation():
+    model = {"runtime_tag": "hybrid:large", "size_bytes": 15 * 1024**3,
+             "size_vram_bytes": 4 * 1024**3, "loaded": True}
+    estimate = model_resource_estimate({"models": [model]}, "hybrid:large")
+    assert estimate["estimated_ram_mb"] == 16 * 1024
+    assert estimate["estimated_vram_mb"] == 4 * 1024
+    assert estimate["incremental_vram_mb"] == 1024
+    assert estimate["measurement_source"] == "ollama_live_residency_size_vram"
+    # Admitting based on the GPU portion would incorrectly pass a smaller
+    # host ceiling even though the model's host/load budget exceeds it.
+    assert estimate["estimated_ram_mb"] > 8192
 
 
 def test_model_history_exposes_last_outcome_and_consecutive_failures(tmp_path):

@@ -9,7 +9,7 @@ DOCTRINE = RELEASE / "ADDON_DEVELOPER_FORGE_MARKETPLACE_DOCTRINE.md"
 WARNINGS = RELEASE / "MARKETPLACE_ADDON_WARNINGS_AND_TERMS_DRAFT.md"
 SUBMISSION = RELEASE / "DEVELOPER_ADDON_SUBMISSION_RULES_DRAFT.md"
 CLEANUP = RELEASE / "MARKETPLACE_CLEANUP_TASK_CONTRACT.md"
-PUBLIC_MANIFEST = ROOT / "packaging" / "public_manifest.yaml"
+PLAN = RELEASE / "ELYSIA_V1_IMPLEMENTATION_PASS_PLAN.md"
 
 
 def _text(path: Path) -> str:
@@ -23,11 +23,7 @@ def _flat(path: Path) -> str:
 def test_pass7_canonical_doctrine_and_drafts_exist() -> None:
     for path in (DOCTRINE, WARNINGS, SUBMISSION, CLEANUP):
         assert path.is_file()
-    manifest = _text(PUBLIC_MANIFEST)
-    assert "docs/release/ELYSIA_V1_IMPLEMENTATION_PASS_PLAN.md" in manifest
-    assert not (
-        RELEASE / "ELYSIA_V1_IMPLEMENTATION_PASS_PLAN.md"
-    ).exists()
+    assert "ADDON_DEVELOPER_FORGE_MARKETPLACE_DOCTRINE.md" in _text(PLAN)
 
 
 def test_doctrine_preserves_governed_power_and_core_boundary() -> None:

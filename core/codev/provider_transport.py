@@ -15,7 +15,16 @@ from urllib.request import HTTPHandler
 _ACTIVE = ContextVar("codev_provider_request_control", default=None)
 
 
+def active_provider_control():
+    """Return the request-local socket control, if one is installed."""
+    return _ACTIVE.get()
+
+
 class ProviderCancelled(OSError):
+    pass
+
+
+class ProviderResourceLimited(OSError):
     pass
 
 
@@ -34,9 +43,24 @@ class ProviderControl:
         if self.reason == "cancelled" or (self.cancel_check and self.cancel_check()):
             self.reason = "cancelled"
             raise ProviderCancelled("operator_cancelled")
+        if self.reason == "resource_limited":
+            raise ProviderResourceLimited("owned_provider_resource_cutoff")
         if self.reason == "timeout" or time.monotonic() >= self.deadline:
             self.reason = "timeout"
             raise TimeoutError("Local provider request deadline exceeded")
+
+    def abort(self, reason):
+        """Interrupt only this invocation's socket; never unload a shared model."""
+        if reason not in {"cancelled", "timeout", "resource_limited"}:
+            raise ValueError("invalid_provider_abort_reason")
+        with self._lock:
+            if self.reason is None:
+                self.reason = reason
+            if self._socket is not None:
+                try:
+                    self._socket.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
 
     def attach(self, connection_socket):
         with self._lock:
@@ -50,7 +74,7 @@ class ProviderControl:
         while not self._stop.wait(0.05):
             try:
                 self.check()
-            except (ProviderCancelled, TimeoutError):
+            except (ProviderCancelled, ProviderResourceLimited, TimeoutError):
                 # shutdown wakes getresponse/readline; close alone may leave a
                 # buffered HTTPResponse blocked while it holds a socket reference.
                 with self._lock:
@@ -66,6 +90,12 @@ class ProviderControl:
         if self._thread is not None:
             self._thread.join(timeout=1)
         with self._lock:
+            if self._socket is not None:
+                try:
+                    self._socket.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+                self._socket.close()
             self._socket = None
         _ACTIVE.reset(self._token)
 

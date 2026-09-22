@@ -62,17 +62,17 @@ while IFS= read -r module_path; do
   module="${module_path%.py}"
   module="${module//\//.}"
   module_flags+=(--hidden-import "$module")
-done < <(cd "$ROOT_DIR" && find app core -type f -name '*.py' -print | sort)
+done < <(cd "$ROOT_DIR" && find app core sandbox/scientificforge_worker -type f -name '*.py' -print | sort)
 
 metadata_flags=()
 for distribution in \
-  fastapi uvicorn pydantic PyYAML pwdlib cryptography zstandard Pillow numpy defusedxml CairoSVG imageio pytesseract
+  fastapi uvicorn pydantic PyYAML pwdlib cryptography zstandard Pillow numpy sympy mpmath Pint flexcache flexparser platformdirs defusedxml CairoSVG imageio pytesseract
 do
   metadata_flags+=(--copy-metadata "$distribution")
 done
 
 hidden_runtime_flags=()
-for module in pwdlib cryptography zstandard PIL numpy defusedxml cairosvg imageio pytesseract
+for module in pwdlib cryptography zstandard PIL numpy sympy pint defusedxml cairosvg imageio pytesseract
 do
   hidden_runtime_flags+=(--hidden-import "$module")
 done
@@ -140,6 +140,7 @@ install -m 0755 "$DIST_DIR/elysia" "$TARGET_BINARY"
 
 "$PACKAGE_PYTHON" "$ROOT_DIR/scripts/verify_packaged_core_routes.py" "$TARGET_BINARY"
 "$PACKAGE_PYTHON" "$ROOT_DIR/scripts/verify_packaged_native_runtime.py" "$TARGET_BINARY"
+"$PACKAGE_PYTHON" "$ROOT_DIR/scripts/verify_packaged_scientific_worker.py" "$TARGET_BINARY"
 
 "$PACKAGE_PYTHON" - "$TARGET_BINARY" "$ROOT_DIR" "${HOME:-}" <<'PY'
 from pathlib import Path
