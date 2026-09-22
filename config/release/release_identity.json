@@ -2,8 +2,8 @@
   "schema_version": "1.1",
   "product": "Elysia",
   "publisher": "EcoSyneva Commons LLC",
-  "version": "1.1.0",
-  "semantic_tag": "v1.1.0",
+  "version": "1.2.0",
+  "semantic_tag": "v1.2.0",
   "channel": "stable",
   "qualification_state": "external_signed_release_evidence",
   "artifact_role": "coordinated_release_payload",
@@ -11,7 +11,7 @@
     "live_state_source": "canonical_external_release_surfaces",
     "mutable_external_state_not_embedded": true,
     "owner_authorization_required_for_external_mutation": true,
-    "canonical_release_url": "https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.1.0",
+    "canonical_release_url": "https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.2.0",
     "canonical_archive_url": "https://elysiaecobotics.com/archive"
   },
   "source_repository": {
@@ -25,8 +25,8 @@
     "version": "1.1.0",
     "repository_url": "https://github.com/Bradley-T-Harz/elysia-codev",
     "vsix_url": "https://github.com/Bradley-T-Harz/elysia-codev/releases/download/v1.1.0/elysia-codev-1.1.0.vsix",
-    "vsix_sha256": "fd55c5c020518230a9999e8180c2b9aeced9b0c80b6fe130ca6adc9c1408368e",
-    "vsix_size_bytes": 174806,
+    "vsix_sha256": "dfa341da797f71499e410688a951147888b2470130d7c728ccdf02710b34e350",
+    "vsix_size_bytes": 174807,
     "canonical_marketplace_url": "https://elysiaecobotics.com/marketplace/browse"
   }
 }

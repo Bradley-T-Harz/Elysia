@@ -49,7 +49,7 @@ APP_CACHE="$CACHE_BASE/elysia"
 APP_RUNTIME="${XDG_RUNTIME_DIR:+$RUNTIME_BASE/elysia}"
 APP_RUNTIME="${APP_RUNTIME:-$RUNTIME_BASE}"
 CORE_RUNTIME="$APP_DATA/runtime"
-RELEASE_ID="1.1.0"
+RELEASE_ID="1.2.0"
 RELEASE_DIR="$CORE_RUNTIME/releases/$RELEASE_ID"
 
 echo "Elysia Core user-local install plan"
@@ -79,7 +79,7 @@ if [[ -n "$WHEELHOUSE" ]] && [[ ! -d "$WHEELHOUSE" ]]; then
 fi
 if [[ -z "$WHEELHOUSE" ]]; then
   PYTHONPATH="$REPO_ROOT" "$PYTHON_BIN" -c \
-    'import fastapi, uvicorn, pydantic, yaml, pwdlib, cryptography, zstandard, PIL, numpy, defusedxml, cairosvg, imageio, pytesseract' \
+    'import fastapi, uvicorn, pydantic, yaml, pwdlib, cryptography, zstandard, PIL, numpy, sympy, pint, defusedxml, cairosvg, imageio, pytesseract' \
     || {
       echo "Core Python dependencies are missing. Supply a reviewed offline wheelhouse; no network download was attempted." >&2
       exit 1
@@ -106,7 +106,7 @@ if [[ ! -d "$RELEASE_DIR" ]]; then
     requirements/neurofabric-cpu.txt requirements/neurofabric-cuda.txt \
     scripts/prove_neurofabric_runtime.py \
     sandbox/aider_worker sandbox/command_worker sandbox/fetch_worker \
-    sandbox/patch_worker sandbox/searxng_worker workers/pdf \
+    sandbox/patch_worker sandbox/searxng_worker sandbox/scientificforge_worker workers/pdf \
     | tar -C "$STAGING_DIR" -xf -
   mkdir -p "$STAGING_DIR/packaging"
   mkdir -p "$STAGING_DIR/derived/runtime"

@@ -30,7 +30,7 @@ def test_every_release_dependency_has_exactly_one_install_disposition() -> None:
         "E": 3,
     }
     assert summary["category_counts"] == {
-        "A": 14,
+        "A": 16,
         "B": 39,
         "C": 5,
         "D": 4,
@@ -92,13 +92,18 @@ def test_complete_profile_owns_every_runtime_dependency_and_selects_one_science_
 def test_core_stays_small_and_has_no_category_e_manual_requirement() -> None:
     summary = dependency_install_summary(resolve_profile_components("core"))
     assert summary["category_counts"] == {
-        "A": 14,
+        "A": 16,
         "B": 0,
         "C": 0,
         "D": 0,
         "E": 0,
     }
     assert summary["category_e_actions"] == []
+    bundled = {row["dependency_id"] for row in summary["dependencies"]}
+    # Symbolic math and dimensional validation are existing Core capabilities;
+    # optional native domain engines must not enter the bundled Core implicitly.
+    assert {"sympy", "pint"} <= bundled
+    assert not {"scipy", "rdkit", "cantera", "highspy", "ortools"} & bundled
 
 
 def test_external_prerequisites_have_complete_public_guidance() -> None:

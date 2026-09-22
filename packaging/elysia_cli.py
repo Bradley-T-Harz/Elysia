@@ -16,7 +16,7 @@ import sys
 from typing import Sequence
 
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 
 def _enter_packaged_resource_root() -> None:
@@ -35,6 +35,10 @@ def build_parser() -> argparse.ArgumentParser:
         description="Elysia Core packaged runtime and non-repairing diagnostics.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    scientific = subparsers.add_parser("scientific-worker", help="Run one fixed, validated ScientificForge job.")
+    scientific.add_argument("--request", type=Path, required=True)
+    scientific.add_argument("--result", type=Path, required=True)
 
     runtime = subparsers.add_parser("runtime", help="Discover or start the private installed user runtime.")
     runtime.add_argument("operation", choices=("ensure", "status", "serve"))
@@ -109,7 +113,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    # Preserve caller-relative paths before entering frozen package resources.
+    if args.command == "scientific-worker":
+        args.request = args.request.absolute()
+        args.result = args.result.absolute()
     _enter_packaged_resource_root()
+
+    if args.command == "scientific-worker":
+        from sandbox.scientificforge_worker.worker_cli import main as scientific_main
+        return scientific_main(["--request", str(args.request), "--result", str(args.result)])
 
     if args.command == "runtime":
         from app.install.runtime_service import main as service_main
@@ -157,7 +169,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return doctor_main(doctor_args)
     if args.command == "version":
         product = "Codev" if Path(sys.executable).name == "codev-core" else "Elysia"
-        print(f"{product} {VERSION}")
+        version = "1.1.0" if product == "Codev" else VERSION
+        print(f"{product} {version}")
         return 0
     if args.command == "codev-install":
         from app.install.codev_installer import CodevInstallError, install_codev_vsix

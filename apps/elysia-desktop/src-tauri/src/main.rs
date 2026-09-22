@@ -555,7 +555,7 @@ fn local_api_request(
 
     let payload = body.unwrap_or_default();
     let mut headers = format!(
-        "{method} {path} HTTP/1.1\r\nHost: {}\r\nAccept: application/json\r\nX-Elysia-Client: elysia-desktop/1.1.0\r\nConnection: close\r\n",
+        "{method} {path} HTTP/1.1\r\nHost: {}\r\nAccept: application/json\r\nX-Elysia-Client: elysia-desktop/1.2.0\r\nConnection: close\r\n",
         state.api_address
     );
     if let Some(value) = credential {

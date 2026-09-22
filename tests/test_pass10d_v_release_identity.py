@@ -7,8 +7,8 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.1.0"
-CODEV_VSIX_SHA256 = "fd55c5c020518230a9999e8180c2b9aeced9b0c80b6fe130ca6adc9c1408368e"
+VERSION = "1.2.0"
+CODEV_VSIX_SHA256 = "dfa341da797f71499e410688a951147888b2470130d7c728ccdf02710b34e350"
 
 
 def test_release_identity_is_qualified_without_mutable_publication_state() -> None:
@@ -16,7 +16,7 @@ def test_release_identity_is_qualified_without_mutable_publication_state() -> No
         (ROOT / "config/release/release_identity.json").read_text(encoding="utf-8")
     )
     assert identity["version"] == VERSION
-    assert identity["semantic_tag"] == "v1.1.0"
+    assert identity["semantic_tag"] == "v1.2.0"
     assert identity["channel"] == "stable"
     assert identity["qualification_state"] == "external_signed_release_evidence"
     assert identity["artifact_role"] == "coordinated_release_payload"
@@ -24,7 +24,7 @@ def test_release_identity_is_qualified_without_mutable_publication_state() -> No
         "live_state_source": "canonical_external_release_surfaces",
         "mutable_external_state_not_embedded": True,
         "owner_authorization_required_for_external_mutation": True,
-        "canonical_release_url": "https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.1.0",
+        "canonical_release_url": "https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.2.0",
         "canonical_archive_url": "https://elysiaecobotics.com/archive",
     }
     assert "public_release" not in identity
@@ -35,9 +35,9 @@ def test_release_identity_is_qualified_without_mutable_publication_state() -> No
         "url": "https://github.com/Bradley-T-Harz/Elysia",
         "issues_url": "https://github.com/Bradley-T-Harz/Elysia/issues",
     }
-    assert identity["official_codev"]["version"] == VERSION
+    assert identity["official_codev"]["version"] == "1.1.0"
     assert identity["official_codev"]["vsix_sha256"] == CODEV_VSIX_SHA256
-    assert identity["official_codev"]["vsix_size_bytes"] == 174806
+    assert identity["official_codev"]["vsix_size_bytes"] == 174807
     assert identity["official_codev"]["vsix_url"] == (
         "https://github.com/Bradley-T-Harz/elysia-codev/releases/download/"
         "v1.1.0/elysia-codev-1.1.0.vsix"
@@ -70,14 +70,14 @@ def test_release_bearing_manifests_share_v1_identity() -> None:
         "live_state_source": "canonical_external_release_surfaces",
         "mutable_external_state_not_embedded": True,
         "owner_authorization_required_for_external_mutation": True,
-        "canonical_release_url": "https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.1.0",
+        "canonical_release_url": "https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.2.0",
         "canonical_archive_url": "https://elysiaecobotics.com/archive",
     }
     assert profiles["target_product_version"] == VERSION
     assert profiles["current_channel"] == "stable"
     assert desktop["version"] == VERSION
     assert tauri["version"] == VERSION
-    assert codev["version"] == VERSION
+    assert codev["version"] == "1.1.0"
     assert codev["version_channel"] == "stable"
     assert codev["listing_state"] == "coordinated_release_payload"
     assert codev["public_distribution_supported"] is True
@@ -109,7 +109,7 @@ def test_package_bound_acquisitions_describe_release_payloads_not_candidates() -
     ]
     assert package_bound
     for item in package_bound:
-        assert item["source"] == "exact Elysia v1.1.0 release package"
+        assert item["source"] == "exact Elysia v1.2.0 release package"
         assert "candidate" not in item["digest"]
         assert "candidate" not in item["size_state"]
         assert "candidate" not in item["redistribution"]

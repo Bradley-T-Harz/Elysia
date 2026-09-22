@@ -32,6 +32,7 @@ class ExecutionToolKind(str, Enum):
 
     MATH_EXECUTOR = "math_executor"
     DATA_EXECUTOR = "data_executor"
+    SCIENTIFIC_FORGE = "scientific_forge"
     CODE_WORKER = "code_worker"
 
 
@@ -44,6 +45,7 @@ class ExecutionStatus(str, Enum):
     PLANNED = "planned"
     RUNNING = "running"
     COMPLETED = "completed"
+    CANCELLED = "cancelled"
     FAILED = "failed"
     BLOCKED = "blocked"
 

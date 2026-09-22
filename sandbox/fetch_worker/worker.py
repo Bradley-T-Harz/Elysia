@@ -140,7 +140,22 @@ def run_fetch_worker(
     )
     errors = list(response.get("errors") or [])
     warnings = list(response.get("warnings") or [])
-    status = FetchWorkerStatus.COMPLETED if not errors else FetchWorkerStatus.FAILED
+
+    network_access_used = bool(
+        response.get("network_access_used", True)
+    )
+    page_fetch_used = bool(
+        response.get(
+            "page_fetch_used",
+            network_access_used,
+        )
+    )
+
+    status = (
+        FetchWorkerStatus.COMPLETED
+        if not errors
+        else FetchWorkerStatus.FAILED
+    )
     packet = []
     if not errors:
         packet = [
@@ -166,8 +181,8 @@ def run_fetch_worker(
         status_code=response.get("status_code"),
         bytes_read=int(response.get("bytes_read") or 0),
         evidence_packets=packet,
-        network_access_used=True,
-        page_fetch_used=True,
+        network_access_used=network_access_used,
+        page_fetch_used=page_fetch_used,
         private_context_sent=False,
         cloud_search_used=False,
         cloud_model_used=False,

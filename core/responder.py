@@ -11,6 +11,7 @@ signals, and the scaffold memory-class decision path in a user-facing but
 still careful way.
 """
 
+import json
 import re
 from typing import Any, Dict, List, Optional
 
@@ -444,6 +445,10 @@ def compose_response(
     data_execution = internal_result.get("data_execution", {})
     if not isinstance(data_execution, dict):
         data_execution = {}
+
+    scientific_execution = internal_result.get("scientific_execution", {})
+    if not isinstance(scientific_execution, dict):
+        scientific_execution = {}
 
     repo_context = internal_result.get("repo_context", {})
     if not isinstance(repo_context, dict):
@@ -981,6 +986,27 @@ def compose_response(
     if asks_public_research and research_notice not in final_response_text:
         bounded_research_notice = f"Bounded research note: {research_notice}"
         final_response_text = f"{bounded_research_notice}\n\n{final_response_text}".strip()
+
+    if scientific_execution.get("protocol_version") == "scientific-ir-v0.2":
+        scientific_status = str(scientific_execution.get("status") or "unknown")
+        completed_nodes = int(scientific_execution.get("completed_node_count") or 0)
+        reason = str(scientific_execution.get("reason") or scientific_status)[:120]
+        if scientific_status == "completed" and scientific_execution.get("verification") == "passed":
+            scientific_notice = f"ScientificForge completed and verified {completed_nodes} governed node(s)."
+            if re.search(r"\b(?:can't|cannot|unable to)\s+(?:run|execute)\s+(?:code|calculations?|computations?)\b", final_response_text, re.I):
+                preview = json.dumps(scientific_execution.get("outputs") or {}, ensure_ascii=False, allow_nan=False)
+                final_response_text = scientific_notice + " Verified outputs: " + preview[:1800]
+                response_source = "scaffold_fallback"
+        else:
+            scientific_notice = f"ScientificForge workflow status: {scientific_status}; reason: {reason}; completed nodes retained: {completed_nodes}."
+        if scientific_execution.get("interpretation_status") in {"cancelled", "timed_out", "not_completed"}:
+            scientific_notice += " Model interpretation: " + str(scientific_execution["interpretation_status"]) + "."
+        if scientific_status == "cancelled":
+            final_response_text = scientific_notice
+            response_source = "scaffold_fallback"
+        caveats.append(scientific_notice)
+        if scientific_notice not in final_response_text:
+            final_response_text = f"{scientific_notice}\n\n{final_response_text}".strip()
 
     approval_notice = (
         "Approval is required before any file write or side-effecting action. "

@@ -62,7 +62,7 @@ def _manifest(files: dict[str, str], **overrides: object) -> dict[str, object]:
         "publisher": {"name": "Test Publisher", "identity": "test-only"},
         "compatibility": {
             "min_elysia_version": "0.1.0",
-            "max_elysia_version": "1.1.0",
+            "max_elysia_version": "1.2.0",
             "addon_api_version": "1",
         },
         "required_profiles": ["developer"],
@@ -99,6 +99,26 @@ def _package(tmp_path: Path, *, files: dict[str, str] | None = None, manifest_ov
         for name, content in files.items():
             archive.writestr(name, content)
     return path
+
+
+@pytest.mark.parametrize(("minimum", "maximum", "compatible"), [
+    ("1.2.0", "1.2.0", True),
+    ("0.1.0", "1.1.0", False),
+    ("1.3.0", "", False),
+])
+def test_compatibility_uses_current_product_without_widening_package_authority(minimum, maximum, compatible):
+    from app.api.addons.manifest_validator import CURRENT_ELYSIA_VERSION
+    identity = Path(__file__).resolve().parents[1] / "config/release/release_identity.json"
+    assert CURRENT_ELYSIA_VERSION == json.loads(identity.read_text())["version"]
+    raw = _manifest({"files/tool.py": "def describe(): return 'static only'"})
+    raw["compatibility"].update(min_elysia_version=minimum, max_elysia_version=maximum)
+    manifest, errors, _, _ = validate_manifest_payload(raw)
+    assert (not errors) is compatible
+    if not compatible:
+        assert any("Elysia version" in error for error in errors)
+    else:
+        assert manifest is not None
+        assert raw["bridge"]["execution_enabled"] is False
 
 
 def _approve_apply(plan: dict[str, object]) -> dict[str, object]:

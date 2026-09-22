@@ -1,30 +1,47 @@
 from __future__ import annotations
 
 import app.api.artifact_service as artifact_service
+from app.api import conversation_service, project_service
 from app.api.artifact_service import (
     create_data_summary_artifact,
     create_plot_image_artifact,
 )
 from app.api.main import create_app
+from app.api.request_trace_service import start_request_trace
+from app.api.schemas.account import AccountCreateRequest, AccountLoginRequest
 from tests.asgi_test_client import ASGITestClient
 from tests.test_artifact_service import completed_data_execution_payload, write_file
 
 
-def test_artifact_list_and_detail_routes_return_safe_payloads(monkeypatch, tmp_path):
-    artifact_root = tmp_path / "artifacts"
-    monkeypatch.setattr(artifact_service, "DEFAULT_ARTIFACT_ROOT", artifact_root)
+def _owned_links(request_id):
+    project_id = project_service.create_project(name="Artifact route project")["project_id"]
+    conversation_id = conversation_service.ensure_conversation(
+        title="Artifact route conversation", project_id=project_id,
+    ).conversation_id
+    start_request_trace(
+        request_id=request_id,
+        related_conversation_id=conversation_id,
+        related_project_id=project_id,
+    )
+    return project_id, conversation_id
+
+
+def test_artifact_list_and_detail_routes_return_safe_payloads(
+    tmp_path, isolated_project_store,
+):
+    project_id, conversation_id = _owned_links("req_artifact_route")
 
     source_csv = write_file(tmp_path / "sites.csv", "site,value\nA,1\n")
     record = create_data_summary_artifact(
         completed_data_execution_payload(source_csv),
         request_id="req_artifact_route",
-        conversation_id="conv_artifact_route",
-        project_id="proj_artifact_route",
-        artifact_root=artifact_root,
+        conversation_id=conversation_id,
+        project_id=project_id,
     )
+    assert record.owner_user_id == isolated_project_store.state().active_user_id
 
     client = ASGITestClient(create_app())
-    list_response = client.get("/artifacts?project_id=proj_artifact_route")
+    list_response = client.get(f"/artifacts?project_id={project_id}")
     assert list_response.status_code == 200
     list_payload = list_response.json()
     assert list_payload["result_type"] == "artifact_list"
@@ -32,7 +49,7 @@ def test_artifact_list_and_detail_routes_return_safe_payloads(monkeypatch, tmp_p
 
     summary = list_payload["data"]["artifacts"][0]
     assert summary["artifact_id"] == record.artifact_id
-    assert summary["project_id"] == "proj_artifact_route"
+    assert summary["project_id"] == project_id
     assert summary["request_id"] == "req_artifact_route"
     assert summary["memory_promotion"] is False
     assert summary["private_context_sent"] is False
@@ -48,10 +65,18 @@ def test_artifact_list_and_detail_routes_return_safe_payloads(monkeypatch, tmp_p
     assert detail_payload["data"]["boundary_truth"]["private_context_sent"] is False
     assert str(source_csv) not in detail_response.text
 
+    isolated_project_store.create_account(AccountCreateRequest(
+        username="other-artifact-owner", password="synthetic other artifact owner password",
+    ))
+    isolated_project_store.login(AccountLoginRequest(
+        username="other-artifact-owner", password="synthetic other artifact owner password",
+    ))
+    assert client.get(f"/artifacts?project_id={project_id}").json()["data"]["total"] == 0
+    assert client.get(f"/artifacts/{record.artifact_id}").status_code == 404
 
-def test_plot_artifact_list_is_compact_and_detail_carries_svg(monkeypatch, tmp_path):
-    artifact_root = tmp_path / "artifacts"
-    monkeypatch.setattr(artifact_service, "DEFAULT_ARTIFACT_ROOT", artifact_root)
+
+def test_plot_artifact_list_is_compact_and_detail_carries_svg(isolated_project_store):
+    project_id, conversation_id = _owned_links("req_plot_route")
 
     record = create_plot_image_artifact(
         {
@@ -80,14 +105,14 @@ def test_plot_artifact_list_is_compact_and_detail_carries_svg(monkeypatch, tmp_p
             "errors": [],
         },
         request_id="req_plot_route",
-        conversation_id="conv_plot_route",
-        project_id="proj_plot_route",
-        artifact_root=artifact_root,
+        conversation_id=conversation_id,
+        project_id=project_id,
     )
+    assert record.owner_user_id == isolated_project_store.state().active_user_id
 
     client = ASGITestClient(create_app())
 
-    list_response = client.get("/artifacts?project_id=proj_plot_route")
+    list_response = client.get(f"/artifacts?project_id={project_id}")
     assert list_response.status_code == 200
     assert "<svg" not in list_response.text
     assert "artifact_path" not in list_response.text

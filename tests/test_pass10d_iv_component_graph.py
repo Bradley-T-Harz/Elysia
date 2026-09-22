@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from hashlib import sha256
+from pathlib import Path
 
 import pytest
+import yaml
 
 from app.install.component_graph_service import (
     COMPONENT_FIELDS,
@@ -18,7 +21,7 @@ from app.install.component_graph_service import (
 def test_authoritative_graph_has_every_profile_field_and_local_capability_owner() -> None:
     graph = load_component_graph()
     assert graph["authority"] == "authoritative"
-    assert graph["release_target"] == "1.1.0"
+    assert graph["release_target"] == "1.2.0"
     assert set(graph["profiles"]) == {
         "core",
         "workstation_research",
@@ -72,3 +75,27 @@ def test_graph_fails_closed_on_incomplete_component_or_capability_drift() -> Non
     drift["components"]["core_python_runtime"]["capability_ids"].remove("ELY-INS-001")
     with pytest.raises(ComponentGraphError):
         validate_component_graph(drift)
+
+
+@pytest.mark.parametrize(("component", "locks"), [
+    ("core_python_runtime", ["core"]),
+    ("workstation_adapters", ["workstation"]),
+    ("creator_perception", ["creator-cpu", "creator-cuda"]),
+    ("scientific_engineering", ["neurofabric-cpu", "neurofabric-cuda"]),
+])
+def test_profile_provenance_matches_actual_dependency_locks(component, locks) -> None:
+    root = Path(__file__).resolve().parents[1]
+    graph = load_component_graph()
+    acquisitions = yaml.safe_load((root / "config/install/acquisition_manifests.yaml").read_text())
+    for name in locks:
+        digest = sha256((root / f"config/install/locks/{name}-py312.lock.txt").read_bytes()).hexdigest()
+        assert digest in graph["components"][component]["exact_version_digest"]
+        assert digest in acquisitions["components"][component]["digest"]
+
+
+def test_desktop_provenance_matches_both_package_locks() -> None:
+    root = Path(__file__).resolve().parents[1]
+    descriptor = load_component_graph()["components"]["desktop_shell"]["exact_version_digest"]
+    for relative in ("package-lock.json", "src-tauri/Cargo.lock"):
+        digest = sha256((root / "apps/elysia-desktop" / relative).read_bytes()).hexdigest()
+        assert digest in descriptor

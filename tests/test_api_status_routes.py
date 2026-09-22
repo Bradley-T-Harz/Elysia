@@ -435,7 +435,7 @@ def test_live_capability_manifest_names_part3_organs_with_current_truth():
     assert math_execution["locality"] == "local"
     assert math_execution["approval_state"] == "not_needed"
     assert math_execution["read_only"] is False
-    assert math_execution["supporting_endpoint"] == "/execution/math"
+    assert math_execution["supporting_endpoint"] == "/chat/send"
     assert "symbolic/numeric math execution" in math_execution["summary"]
     assert "SymPy" in math_notes
     assert "not arbitrary Python" in math_notes
@@ -457,7 +457,7 @@ def test_live_capability_manifest_names_part3_organs_with_current_truth():
     assert data_execution["locality"] == "local"
     assert data_execution["approval_state"] == "not_needed"
     assert data_execution["read_only"] is True
-    assert data_execution["supporting_endpoint"] == "/execution/data"
+    assert data_execution["supporting_endpoint"] == "/chat/send"
     assert "CSV/XLSX" in data_execution["summary"]
     assert "CSV" in data_notes
     assert "read-only" in data_notes

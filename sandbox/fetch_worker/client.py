@@ -9,11 +9,14 @@ import gzip
 import re
 import socket
 import ssl
+from threading import Event, Thread
 from typing import Any, Callable
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 from urllib.parse import urljoin, urlparse
 import zlib
+
+from sandbox.cancellation import cancellation_requested
 
 
 class _NoRedirectHandler(HTTPRedirectHandler):
@@ -50,11 +53,30 @@ def _public_ip(value: str) -> bool:
     )
 
 
+def _force_close_connection(
+    connection: HTTPConnection,
+) -> None:
+    """Close an active public-fetch socket and wake blocking I/O."""
+    sock = getattr(connection, "sock", None)
+
+    if sock is not None:
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+
+    try:
+        connection.close()
+    except OSError:
+        pass
+
+
 def _pinned_open(
     request: Request,
     *,
     timeout_seconds: int,
     allowed_public_ips: list[str],
+    cancel_check: Callable[[], bool] | None = None,
 ):
     parsed = urlparse(request.full_url)
     hostname = parsed.hostname or ""
@@ -73,17 +95,71 @@ def _pinned_open(
     if parsed.query:
         path = f"{path}?{parsed.query}"
     host_header = hostname if parsed.port is None else f"{hostname}:{parsed.port}"
+
     connection: HTTPConnection
     if parsed.scheme == "https":
         connection = _PinnedHTTPSConnection(target_ip, hostname, port, timeout_seconds)
     else:
         connection = HTTPConnection(target_ip, port=port, timeout=timeout_seconds)
-    connection.request(
-        "GET",
-        path,
-        headers={**dict(request.header_items()), "Host": host_header},
-    )
-    return connection, connection.getresponse()
+
+    if cancellation_requested(cancel_check):
+        _force_close_connection(connection)
+        raise InterruptedError(
+            "Public page fetch was cancelled before connection use."
+        )
+
+    stop_watcher = Event()
+
+    def watch_for_cancel() -> None:
+        while not stop_watcher.wait(0.05):
+            if cancellation_requested(cancel_check):
+                _force_close_connection(connection)
+                return
+
+    watcher: Thread | None = None
+
+    if cancel_check is not None:
+        watcher = Thread(
+            target=watch_for_cancel,
+            name="elysia-fetch-cancel-watcher",
+            daemon=True,
+        )
+        watcher.start()
+
+    try:
+        connection.request(
+            "GET",
+            path,
+            headers={
+                **dict(request.header_items()),
+                "Host": host_header,
+            },
+        )
+        response = connection.getresponse()
+
+        if cancellation_requested(cancel_check):
+            response.close()
+            _force_close_connection(connection)
+            raise InterruptedError(
+                "Public page fetch was cancelled during connection use."
+            )
+
+        return connection, response
+
+    except OSError as exc:
+        _force_close_connection(connection)
+
+        if cancellation_requested(cancel_check):
+            raise InterruptedError(
+                "Public page fetch was cancelled during connection use."
+            ) from exc
+
+        raise
+
+    finally:
+        stop_watcher.set()
+        if watcher is not None:
+            watcher.join(timeout=0.25)
 
 
 def _strip_markup(text: str) -> str:
@@ -168,6 +244,8 @@ def fetch_public_page(
     current_url = url
     current_ips = list(allowed_public_ips or [])
     redirects = 0
+    network_access_used = False
+    page_fetch_used = False
     decompressed_limit = max(max_response_bytes, int(max_decompressed_bytes or max_response_bytes * 4))
     try:
         while True:
@@ -183,14 +261,49 @@ def fetch_public_page(
                 method="GET",
             )
             connection = None
+
+            # The pre-check above means these flags describe an actual
+            # governed fetch attempt rather than merely a planned URL.
+            network_access_used = True
+            page_fetch_used = True
+
             if opener is not None:
-                response = opener.open(request, timeout=timeout_seconds)
+                response = opener.open(
+                    request,
+                    timeout=timeout_seconds,
+                )
             else:
                 connection, response = _pinned_open(
                     request,
                     timeout_seconds=timeout_seconds,
                     allowed_public_ips=current_ips,
+                    cancel_check=cancel_check,
                 )
+
+            response_stop_watcher = Event()
+            response_watcher: Thread | None = None
+
+            def watch_response_for_cancel() -> None:
+                while not response_stop_watcher.wait(0.05):
+                    if cancellation_requested(cancel_check):
+                        if connection is not None:
+                            _force_close_connection(connection)
+
+                        try:
+                            response.close()
+                        except Exception:
+                            pass
+
+                        return
+
+            if cancel_check is not None:
+                response_watcher = Thread(
+                    target=watch_response_for_cancel,
+                    name="elysia-fetch-response-cancel-watcher",
+                    daemon=True,
+                )
+                response_watcher.start()
+
             try:
                 status_code = int(getattr(response, "status", response.getcode()))
                 content_type = str(response.headers.get("content-type", "")).lower()
@@ -222,9 +335,15 @@ def fetch_public_page(
                 raw = _decompress_bounded(raw, encoding, decompressed_limit)
                 break
             finally:
+                response_stop_watcher.set()
+
+                if response_watcher is not None:
+                    response_watcher.join(timeout=0.25)
+
                 response.close()
+
                 if connection is not None:
-                    connection.close()
+                    _force_close_connection(connection)
     except HTTPError as exc:
         return {
             "status_code": int(exc.code),
@@ -232,18 +351,33 @@ def fetch_public_page(
             "title": "",
             "snippet": "",
             "bytes_read": 0,
+            "network_access_used": True,
+            "page_fetch_used": True,
+            "cancelled": False,
             "warnings": [],
             "errors": [f"HTTP error while fetching approved URL: {exc.code}"],
         }
     except (URLError, OSError, ssl.SSLError, ValueError, InterruptedError, gzip.BadGzipFile) as exc:
+        cancelled = cancellation_requested(cancel_check)
+
         return {
             "status_code": None,
             "content_type": "",
             "title": "",
             "snippet": "",
             "bytes_read": 0,
+            "network_access_used": network_access_used,
+            "page_fetch_used": page_fetch_used,
+            "cancelled": cancelled,
             "warnings": [],
-            "errors": [f"URL error while fetching public URL: {getattr(exc, 'reason', str(exc))}"],
+            "errors": [
+                "Public page fetch was cancelled."
+                if cancelled
+                else (
+                    "URL error while fetching public URL: "
+                    f"{getattr(exc, 'reason', str(exc))}"
+                )
+            ],
         }
 
     text = raw.decode("utf-8", errors="replace")
@@ -259,6 +393,9 @@ def fetch_public_page(
         "bytes_read": len(raw),
         "final_url": current_url,
         "redirect_count": redirects,
+        "network_access_used": network_access_used,
+        "page_fetch_used": page_fetch_used,
+        "cancelled": False,
         "warnings": warnings,
         "errors": [],
     }

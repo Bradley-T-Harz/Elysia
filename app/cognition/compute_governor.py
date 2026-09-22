@@ -156,6 +156,19 @@ def _system_metrics() -> dict[str, Any]:
             )
         except (OSError, ValueError, IndexError, StopIteration):
             pass
+    # Only labelled CPU sensors contribute to CPU placement. ACPI/chassis
+    # zones must not be guessed to be package temperature.
+    cpu_sensors = []
+    for zone in Path("/sys/class/thermal").glob("thermal_zone*"):
+        try:
+            label = (zone / "type").read_text().strip()
+            temperature = int((zone / "temp").read_text()) / 1000
+            if label in {"x86_pkg_temp", "TCPU", "TCPU_PCI"} and 0 <= temperature <= 125:
+                cpu_sensors.append({"type": label, "temperature_c": temperature})
+        except (OSError, ValueError):
+            continue
+    result["cpu_thermal_sensors"] = cpu_sensors
+    result["cpu_temperature_c"] = max((item["temperature_c"] for item in cpu_sensors), default=None)
     return result
 
 
@@ -711,6 +724,9 @@ def decide_compute(
         _record_safely(ledger, decision)
         return decision
     cpu_busy = float(system.get("cpu_percent") or 0) >= cpu_percent_ceiling
+    cpu_hot = system.get("cpu_temperature_c") is not None and float(system["cpu_temperature_c"]) >= 90
+    if cpu_hot:
+        reasons.append("cpu_thermal_safety_boundary")
     devices = list(gpu.get("devices") or [])
     gpu_available = bool(gpu.get("available") and devices)
     if gpu_available and float(devices[0].get("temperature_c") or 0) >= 88:
@@ -756,7 +772,7 @@ def decide_compute(
             decision = replace(decision, workload=workload_payload)
             _record_safely(ledger, decision)
             return decision
-    if workload.cpu_fallback_allowed and not cpu_busy:
+    if workload.cpu_fallback_allowed and not cpu_busy and not cpu_hot:
         reasons.append("cpu_fallback" if wants_gpu else "cpu_earned")
         decision = ComputeDecision(
             COMPUTE_GOVERNOR_VERSION, workload.workload_id, "cpu", "cpu", None,

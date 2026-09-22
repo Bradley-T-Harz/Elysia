@@ -93,6 +93,140 @@ def test_codev_provider_interrupts_stalled_socket_without_returning_partial_cont
         thread.join(2)
 
 
+@pytest.mark.parametrize("phase", ["before_headers", "between_tokens", "error_body"])
+@pytest.mark.parametrize("stop", ["cancel", "deadline"])
+@pytest.mark.parametrize("formulation", [True, False])
+def test_scientific_formulation_and_interpretation_have_hard_socket_deadlines(
+    phase, stop, formulation, safe_resource_samples,
+):
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Event, Thread
+    import time
+    from app.api.schemas.scientific_ir import ScientificFormulation
+
+    started, disconnected, cancel = Event(), Event(), Event()
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *_args):
+            pass
+
+        def do_POST(self):
+            self.rfile.read(int(self.headers["Content-Length"]))
+            if phase == "error_body":
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.flush()
+            if phase == "between_tokens":
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'{"message":{"content":"UNFINISHED"},"done":false}\n')
+                self.wfile.flush()
+            started.set()
+            self.connection.settimeout(3)
+            if self.connection.recv(1) == b"":
+                disconnected.set()
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    if stop == "cancel":
+        def cancel_after_start():
+            assert started.wait(2)
+            cancel.set()
+        canceller = Thread(target=cancel_after_start, daemon=True)
+        canceller.start()
+    started_at = time.monotonic()
+    try:
+        result = invoker._call_ollama_chat(
+            "synthetic:local", "governed system", "a specified scientific problem",
+            timeout_s=0.3 if stop == "deadline" else 5,
+            cancel_check=cancel.is_set,
+            ollama_base_url=f"http://127.0.0.1:{server.server_port}",
+            scientific_schema=ScientificFormulation.model_json_schema() if formulation else None,
+            limits=invoker.ModelInvocationLimits(),
+        )
+        assert time.monotonic() - started_at < 1.5
+        assert result["ok"] is False
+        assert "response_text" not in result
+        if stop == "cancel":
+            assert result["cancelled"] is True
+        else:
+            assert result["provider_metadata"]["timeout"] is True
+        assert disconnected.wait(1)
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(2)
+
+
+def test_scientific_formulation_prompt_describes_proposal_without_tool_access(monkeypatch):
+    from app.api.schemas.scientific_ir import ScientificFormulation
+    captured = {}
+
+    def post(_url, payload, timeout_s):
+        captured.update(payload)
+        return {"message": {"content": '{"status":"clarification_required","reason":"missing scientific input"}'}, "done": True}
+
+    monkeypatch.setattr(invoker, "_post_json", post)
+    result = invoker._call_ollama_chat(
+        "synthetic:local", "governed system", "a scientific problem",
+        stream_transport=False, scientific_schema=ScientificFormulation.model_json_schema(),
+    )
+    assert result["ok"] is True
+    system = captured["messages"][0]["content"]
+    assert "not invoking a tool" in system
+    assert "lack of model-side tool access is never a reason" in system
+    assert "solve_linear_system" in system
+    assert captured["options"]["temperature"] == 0
+
+
+def test_scientific_streaming_tokens_cannot_extend_total_wall_deadline():
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Event, Thread
+    import time
+    from app.api.schemas.scientific_ir import ScientificFormulation
+
+    disconnected = Event()
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *_args):
+            pass
+
+        def do_POST(self):
+            self.rfile.read(int(self.headers["Content-Length"]))
+            self.send_response(200)
+            self.end_headers()
+            self.connection.settimeout(0.1)
+            for _ in range(50):
+                try:
+                    self.wfile.write(b'{"message":{"content":"partial"},"done":false}\n')
+                    self.wfile.flush()
+                    time.sleep(0.025)
+                except OSError:
+                    disconnected.set()
+                    return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    began = time.monotonic()
+    try:
+        result = invoker._call_ollama_chat(
+            "synthetic:local", "governed system", "a specified scientific problem",
+            timeout_s=0.3, ollama_base_url=f"http://127.0.0.1:{server.server_port}",
+            scientific_schema=ScientificFormulation.model_json_schema(),
+        )
+        assert time.monotonic() - began < 0.9
+        assert result["ok"] is False
+        assert result["provider_metadata"]["timeout"] is True
+        assert "response_text" not in result
+        assert disconnected.wait(1)
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(2)
+
+
 def test_invoker_fallback_shares_one_deadline(monkeypatch, base_configs, prompt_environment, routing_decision):
     now = [100.0]
     monkeypatch.setattr(invoker.time, "monotonic", lambda: now[0])
@@ -463,7 +597,7 @@ def test_streaming_transport_measures_first_token_and_supports_cancellation(monk
         b'{"message":{"content":"Hello "},"done":false}\n',
         b'{"message":{"content":"locally."},"done":true,"eval_count":2}\n',
     ])
-    monkeypatch.setattr(invoker.urllib_request, "urlopen", lambda *_args, **_kwargs: completed)
+    monkeypatch.setattr(invoker, "_provider_open", lambda *_args, **_kwargs: completed)
     result = invoker._call_ollama_chat(
         runtime_tag="synthetic:local", system_prompt="system", message="hello",
         stream_transport=True,
@@ -479,7 +613,7 @@ def test_streaming_transport_measures_first_token_and_supports_cancellation(monk
         b'{"message":{"content":" must not escape"},"done":true}\n',
     ])
     checks = iter((False, True))
-    monkeypatch.setattr(invoker.urllib_request, "urlopen", lambda *_args, **_kwargs: interrupted)
+    monkeypatch.setattr(invoker, "_provider_open", lambda *_args, **_kwargs: interrupted)
     cancelled = invoker._call_ollama_chat(
         runtime_tag="synthetic:local", system_prompt="system", message="hello",
         cancel_check=lambda: next(checks), stream_transport=True,
@@ -529,8 +663,8 @@ def test_call_ollama_chat_error_paths(monkeypatch, fake_post, expected_substring
 
 def test_call_ollama_chat_returns_structured_timeout(monkeypatch):
     monkeypatch.setattr(
-        invoker.urllib_request,
-        "urlopen",
+        invoker,
+        "_provider_open",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(TimeoutError()),
     )
 

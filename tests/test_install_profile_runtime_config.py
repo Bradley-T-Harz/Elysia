@@ -10,6 +10,7 @@ import yaml
 from app.api.capability_service import get_capabilities_status
 from app.api.main import create_app
 from app.install.dependency_service import VALID_CATALOG_KINDS
+from app.install import dependency_service
 from app.install.profile_service import (
     DEFAULT_CATALOG_PATH,
     DEFAULT_PROFILES_PATH,
@@ -25,6 +26,18 @@ def _missing(tmp_path: Path, name: str) -> Path:
 def _write_yaml(path: Path, payload: dict) -> Path:
     path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
     return path
+
+
+def test_optional_distribution_with_unreadable_metadata_keeps_module_presence_truth(monkeypatch):
+    monkeypatch.setattr(dependency_service.importlib.util, "find_spec", lambda _name: object())
+    monkeypatch.setattr(dependency_service.importlib.metadata, "version",
+                        lambda _name: (_ for _ in ()).throw(FileNotFoundError("distribution metadata missing")))
+    status, version = dependency_service._python_status({
+        "import_check": "synthetic_science_backend", "package_name": "synthetic-science-backend",
+        "required": False,
+    })
+    assert status == DependencyStatus.PRESENT
+    assert version is None
 
 
 def test_default_profile_resolution_is_deterministic_and_non_mutating(tmp_path: Path) -> None:

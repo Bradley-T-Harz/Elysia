@@ -1,6 +1,6 @@
 schema_version: 1
 contract_version: elysia-public-package-1.0
-target_release: 1.1.0
+target_release: 1.2.0
 current_channel: stable
 
 repository_identity:
@@ -13,7 +13,7 @@ publication:
   live_state_source: canonical_external_release_surfaces
   mutable_external_state_not_embedded: true
   owner_authorization_required_for_external_mutation: true
-  canonical_release_url: https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.1.0
+  canonical_release_url: https://github.com/Bradley-T-Harz/Elysia/releases/tag/v1.2.0
   canonical_archive_url: https://elysiaecobotics.com/archive
 
 reviewed_source:
@@ -43,7 +43,6 @@ reviewed_source:
     - CONTRIBUTING.md
     - SECURITY.md
     - README.md
-    - launch_elysia_dev.sh
     - requirements.txt
     - .gitignore
   exclude_globs:
@@ -65,6 +64,7 @@ core_payload:
     - sandbox/fetch_worker
     - sandbox/patch_worker
     - sandbox/searxng_worker
+    - sandbox/scientificforge_worker
     - workers/pdf
   required_files:
     - LICENSE

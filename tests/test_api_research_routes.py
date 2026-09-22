@@ -6,7 +6,9 @@ import pytest
 from fastapi import HTTPException
 
 import app.api.research_service as research_service
+from app.api.routes.memory import get_settings, update_settings
 from app.api.routes.research import fetch_bounded_public_page, search_bounded_public_research
+from app.memory.canonical_models import MemorySettings
 from sandbox.searxng_worker.contract import SearxngWorkerResult, SearxngWorkerStatus
 from sandbox.fetch_worker.contract import FetchWorkerResult, FetchWorkerStatus
 
@@ -27,7 +29,18 @@ def test_post_research_fetch_rejects_bad_body():
     assert "JSON object" in exc.value.detail
 
 
-def test_post_research_search_is_blocked_by_default_internet_master():
+def test_post_research_search_is_blocked_by_default_internet_master(
+    monkeypatch, isolated_account_store,
+):
+    settings = asyncio.run(get_settings())["data"]["settings"]
+    settings["internet_master_enabled"] = False
+    assert asyncio.run(update_settings(MemorySettings(**settings)))["status"] == "ok"
+    monkeypatch.setattr(
+        research_service,
+        "run_searxng_worker",
+        lambda request: pytest.fail("Internet OFF invoked the SearXNG worker"),
+    )
+
     payload = asyncio.run(
         search_bounded_public_research(
             {

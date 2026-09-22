@@ -298,6 +298,12 @@ def decide_cognition(value: GovernorInput) -> GovernorDecision:
         selected = override
         reasons.append("explicit_effort_override")
 
+    if selected == "reflex" and not value.stop_active and reflex_response(value.message) is None:
+        # Short prose is not necessarily an exact deterministic response.
+        # Preserve the request by earning a real model budget before routing.
+        selected = "quick"
+        reasons.append("no_exact_reflex_response_requires_model")
+
     words = set(_WORD.findall(value.message.casefold()))
     escalation: list[str] = []
     if words & _HIGH_STAKES:

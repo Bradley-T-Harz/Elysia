@@ -3483,9 +3483,9 @@ The avahi-compat-libdns_sd public header (avahi-compat-libdns_sd/dns_sd.h) is:
 
 ------------------------------------------------------------------------------
 Binary package: libblkid1
-Binary version: 2.39.3-9ubuntu6.5
+Binary version: 2.39.3-9ubuntu6.6
 Source package: util-linux
-Source version: 2.39.3-9ubuntu6.5
+Source version: 2.39.3-9ubuntu6.6
 Bundled files: libblkid.so.1
 Installed copyright record: /usr/share/doc/libblkid1/copyright
 
@@ -4636,9 +4636,9 @@ License: BSD-2-clause
 
 ------------------------------------------------------------------------------
 Binary package: libbz2-1.0
-Binary version: 1.0.8-5.1build0.1
+Binary version: 1.0.8-5.1ubuntu0.1
 Source package: bzip2
-Source version: 1.0.8-5.1build0.1
+Source version: 1.0.8-5.1ubuntu0.1
 Bundled files: libbz2.so.1.0
 Installed copyright record: /usr/share/doc/libbz2-1.0/copyright
 
@@ -8184,9 +8184,9 @@ License: GPL-3+
 
 ------------------------------------------------------------------------------
 Binary package: libgcrypt20
-Binary version: 1.10.3-2ubuntu0.1
+Binary version: 1.10.3-2ubuntu0.2
 Source package: libgcrypt20
-Source version: 1.10.3-2ubuntu0.1
+Source version: 1.10.3-2ubuntu0.2
 Bundled files: libgcrypt.so.20
 Installed copyright record: /usr/share/doc/libgcrypt20/copyright
 
@@ -9101,9 +9101,9 @@ License: LGPL-2.1+
 
 ------------------------------------------------------------------------------
 Binary package: libglib2.0-0t64
-Binary version: 2.80.0-6ubuntu3.8
+Binary version: 2.80.0-6ubuntu3.9
 Source package: glib2.0
-Source version: 2.80.0-6ubuntu3.8
+Source version: 2.80.0-6ubuntu3.9
 Bundled files: libgio-2.0.so.0, libgio-2.0.so.0.8000.0, libglib-2.0.so.0, libgmodule-2.0.so.0, libgobject-2.0.so.0, libgobject-2.0.so.0.8000.0
 Installed copyright record: /usr/share/doc/libglib2.0-0t64/copyright
 
@@ -10360,9 +10360,9 @@ License: Unicode-DFS-2016
 
 ------------------------------------------------------------------------------
 Binary package: libglib2.0-dev
-Binary version: 2.80.0-6ubuntu3.8
+Binary version: 2.80.0-6ubuntu3.9
 Source package: glib2.0
-Source version: 2.80.0-6ubuntu3.8
+Source version: 2.80.0-6ubuntu3.9
 Bundled files: libgio-2.0.so, libgobject-2.0.so
 Installed copyright record: /usr/share/doc/libglib2.0-dev/copyright
 
@@ -13091,9 +13091,9 @@ License: custom-sil-open-font-license
 
 ------------------------------------------------------------------------------
 Binary package: libgssapi-krb5-2
-Binary version: 1.20.1-6ubuntu2.8
+Binary version: 1.20.1-6ubuntu2.10
 Source package: krb5
-Source version: 1.20.1-6ubuntu2.8
+Source version: 1.20.1-6ubuntu2.10
 Bundled files: libgssapi_krb5.so.2
 Installed copyright record: /usr/share/doc/libgssapi-krb5-2/copyright
 
@@ -14474,9 +14474,9 @@ The Debian Packaging is licensed under the same terms as MIT Kerberos.
 
 ------------------------------------------------------------------------------
 Binary package: libgstreamer-gl1.0-0
-Binary version: 1.24.2-1ubuntu0.4
+Binary version: 1.24.2-1ubuntu0.5
 Source package: gst-plugins-base1.0
-Source version: 1.24.2-1ubuntu0.4
+Source version: 1.24.2-1ubuntu0.5
 Bundled files: libgstgl-1.0.so.0
 Installed copyright record: /usr/share/doc/libgstreamer-gl1.0-0/copyright
 
@@ -15599,9 +15599,9 @@ Public License can be found in `/usr/share/common-licenses/LGPL'.
 
 ------------------------------------------------------------------------------
 Binary package: libgstreamer-plugins-base1.0-0
-Binary version: 1.24.2-1ubuntu0.4
+Binary version: 1.24.2-1ubuntu0.5
 Source package: gst-plugins-base1.0
-Source version: 1.24.2-1ubuntu0.4
+Source version: 1.24.2-1ubuntu0.5
 Bundled files: libgstallocators-1.0.so.0, libgstapp-1.0.so.0, libgstaudio-1.0.so.0, libgstfft-1.0.so.0, libgstpbutils-1.0.so.0, libgsttag-1.0.so.0, libgstvideo-1.0.so.0
 Installed copyright record: /usr/share/doc/libgstreamer-plugins-base1.0-0/copyright
 
@@ -21342,9 +21342,9 @@ License: Unicode
 
 ------------------------------------------------------------------------------
 Binary package: libjavascriptcoregtk-4.1-0
-Binary version: 2.52.3-0ubuntu0.24.04.1
+Binary version: 2.52.6-0ubuntu0.24.04.1
 Source package: webkit2gtk
-Source version: 2.52.3-0ubuntu0.24.04.1
+Source version: 2.52.6-0ubuntu0.24.04.1
 Bundled files: libjavascriptcoregtk-4.1.so.0
 Installed copyright record: /usr/share/doc/libjavascriptcoregtk-4.1-0/copyright
 
@@ -27544,9 +27544,9 @@ License: Zlib
 
 ------------------------------------------------------------------------------
 Binary package: libk5crypto3
-Binary version: 1.20.1-6ubuntu2.8
+Binary version: 1.20.1-6ubuntu2.10
 Source package: krb5
-Source version: 1.20.1-6ubuntu2.8
+Source version: 1.20.1-6ubuntu2.10
 Bundled files: libk5crypto.so.3
 Installed copyright record: /usr/share/doc/libk5crypto3/copyright
 
@@ -28988,9 +28988,9 @@ License: LGPL-2+
 
 ------------------------------------------------------------------------------
 Binary package: libkrb5-3
-Binary version: 1.20.1-6ubuntu2.8
+Binary version: 1.20.1-6ubuntu2.10
 Source package: krb5
-Source version: 1.20.1-6ubuntu2.8
+Source version: 1.20.1-6ubuntu2.10
 Bundled files: libkrb5.so.3
 Installed copyright record: /usr/share/doc/libkrb5-3/copyright
 
@@ -30371,9 +30371,9 @@ The Debian Packaging is licensed under the same terms as MIT Kerberos.
 
 ------------------------------------------------------------------------------
 Binary package: libkrb5support0
-Binary version: 1.20.1-6ubuntu2.8
+Binary version: 1.20.1-6ubuntu2.10
 Source package: krb5
-Source version: 1.20.1-6ubuntu2.8
+Source version: 1.20.1-6ubuntu2.10
 Bundled files: libkrb5support.so.0
 Installed copyright record: /usr/share/doc/libkrb5support0/copyright
 
@@ -32701,9 +32701,9 @@ License: public-domain-sha1
 
 ------------------------------------------------------------------------------
 Binary package: libmount1
-Binary version: 2.39.3-9ubuntu6.5
+Binary version: 2.39.3-9ubuntu6.6
 Source package: util-linux
-Source version: 2.39.3-9ubuntu6.5
+Source version: 2.39.3-9ubuntu6.6
 Bundled files: libmount.so.1
 Installed copyright record: /usr/share/doc/libmount1/copyright
 
@@ -39208,9 +39208,9 @@ License: BSD-3-Clause
 
 ------------------------------------------------------------------------------
 Binary package: libsoup-3.0-0
-Binary version: 3.4.4-5ubuntu0.7
+Binary version: 3.4.4-5ubuntu0.8
 Source package: libsoup3
-Source version: 3.4.4-5ubuntu0.7
+Source version: 3.4.4-5ubuntu0.8
 Bundled files: libsoup-3.0.so.0
 Installed copyright record: /usr/share/doc/libsoup-3.0-0/copyright
 
@@ -39319,9 +39319,9 @@ License: RSA-Other
 
 ------------------------------------------------------------------------------
 Binary package: libsqlite3-0
-Binary version: 3.45.1-1ubuntu2.7
+Binary version: 3.45.1-1ubuntu2.8
 Source package: sqlite3
-Source version: 3.45.1-1ubuntu2.7
+Source version: 3.45.1-1ubuntu2.8
 Bundled files: libsqlite3.so.0
 Installed copyright record: /usr/share/doc/libsqlite3-0/copyright
 
@@ -41360,9 +41360,9 @@ License: X11
 
 ------------------------------------------------------------------------------
 Binary package: libwebkit2gtk-4.1-0
-Binary version: 2.52.3-0ubuntu0.24.04.1
+Binary version: 2.52.6-0ubuntu0.24.04.1
 Source package: webkit2gtk
-Source version: 2.52.3-0ubuntu0.24.04.1
+Source version: 2.52.6-0ubuntu0.24.04.1
 Bundled files: libwebkit2gtk-4.1.so.0
 Installed copyright record: /usr/share/doc/libwebkit2gtk-4.1-0/copyright
 
@@ -49068,9 +49068,9 @@ SOFTWARE.
 
 ------------------------------------------------------------------------------
 Binary package: libxml2
-Binary version: 2.9.14+dfsg-1.3ubuntu3.8
+Binary version: 2.9.14+dfsg-1.3ubuntu3.9
 Source package: libxml2
-Source version: 2.9.14+dfsg-1.3ubuntu3.8
+Source version: 2.9.14+dfsg-1.3ubuntu3.9
 Bundled files: libxml2.so.2
 Installed copyright record: /usr/share/doc/libxml2/copyright
 

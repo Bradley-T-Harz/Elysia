@@ -18,6 +18,9 @@ from .common import ApprovalState, ElysiaSchemaModel, LocalityState
 class ToolLedgerState(str, Enum):
     """
     Compact state vocabulary for one tool-ledger entry.
+
+    Availability, invocation and successful completion are distinct. Retain
+    the actual bounded operation outcome; ``used`` alone does not mean success.
     """
 
     AVAILABLE = "available"
@@ -27,6 +30,17 @@ class ToolLedgerState(str, Enum):
     UNAVAILABLE = "unavailable"
     DEGRADED = "degraded"
     UNKNOWN = "unknown"
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    NOT_NEEDED = "not_needed"
+    CLARIFICATION_REQUIRED = "clarification_required"
+    REFERENCE_REQUIRED = "reference_required"
+    UNSUPPORTED = "unsupported"
+    CONTRACT_ONLY = "contract_only"
+    DRY_RUN_READY = "dry_run_ready"
 
 
 class ToolBoundaryKind(str, Enum):
@@ -41,6 +55,9 @@ class ToolBoundaryKind(str, Enum):
     EXTERNAL_PUBLIC_WEB = "external_public_web"
     HOST_OR_SANDBOX = "host_or_sandbox"
     FILE_MUTATION = "file_mutation"
+    APPROVED_SCIENTIFIC_WORKSPACE = "approved_scientific_workspace"
+    TYPED_SCIENTIFIC_WORKFLOW = "typed_scientific_workflow"
+    PRIVATE_SNAPSHOT_OR_STATIC_WORKER = "private_snapshot_or_static_worker"
     UNKNOWN = "unknown"
 
 
@@ -82,6 +99,8 @@ class ToolLedgerEntry(ElysiaSchemaModel):
     workspace_root_hash: str | None = None
     relative_paths: list[str] = Field(default_factory=list)
     source_hash: str | None = None
+    parameter_hash: str | None = None
+    source_type_id: str | None = None
     plan_hash: str | None = None
     result_hash: str | None = None
     mutation_class: str | None = None
@@ -101,6 +120,13 @@ class ToolLedgerEntry(ElysiaSchemaModel):
     policy_version: str | None = None
     sandbox_files_written: bool = False
     project_files_mutated: bool = False
+    artifact_id: str | None = None
+    model_id: str | None = None
+    synthetic_media: bool = False
+    raw_content_logged: bool = False
+    runtime_seconds: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    peak_gpu_memory_mib: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    cancel_requested: bool = False
 
 
 class ToolLedgerSummary(ElysiaSchemaModel):

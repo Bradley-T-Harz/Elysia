@@ -28,10 +28,12 @@ from __future__ import annotations
 import hashlib
 import json
 import mimetypes
+import os
 import shutil
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from app.api.file_path_guard import guard_selected_file_path
 from app.api.file_text_extractors import extract_file_text
@@ -153,17 +155,157 @@ def _is_data_execution_kind(file_kind: FileKind) -> bool:
     return file_kind in SUPPORTED_DATA_FILE_KINDS
 
 
-def _compute_sha256(path: Path) -> str:
-    """
-    Compute a SHA-256 hash for a local file.
-    """
+class FileIngestCancelled(RuntimeError):
+    """Local file ingest was cancelled before authority commit."""
+
+
+def _cancel_requested(
+    cancel_check: Callable[[], bool] | None,
+) -> bool:
+    if cancel_check is None:
+        return False
+
+    try:
+        return bool(cancel_check())
+    except Exception:
+        # Cancellation authority fails closed.
+        return True
+
+
+def _compute_sha256(
+    path: Path,
+    *,
+    cancel_check: Callable[[], bool] | None = None,
+) -> str:
+    """Compute SHA-256 with cooperative cancellation."""
+
+    if _cancel_requested(cancel_check):
+        raise FileIngestCancelled("file_ingest_cancelled")
+
     digest = hashlib.sha256()
 
     with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
+        while True:
+            if _cancel_requested(cancel_check):
+                raise FileIngestCancelled("file_ingest_cancelled")
+
+            block = handle.read(1024 * 1024)
+
+            if not block:
+                break
+
             digest.update(block)
 
     return digest.hexdigest()
+
+
+def _copy_data_file_cancellable(
+    *,
+    source: Path,
+    target: Path,
+    expected_sha256: str,
+    cancel_check: Callable[[], bool] | None = None,
+) -> bool:
+    """Stage one complete file atomically.
+
+    Returns True when this call created the target. Existing identical governed
+    bytes are reused. A cancellation never commits a partial target.
+    """
+
+    if _cancel_requested(cancel_check):
+        raise FileIngestCancelled("file_ingest_cancelled")
+
+    if target.exists():
+        if target.is_symlink() or not target.is_file():
+            raise OSError("existing_ingest_target_boundary_invalid")
+
+        if target.stat().st_nlink != 1:
+            raise OSError("existing_ingest_target_hardlink_invalid")
+
+        existing_hash = _compute_sha256(
+            target,
+            cancel_check=cancel_check,
+        )
+
+        if existing_hash != expected_sha256:
+            raise OSError("existing_ingest_target_digest_mismatch")
+
+        return False
+
+    target.parent.mkdir(
+        mode=0o700,
+        parents=True,
+        exist_ok=True,
+    )
+    target.parent.chmod(0o700)
+
+    fd, temporary_name = tempfile.mkstemp(
+        dir=target.parent,
+        prefix=".scientific-ingest-",
+        suffix=".tmp",
+    )
+    os.close(fd)
+
+    temporary = Path(temporary_name)
+
+    try:
+        temporary.chmod(0o600)
+
+        with source.open("rb") as input_stream, temporary.open("wb") as output_stream:
+            while True:
+                if _cancel_requested(cancel_check):
+                    raise FileIngestCancelled("file_ingest_cancelled")
+
+                block = input_stream.read(1024 * 1024)
+
+                if not block:
+                    break
+
+                output_stream.write(block)
+
+            output_stream.flush()
+            os.fsync(output_stream.fileno())
+
+        staged_hash = _compute_sha256(
+            temporary,
+            cancel_check=cancel_check,
+        )
+
+        if staged_hash != expected_sha256:
+            raise OSError("staged_ingest_digest_mismatch")
+
+        if _cancel_requested(cancel_check):
+            raise FileIngestCancelled("file_ingest_cancelled")
+
+        # Atomic no-overwrite publication. The temporary hardlink is removed
+        # immediately, restoring the final governed file to link count 1.
+        try:
+            os.link(temporary, target)
+        except FileExistsError:
+            if target.is_symlink() or not target.is_file():
+                raise OSError("existing_ingest_target_boundary_invalid")
+
+            existing_hash = _compute_sha256(
+                target,
+                cancel_check=cancel_check,
+            )
+
+            if existing_hash != expected_sha256:
+                raise OSError("existing_ingest_target_digest_mismatch")
+
+            return False
+
+        temporary.unlink(missing_ok=True)
+        target.chmod(0o600)
+
+        if _cancel_requested(cancel_check):
+            target.unlink(missing_ok=True)
+            raise FileIngestCancelled("file_ingest_cancelled")
+
+        return True
+
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _build_file_id(sha256: str) -> str:
@@ -511,6 +653,7 @@ def _build_data_file_ingest_result(
     sha256: str,
     conversation_id: str | None,
     project_id: str | None,
+    cancel_check: Callable[[], bool] | None = None,
 ) -> FileIngestResult:
     """
     Register a CSV/XLSX file as a bounded local data-execution input.
@@ -527,7 +670,25 @@ def _build_data_file_ingest_result(
         )
 
         raw_copy_path = raw_dir / source.name
-        shutil.copy2(source, raw_copy_path)
+        created_copy = _copy_data_file_cancellable(
+            source=source,
+            target=raw_copy_path,
+            expected_sha256=sha256,
+            cancel_check=cancel_check,
+        )
+
+    except FileIngestCancelled:
+        return _blocked_result(
+            source_path=source,
+            error="file_ingest_cancelled",
+            file_kind=file_kind,
+            file_id=file_id,
+            size_bytes=size_bytes,
+            sha256=sha256,
+            conversation_id=conversation_id,
+            project_id=project_id,
+        )
+
     except OSError as exc:
         return _failed_result(
             source_path=source,
@@ -611,6 +772,21 @@ def _build_data_file_ingest_result(
         context_summary=context_summary,
     )
 
+    if _cancel_requested(cancel_check):
+        if created_copy:
+            raw_copy_path.unlink(missing_ok=True)
+
+        return _blocked_result(
+            source_path=source,
+            error="file_ingest_cancelled",
+            file_kind=file_kind,
+            file_id=file_id,
+            size_bytes=size_bytes,
+            sha256=sha256,
+            conversation_id=conversation_id,
+            project_id=project_id,
+        )
+
     try:
         _write_ingest_result_json(
             result_path=_ingest_result_path(
@@ -642,6 +818,7 @@ def attach_file(
     ingest_root: str | Path | None = None,
     max_size_bytes: int = DEFAULT_MAX_FILE_SIZE_BYTES,
     chunk_char_limit: int = DEFAULT_CHUNK_CHAR_LIMIT,
+    cancel_check: Callable[[], bool] | None = None,
 ) -> FileIngestResult:
     """
     Attach and ingest one explicit user-selected local file.
@@ -652,6 +829,15 @@ def attach_file(
     """
     source = Path(source_path).expanduser()
     ingest_base = Path(ingest_root) if ingest_root is not None else DEFAULT_INGEST_ROOT
+
+    if _cancel_requested(cancel_check):
+        return _blocked_result(
+            source_path=source,
+            error="file_ingest_cancelled",
+            file_kind=_detect_file_kind(source),
+            conversation_id=conversation_id,
+            project_id=project_id,
+        )
 
     guard = guard_selected_file_path(source_path, max_size_bytes=max_size_bytes)
     if not guard.allowed:
@@ -710,8 +896,20 @@ def attach_file(
         file_id: str | None = None
 
         try:
-            sha256 = _compute_sha256(source)
+            sha256 = _compute_sha256(
+                source,
+                cancel_check=cancel_check,
+            )
             file_id = _build_file_id(sha256)
+        except FileIngestCancelled:
+            return _blocked_result(
+                source_path=source,
+                error="file_ingest_cancelled",
+                file_kind=file_kind,
+                size_bytes=size_bytes,
+                conversation_id=conversation_id,
+                project_id=project_id,
+            )
         except OSError:
             pass
 
@@ -731,7 +929,19 @@ def attach_file(
         )
 
     try:
-        sha256 = _compute_sha256(source)
+        sha256 = _compute_sha256(
+            source,
+            cancel_check=cancel_check,
+        )
+    except FileIngestCancelled:
+        return _blocked_result(
+            source_path=source,
+            error="file_ingest_cancelled",
+            file_kind=file_kind,
+            size_bytes=size_bytes,
+            conversation_id=conversation_id,
+            project_id=project_id,
+        )
     except OSError as exc:
         return _failed_result(
             source_path=source,
@@ -750,6 +960,19 @@ def attach_file(
             ingest_base=ingest_base,
             file_id=file_id,
             file_kind=file_kind,
+            size_bytes=size_bytes,
+            sha256=sha256,
+            conversation_id=conversation_id,
+            project_id=project_id,
+            cancel_check=cancel_check,
+        )
+
+    if _cancel_requested(cancel_check):
+        return _blocked_result(
+            source_path=source,
+            error="file_ingest_cancelled",
+            file_kind=file_kind,
+            file_id=file_id,
             size_bytes=size_bytes,
             sha256=sha256,
             conversation_id=conversation_id,

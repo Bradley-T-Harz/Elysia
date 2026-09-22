@@ -7,6 +7,8 @@ receipts, response composition, and continuity journaling.  Legacy field names
 containing ``scaffold`` remain compatibility contracts, not alternate brains.
 """
 
+import json
+import time
 from dataclasses import dataclass, field, replace
 from typing import Any, Dict, List, Optional
 
@@ -18,11 +20,19 @@ from app.api.execution_service import (
     build_math_execution_context_block,
     run_math_execution,
 )
+from app.api.scientific_workspace_execution_service import (
+    run_scientific_workspace_execution,
+)
+from app.api.schemas.scientific_ir import ScientificFormulation, formulation_json_schema
+from app.api.scientific_workflow_service import run_scientific_workflow
 from app.api.schemas.execution import (
     ExecutionStatus,
     MathExecutionRequest,
 )
 from app.api.schemas.data_execution import DataExecutionRequest
+from app.api.schemas.scientific_workspace import (
+    ScientificWorkspaceExecutionRequest,
+)
 from app.cognition.workspace import build_global_working_workspace
 from app.cognition.compute_governor import (
     ComputeLedger,
@@ -312,6 +322,11 @@ def _build_model_routing_context_flags(
 
     if "audit_memory" in boundary_flags:
         flags.append("audit_memory_context")
+
+    if "bounded_local_scientific_execution" in boundary_flags:
+        flags.append("bounded_scientific_execution_present")
+    if "bounded_local_scientific_workflow" in boundary_flags:
+        flags.append("typed_scientific_workflow_present")
 
     if "bounded_repo_context" in boundary_flags:
         flags.append("bounded_repo_context_present")
@@ -656,6 +671,765 @@ def _run_bounded_data_execution_if_needed(
         context_block = ""
 
     return payload, context_block
+
+
+def _scientific_execution_result_to_payload(
+    result: Any,
+    *,
+    used: bool,
+) -> Dict[str, Any]:
+    """Convert one scientific workspace result into public-safe runtime truth."""
+
+    if result is None:
+        return {
+            "used": False,
+            "status": "not_needed",
+            "tool_kind": "scientificforge",
+            "project_id": "",
+            "workspace_root_hash": "",
+            "relative_path": "",
+            "source_type_id": "",
+            "source_category": "",
+            "staged_file_id": None,
+            "scientific_operation": "",
+            "scientific_job_id": None,
+            "result": {},
+            "provenance": {},
+            "source_mutated": False,
+            "network_used": False,
+            "shell_used": False,
+            "raw_absolute_path_exposed": False,
+            "warnings": [],
+            "errors": [],
+        }
+
+    if hasattr(result, "model_dump"):
+        payload = dict(
+            result.model_dump(
+                mode="json"
+            )
+        )
+    elif isinstance(result, dict):
+        payload = dict(result)
+    else:
+        payload = {
+            "status": str(
+                _enum_payload_value(
+                    getattr(
+                        result,
+                        "status",
+                        "failed",
+                    )
+                )
+            ),
+            "ok": bool(
+                getattr(
+                    result,
+                    "ok",
+                    False,
+                )
+            ),
+            "project_id": str(
+                getattr(
+                    result,
+                    "project_id",
+                    "",
+                )
+                or ""
+            ),
+            "workspace_root_hash": str(
+                getattr(
+                    result,
+                    "workspace_root_hash",
+                    "",
+                )
+                or ""
+            ),
+            "relative_path": str(
+                getattr(
+                    result,
+                    "relative_path",
+                    "",
+                )
+                or ""
+            ),
+            "source_type_id": str(
+                getattr(
+                    result,
+                    "source_type_id",
+                    "",
+                )
+                or ""
+            ),
+            "source_category": str(
+                getattr(
+                    result,
+                    "source_category",
+                    "",
+                )
+                or ""
+            ),
+            "staged_file_id": getattr(
+                result,
+                "staged_file_id",
+                None,
+            ),
+            "scientific_operation": str(
+                getattr(
+                    result,
+                    "scientific_operation",
+                    "",
+                )
+                or ""
+            ),
+            "scientific_job_id": getattr(
+                result,
+                "scientific_job_id",
+                None,
+            ),
+            "result": dict(
+                getattr(
+                    result,
+                    "result",
+                    {},
+                )
+                or {}
+            ),
+            "provenance": dict(
+                getattr(
+                    result,
+                    "provenance",
+                    {},
+                )
+                or {}
+            ),
+            "source_mutated": bool(
+                getattr(
+                    result,
+                    "source_mutated",
+                    False,
+                )
+            ),
+            "network_used": bool(
+                getattr(
+                    result,
+                    "network_used",
+                    False,
+                )
+            ),
+            "shell_used": bool(
+                getattr(
+                    result,
+                    "shell_used",
+                    False,
+                )
+            ),
+            "raw_absolute_path_exposed": bool(
+                getattr(
+                    result,
+                    "raw_absolute_path_exposed",
+                    False,
+                )
+            ),
+            "warnings": list(
+                getattr(
+                    result,
+                    "warnings",
+                    [],
+                )
+                or []
+            ),
+            "errors": list(
+                getattr(
+                    result,
+                    "errors",
+                    [],
+                )
+                or []
+            ),
+        }
+
+    payload["used"] = used
+    payload["tool_kind"] = "scientificforge"
+
+    payload["status"] = str(
+        _enum_payload_value(
+            payload.get(
+                "status",
+                "failed",
+            )
+        )
+        or "failed"
+    )
+
+    # Enforce the public-safe runtime projection even if a future result object
+    # accidentally grows internal path-bearing fields.
+    allowed = {
+        "used",
+        "status",
+        "ok",
+        "tool_kind",
+        "project_id",
+        "workspace_root_hash",
+        "relative_path",
+        "source_type_id",
+        "source_category",
+        "staged_file_id",
+        "scientific_operation",
+        "scientific_job_id",
+        "result",
+        "provenance",
+        "source_mutated",
+        "network_used",
+        "shell_used",
+        "raw_absolute_path_exposed",
+        "warnings",
+        "errors",
+    }
+
+    safe = {
+        key: value
+        for key, value in payload.items()
+        if key in allowed
+    }
+
+    safe["used"] = used
+    safe["tool_kind"] = "scientificforge"
+    safe["raw_absolute_path_exposed"] = False
+
+    safe.setdefault(
+        "source_mutated",
+        False,
+    )
+    safe.setdefault(
+        "network_used",
+        False,
+    )
+    safe.setdefault(
+        "shell_used",
+        False,
+    )
+    safe.setdefault(
+        "result",
+        {},
+    )
+    safe.setdefault(
+        "provenance",
+        {},
+    )
+    safe.setdefault(
+        "warnings",
+        [],
+    )
+    safe.setdefault(
+        "errors",
+        [],
+    )
+
+    return safe
+
+
+def _build_scientific_execution_request_from_plan(
+    *,
+    plan: Dict[str, Any],
+    context: Dict[str, Any],
+) -> ScientificWorkspaceExecutionRequest | None:
+    """Build a scientific request without trusting a root from planner output."""
+
+    if not _coerce_bool(
+        plan.get(
+            "bounded_scientific_execution_candidate",
+            False,
+        ),
+        False,
+    ):
+        return None
+
+    project_id = str(
+        context.get(
+            "project_id",
+            "",
+        )
+        or ""
+    ).strip()
+
+    selection = context.get(
+        "scientific_workspace_selection"
+    )
+
+    if not project_id or not isinstance(
+        selection,
+        dict,
+    ):
+        return None
+
+    # Root authority remains request-context-only. The planner never carries it.
+    workspace_root = str(
+        selection.get(
+            "workspace_root",
+            "",
+        )
+        or ""
+    ).strip()
+
+    selected_relative_path = str(
+        selection.get(
+            "relative_path",
+            "",
+        )
+        or ""
+    ).strip()
+
+    planned_relative_path = str(
+        plan.get(
+            "scientific_workspace_relative_path",
+            "",
+        )
+        or ""
+    ).strip()
+
+    if (
+        not workspace_root
+        or not selected_relative_path
+        or not planned_relative_path
+        or selected_relative_path
+        != planned_relative_path
+    ):
+        return None
+
+    operation = str(
+        plan.get(
+            "scientific_execution_operation",
+            "",
+        )
+        or ""
+    ).strip()
+
+    if not operation:
+        return None
+
+    return ScientificWorkspaceExecutionRequest(
+        project_id=project_id,
+        workspace_root=workspace_root,
+        relative_path=planned_relative_path,
+        operation=operation,
+        request_id=str(
+            context.get(
+                "request_id",
+                "",
+            )
+            or ""
+        )
+        or None,
+        columns=_coerce_string_list(
+            plan.get(
+                "scientific_execution_columns",
+                [],
+            )
+        )[:16],
+        seed=plan.get(
+            "scientific_execution_seed"
+        ),
+        bootstrap_samples=int(
+            plan.get(
+                "scientific_execution_bootstrap_samples",
+                10_000,
+            )
+            or 10_000
+        ),
+        confidence_level=float(
+            plan.get(
+                "scientific_execution_confidence_level",
+                0.95,
+            )
+            or 0.95
+        ),
+    )
+
+
+def _should_run_bounded_scientific_execution(
+    *,
+    plan: Dict[str, Any],
+    policy_review: Dict[str, Any],
+) -> bool:
+    """Return whether the approved-workspace ScientificForge lane may run."""
+
+    if codev_context() is not None:
+        return False
+
+    if not _coerce_bool(
+        plan.get(
+            "bounded_scientific_execution_candidate",
+            False,
+        ),
+        False,
+    ):
+        return False
+
+    if not _coerce_bool(
+        policy_review.get(
+            "allowed",
+            False,
+        ),
+        False,
+    ):
+        return False
+
+    boundary_flags = _coerce_string_list(
+        policy_review.get(
+            "boundary_flags",
+            [],
+        )
+    )
+
+    return (
+        "bounded_local_scientific_execution"
+        in boundary_flags
+    )
+
+
+def _build_scientific_execution_context_block(
+    payload: Dict[str, Any],
+) -> str:
+    """Build compact model-facing scientific truth without filesystem roots."""
+
+    if not isinstance(
+        payload,
+        dict,
+    ):
+        return ""
+
+    if not payload.get(
+        "used",
+        False,
+    ):
+        return ""
+
+    lines = [
+        "Governed ScientificForge result:",
+        (
+            "- Status: "
+            + str(
+                payload.get(
+                    "status",
+                    "unknown",
+                )
+            )
+        ),
+        (
+            "- Operation: "
+            + str(
+                payload.get(
+                    "scientific_operation",
+                    "",
+                )
+            )
+        ),
+        (
+            "- Source: "
+            + str(
+                payload.get(
+                    "relative_path",
+                    "",
+                )
+            )
+        ),
+        (
+            "- Source type: "
+            + str(
+                payload.get(
+                    "source_type_id",
+                    "",
+                )
+            )
+        ),
+        (
+            "- Source category: "
+            + str(
+                payload.get(
+                    "source_category",
+                    "",
+                )
+            )
+        ),
+        (
+            "- Source mutated: "
+            + str(
+                bool(
+                    payload.get(
+                        "source_mutated",
+                        False,
+                    )
+                )
+            ).lower()
+        ),
+        (
+            "- Network used: "
+            + str(
+                bool(
+                    payload.get(
+                        "network_used",
+                        False,
+                    )
+                )
+            ).lower()
+        ),
+        (
+            "- Shell used: "
+            + str(
+                bool(
+                    payload.get(
+                        "shell_used",
+                        False,
+                    )
+                )
+            ).lower()
+        ),
+        (
+            "- Raw absolute path exposed: false"
+        ),
+    ]
+
+    result_payload = payload.get(
+        "result",
+        {},
+    )
+
+    if isinstance(
+        result_payload,
+        dict,
+    ) and result_payload:
+        lines.append(
+            "- Result: "
+            + json.dumps(
+                result_payload,
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        )
+
+    provenance = payload.get(
+        "provenance",
+        {},
+    )
+
+    if isinstance(
+        provenance,
+        dict,
+    ) and provenance:
+        parameter_hash = str(
+            provenance.get(
+                "parameter_sha256",
+                "",
+            )
+            or ""
+        )
+        result_hash = str(
+            provenance.get(
+                "result_sha256",
+                "",
+            )
+            or ""
+        )
+
+        if parameter_hash:
+            lines.append(
+                "- Parameter SHA-256: "
+                + parameter_hash
+            )
+
+        if result_hash:
+            lines.append(
+                "- Result SHA-256: "
+                + result_hash
+            )
+
+    warnings = _coerce_string_list(
+        payload.get(
+            "warnings",
+            [],
+        )
+    )
+
+    errors = _coerce_string_list(
+        payload.get(
+            "errors",
+            [],
+        )
+    )
+
+    if warnings:
+        lines.append(
+            "- Warnings: "
+            + " | ".join(
+                warnings[:8]
+            )
+        )
+
+    if errors:
+        lines.append(
+            "- Errors: "
+            + " | ".join(
+                errors[:8]
+            )
+        )
+
+    return "\n".join(lines)
+
+
+def _run_bounded_scientific_execution_if_needed(
+    *,
+    plan: Dict[str, Any],
+    policy_review: Dict[str, Any],
+    context: Dict[str, Any],
+) -> tuple[Dict[str, Any], str]:
+    """Run one governed approved-workspace ScientificForge operation."""
+
+    if not _should_run_bounded_scientific_execution(
+        plan=plan,
+        policy_review=policy_review,
+    ):
+        return (
+            _scientific_execution_result_to_payload(
+                None,
+                used=False,
+            ),
+            "",
+        )
+
+    try:
+        request = (
+            _build_scientific_execution_request_from_plan(
+                plan=plan,
+                context=context,
+            )
+        )
+    except (
+        TypeError,
+        ValueError,
+    ) as exc:
+        failed = {
+            "used": True,
+            "status": "failed",
+            "ok": False,
+            "tool_kind": "scientificforge",
+            "project_id": str(
+                context.get(
+                    "project_id",
+                    "",
+                )
+                or ""
+            ),
+            "workspace_root_hash": "",
+            "relative_path": str(
+                plan.get(
+                    "scientific_workspace_relative_path",
+                    "",
+                )
+                or ""
+            ),
+            "source_type_id": "",
+            "source_category": "",
+            "staged_file_id": None,
+            "scientific_operation": str(
+                plan.get(
+                    "scientific_execution_operation",
+                    "",
+                )
+                or ""
+            ),
+            "scientific_job_id": None,
+            "result": {},
+            "provenance": {},
+            "source_mutated": False,
+            "network_used": False,
+            "shell_used": False,
+            "raw_absolute_path_exposed": False,
+            "warnings": [],
+            "errors": [
+                "Scientific execution request construction failed: "
+                + str(exc)
+            ],
+        }
+
+        return (
+            failed,
+            _build_scientific_execution_context_block(
+                failed
+            ),
+        )
+
+    if request is None:
+        failed = {
+            "used": True,
+            "status": "failed",
+            "ok": False,
+            "tool_kind": "scientificforge",
+            "project_id": str(
+                context.get(
+                    "project_id",
+                    "",
+                )
+                or ""
+            ),
+            "workspace_root_hash": "",
+            "relative_path": str(
+                plan.get(
+                    "scientific_workspace_relative_path",
+                    "",
+                )
+                or ""
+            ),
+            "source_type_id": "",
+            "source_category": "",
+            "staged_file_id": None,
+            "scientific_operation": str(
+                plan.get(
+                    "scientific_execution_operation",
+                    "",
+                )
+                or ""
+            ),
+            "scientific_job_id": None,
+            "result": {},
+            "provenance": {},
+            "source_mutated": False,
+            "network_used": False,
+            "shell_used": False,
+            "raw_absolute_path_exposed": False,
+            "warnings": [],
+            "errors": [
+                "Scientific execution candidate was missing its project-bound approved workspace selection."
+            ],
+        }
+
+        return (
+            failed,
+            _build_scientific_execution_context_block(
+                failed
+            ),
+        )
+
+    result = (
+        run_scientific_workspace_execution(
+            request
+        )
+    )
+
+    payload = (
+        _scientific_execution_result_to_payload(
+            result,
+            used=True,
+        )
+    )
+
+    return (
+        payload,
+        _build_scientific_execution_context_block(
+            payload
+        ),
+    )
 
 
 def _repo_context_result_to_payload(result: Any, *, used: bool) -> Dict[str, Any]:
@@ -1413,6 +2187,8 @@ def _merge_request_context_into_gathered_context(
     passthrough_keys = (
         "attached_context",
         "attached_data_files",
+        # Selection is a hint; the scientific workspace service owns authority.
+        "scientific_workspace_selection",
         "attached_file_ids",
         "attached_files_are_memory",
         "attached_files_source",
@@ -1530,6 +2306,40 @@ def _build_mode_data_guidance_block(mode: str) -> str:
     return "\n".join(lines)
 
 
+def _build_mode_scientific_guidance_block(
+    mode: str,
+) -> str:
+    """Build compact model guidance for governed ScientificForge evidence."""
+
+    normalized_mode = str(
+        mode or "default"
+    ).strip().lower()
+
+    lines = [
+        "Mode-specific governed scientific response guidance:",
+        f"Mode: {normalized_mode}",
+        "ScientificForge rules:",
+        "- Treat the ScientificForge payload as governed local compute evidence, not as permission to perform additional computation.",
+        "- Report only operations and results actually present in the receipt.",
+        "- Preserve provenance hashes when they materially support reproducibility.",
+        "- Do not claim shell, network, notebook, arbitrary Python, source mutation, or unsupported scientific operations.",
+        "- Do not infer that a supported file format implies a ScientificForge operation exists for that format.",
+        "- If status is blocked, failed, or cancelled, say so instead of fabricating a result.",
+    ]
+
+    if normalized_mode == "researcher":
+        lines.append(
+            "- Distinguish computed results from interpretation and from outside evidence."
+        )
+
+    if normalized_mode == "tutor":
+        lines.append(
+            "- Explain the computed quantities without pretending the computation included analyses that were not run."
+        )
+
+    return "\n".join(lines)
+
+
 def _build_profile_context_block(context: Dict[str, Any]) -> str:
     """
     Build model-facing context from only the account visible projection.
@@ -1609,6 +2419,7 @@ def _build_model_context_summary(
     context: Dict[str, Any],
     math_execution_context_block: str,
     data_execution_context_block: str = "",
+    scientific_execution_context_block: str = "",
     repo_context_context_block: str = "",
     code_patch_plan_context_block: str = "",
     aider_worker_context_block: str = "",
@@ -1650,6 +2461,16 @@ def _build_model_context_summary(
     if data_execution_context_block:
         parts.append(_build_mode_data_guidance_block(mode))
         parts.append(data_execution_context_block)
+
+    if scientific_execution_context_block:
+        parts.append(
+            _build_mode_scientific_guidance_block(
+                mode
+            )
+        )
+        parts.append(
+            scientific_execution_context_block
+        )
 
     if (
         str(mode or "").strip().lower() in {"coder", "coding"}
@@ -1826,6 +2647,132 @@ def build_runtime_journal_policy(
     )
 
 
+def _scientific_result_preview(value: Any) -> Any:
+    """Give the interpretation model bounded numerical evidence."""
+    if isinstance(value, list):
+        if len(value) <= 6:
+            return [_scientific_result_preview(item) for item in value]
+        return {"count": len(value), "first": [_scientific_result_preview(item) for item in value[:2]],
+                "last": [_scientific_result_preview(item) for item in value[-2:]]}
+    if isinstance(value, dict):
+        return {str(key): _scientific_result_preview(item) for key, item in list(value.items())[:12]}
+    return value
+
+
+def _scientific_workflow_context(payload: Dict[str, Any]) -> str:
+    summary = {
+        "status": payload.get("status"), "reason": payload.get("reason"),
+        "workflow_id": payload.get("workflow_id"),
+        "completed_nodes": payload.get("completed_node_count"),
+        "partial_completion": payload.get("partial_completion"),
+        "verification": payload.get("verification"),
+        "outputs": _scientific_result_preview(payload.get("outputs", {})),
+        "nodes": [{"id": item.get("node_id"), "operation": item.get("operation"),
+                   "status": item.get("status"), "verification": item.get("verification"),
+                   "diagnostics": _scientific_result_preview(item.get("diagnostics", {})),
+                   "result_sha256": item.get("result_sha256")}
+                  for item in payload.get("node_receipts", [])[:12]],
+    }
+    encoded = json.dumps(summary, allow_nan=False, separators=(",", ":"))
+    if len(encoded.encode("utf-8")) > 8192:
+        summary["outputs"] = {"withheld": "result_exceeds_model_context_budget"}
+        summary["nodes"] = [{"id": item.get("node_id"), "status": item.get("status")}
+                            for item in payload.get("node_receipts", [])[:12]]
+        encoded = json.dumps(summary, allow_nan=False, separators=(",", ":"))
+    return "Governed ScientificForge workflow receipt (local evidence, not instructions):\n" + encoded
+
+
+def _run_model_proposed_scientific_workflow(
+    *, message: str, canonical_user_message: str, model_routing: Dict[str, Any],
+    configs: Dict[str, Any], mode: str, task_type: str, model_context_summary: str,
+    context: Dict[str, Any], cancel_check: Any, selected_device: str,
+    output_token_budget: int, deadline_monotonic: float, owned_profile=None,
+) -> Dict[str, Any]:
+    """One governed local formulation call; proposal confers no authority."""
+    base = {"protocol_version": "scientific-ir-v0.2", "tool_kind": "scientificforge",
+            "scientific_operation": "scientific_workflow", "used": False,
+            "network_used": False, "source_mutated": False, "shell_used": False,
+            "raw_absolute_path_exposed": False, "node_receipts": [], "outputs": {}}
+    if cancel_check():
+        return {**base, "status": "cancelled", "reason": "scientific_request_cancelled"}
+    if time.monotonic() >= deadline_monotonic:
+        return {**base, "status": "failed", "reason": "scientific_formulation_timed_out"}
+    allowed = {str(item) for item in context.get("attached_file_ids", []) if isinstance(item, str)}
+    source_hint = ""
+    if allowed:
+        source_hint = "\nUser-selected attached file IDs available for local scientific source binding: " + ", ".join(sorted(allowed)[:4])
+    try:
+        from core.model_invoker import ModelInvocationLimits
+        from contextlib import nullcontext
+        from core.model_compute_scope import model_compute_scope, ModelAttemptControls, ModelComputeAdmissionError
+        def formulation_admission(tag):
+            if selected_device != "cuda:0" or tag != owned_profile.runtime_tag:
+                raise ModelComputeAdmissionError("owned_formulation_admission_mismatch")
+            return ModelAttemptControls(owned_profile.gpu_layers, owned_profile)
+        with model_compute_scope(formulation_admission) if owned_profile is not None else nullcontext():
+            proposal = invoke_model(
+                message=canonical_user_message + source_hint,
+                model_routing_decision=model_routing, configs=configs,
+                mode=mode, task_type=task_type, context_summary="",
+                conversation_messages=None, cancel_check=cancel_check,
+                stream_transport=True,
+                num_gpu=0 if selected_device == "cpu" else None,
+                max_output_tokens=max(1, min(2048, output_token_budget)),
+                timeout_s=max(0.1, min(60.0, deadline_monotonic - time.monotonic())),
+                scientific_schema=formulation_json_schema(),
+                limits=ModelInvocationLimits(
+                    admitted_runtime_tag=str(model_routing.get("selected_runtime_tag") or ""),
+                    require_gpu=selected_device.startswith("cuda")),
+            )
+    except Exception:
+        return {**base, "status": "failed", "reason": "scientific_formulation_model_unavailable"}
+    if cancel_check():
+        return {**base, "status": "cancelled", "reason": "scientific_request_cancelled"}
+    base["formulation_receipt"] = {
+        "status": proposal.get("status"), "selected_role": proposal.get("selected_role"),
+        "model": proposal.get("selected_model_runtime_tag"), "requested_device": selected_device,
+        "execution_controls": proposal.get("execution_controls", {}),
+        "provider_metadata": proposal.get("provider_metadata", {}),
+        "resource_guard": proposal.get("resource_guard", {}),
+        "unrelated_context_included": False,
+    }
+    if proposal.get("status") != "ok":
+        reasons = proposal.get("block_reasons") or []
+        timed_out = ("local_invocation_deadline_exceeded" in reasons or
+                     bool((proposal.get("provider_metadata") or {}).get("timeout")))
+        cancelled = "operator_cancelled" in reasons or cancel_check()
+        resource_limited = bool((proposal.get("provider_metadata") or {}).get("resource_limited"))
+        return {**base, "status": "cancelled" if cancelled else "failed",
+                "reason": ("scientific_request_cancelled" if cancelled else
+                           "scientific_formulation_timed_out" if timed_out else
+                           "scientific_formulation_resource_limited" if resource_limited else
+                           "scientific_formulation_model_unavailable"),
+                "formulation_model_status": str(proposal.get("status") or "unknown")}
+    raw = proposal.get("response_text")
+    if not isinstance(raw, str) or len(raw.encode("utf-8")) > 512 * 1024:
+        return {**base, "status": "blocked", "reason": "scientific_formulation_invalid"}
+    try:
+        formulation = ScientificFormulation.model_validate_json(raw)
+    except Exception:
+        return {**base, "status": "blocked", "reason": "scientific_formulation_invalid"}
+    if formulation.status != "proposed":
+        return {**base, "status": formulation.status,
+                "reason": "scientific_formulation_" + formulation.status}
+    outcome = run_scientific_workflow(
+        formulation.workflow.model_dump(mode="json"),
+        allowed_file_ids=allowed,
+        original_message=canonical_user_message,
+        project_id=str(context.get("project_id") or "") or None,
+        request_id=str(context.get("request_id") or "") or None,
+        parent_cancel_check=cancel_check,
+        deadline_monotonic=deadline_monotonic,
+    )
+    return {**base, **outcome, "scientific_operation": "scientific_workflow",
+            "result": outcome.get("outputs", {}),
+            "errors": [] if outcome.get("status") == "completed" else [outcome.get("reason", "scientific_workflow_failed")],
+            "formulation_model_status": "ok"}
+
+
 def handle_user_message(
     message: str,
     session_state: SessionState,
@@ -1847,14 +2794,16 @@ def handle_user_message(
     11. refine memory-class policy using boundary flags
     12. rebuild plan with refined memory-class policy
     13. review final plan through policy gate
-    14. run bounded local math execution when narrowly planned and allowed
-    15. build model-routing decision
-    16. build effective journal policy
-    17. invoke the local model through the dedicated invoker
-    18. verify tool/evidence/compute/privacy and result coherence at gear depth
-    19. compose a response using live invoker output or the established bounded fallback contract
-    20. write runtime log
-    21. write policy-governed session journal entry
+    14. run bounded local math/data/scientific execution when narrowly planned and allowed
+    15. record tool mismatch and uncertainty truth
+    16. build model-routing decision
+    17. build effective journal policy
+    18. invoke the local model through the dedicated invoker
+    19. attach governed tool/research/compute receipts to the internal result
+    20. verify tool/evidence/compute/privacy and result coherence at gear depth
+    21. compose a response using live invoker output or the established bounded fallback contract
+    22. write runtime log
+    23. write policy-governed session journal entry
     """
     configs = load_all_configs()
     skills = load_all_skills()
@@ -2195,13 +3144,28 @@ def handle_user_message(
             )
             policy_review = evaluate_plan(plan)
 
-    math_execution, math_execution_context_block = _run_bounded_math_execution_if_needed(
-        plan=plan,
-        policy_review=policy_review,
-    )
+    if plan.get("bounded_scientific_workflow_candidate"):
+        # One request selects one math execution lane. Legacy direct math stays
+        # intact for requests that did not select typed ScientificForge.
+        math_execution, math_execution_context_block = _math_execution_result_to_payload(None, used=False), ""
+    else:
+        math_execution, math_execution_context_block = _run_bounded_math_execution_if_needed(
+            plan=plan,
+            policy_review=policy_review,
+        )
     data_execution, data_execution_context_block = _run_bounded_data_execution_if_needed(
         plan=plan,
         policy_review=policy_review,
+    )
+    scientific_execution, scientific_execution_context_block = (
+        _run_bounded_scientific_execution_if_needed(
+            plan=plan,
+            policy_review=policy_review,
+            context={
+                **context,
+                "request_id": workspace_request_id,
+            },
+        )
     )
     repo_context, repo_context_context_block = _run_repo_context_if_needed(
         plan=plan,
@@ -2220,13 +3184,21 @@ def handle_user_message(
     tool_checks = (
         (bool(plan.get("bounded_math_execution_candidate")), math_execution),
         (bool(plan.get("bounded_data_execution_candidate")), data_execution),
+        (
+            bool(
+                plan.get(
+                    "bounded_scientific_execution_candidate"
+                )
+            ),
+            scientific_execution,
+        ),
         (bool(plan.get("repo_context_candidate")), repo_context),
         (bool(plan.get("code_patch_plan_candidate")), code_patch_plan),
     )
     tool_mismatch = any(
         required
         and str(payload.get("status") or "").casefold()
-        in {"blocked", "failed", "error", "unavailable"}
+        in {"blocked", "failed", "error", "unavailable", "cancelled"}
         for required, payload in tool_checks
         if isinstance(payload, dict)
     )
@@ -2267,7 +3239,9 @@ def handle_user_message(
         ),
         reasoning_gear=governor.selected_gear,
         performance_preference=str(
-            context.get("model_performance_preference") or "balanced"
+            "resource" if plan.get("bounded_scientific_workflow_candidate")
+            and context.get("model_performance_preference", "balanced") in {None, "balanced", "resource"}
+            else context.get("model_performance_preference") or "balanced"
         ),
         model_health=measured_model_health,
         ram_mb_ceiling=int(context.get("ram_mb_ceiling") or 16384),
@@ -2276,6 +3250,12 @@ def handle_user_message(
     invocation_target = resolve_invocation_target(model_routing, configs)
     final_runtime_tag = str(invocation_target.get("runtime_tag") or model_routing.get("selected_target") or "unknown-local-model")
     final_context_window = int(invocation_target.get("context_window") or 32768)
+    from core.owned_model_provider import qualified_profile
+    owned_profile = (qualified_profile(configs, final_runtime_tag, measured_model_health, measured_resource_state)
+                     if codev_context() is None and governor.selected_gear != "reflex"
+                     and context.get("compute_preference") != "cpu" else None)
+    if owned_profile is not None:
+        final_context_window = min(final_context_window, owned_profile.context_tokens)
     if (
         final_runtime_tag != workspace.model_runtime_tag
         or final_context_window != workspace.model_context_window
@@ -2316,6 +3296,8 @@ def handle_user_message(
         else model_resource_estimate(measured_model_health, final_runtime_tag)
     )
     configured_vram_ceiling = context.get("vram_mb_ceiling")
+    if owned_profile is not None and governor.selected_gear != "reflex":
+        model_resources = owned_profile.estimate(model_resources)
     vram_ceiling = int(
         12288 if configured_vram_ceiling is None else configured_vram_ceiling
     )
@@ -2336,7 +3318,7 @@ def handle_user_message(
             batchable=False,
             cancellable=True,
             preemptible=False,
-            cpu_fallback_allowed=True,
+            cpu_fallback_allowed=owned_profile is None,
             required_model=None if governor.selected_gear == "reflex" else final_runtime_tag,
             required_resources=("local_ollama",) if governor.selected_gear != "reflex" else ("deterministic_core",),
             hard_vram_limit_mb=vram_ceiling,
@@ -2385,12 +3367,49 @@ def handle_user_message(
         context=context,
         math_execution_context_block=math_execution_context_block,
         data_execution_context_block=data_execution_context_block,
+        scientific_execution_context_block=scientific_execution_context_block,
         repo_context_context_block=repo_context_context_block,
         code_patch_plan_context_block=code_patch_plan_context_block,
         aider_worker_context_block=aider_worker_context_block,
         mode=mode,
         plan=plan,
     )
+    scientific_phase_deadline: float | None = None
+    if plan.get("bounded_scientific_workflow_candidate"):
+        allowed_workflow = (
+            policy_review.get("allowed") is True
+            and "bounded_local_scientific_workflow" in policy_review.get("boundary_flags", [])
+            and not plan.get("hard_blocked_request")
+            and codev_context() is None
+            and str(research.get("state") or "") != "approval_required"
+            and compute_decision.decision not in {"rejected", "deferred"}
+            and governor.selected_gear != "reflex"
+            and not stop_active and not cancel_event.is_set()
+        )
+        if allowed_workflow:
+            scientific_phase_deadline = time.monotonic() + 150.0
+            scientific_execution = _run_model_proposed_scientific_workflow(
+                message=message,
+                canonical_user_message=str(context.get("public_research_question") or message),
+                model_routing=model_routing, configs=configs,
+                mode=mode, task_type=model_routing_task_type,
+                model_context_summary=model_context_summary,
+                context={**context, "request_id": workspace_request_id},
+                cancel_check=cancel_event.is_set,
+                selected_device=compute_decision.selected_device,
+                output_token_budget=governor.output_token_budget,
+                deadline_monotonic=scientific_phase_deadline, owned_profile=owned_profile,
+            )
+        else:
+            scientific_execution = {
+                "protocol_version": "scientific-ir-v0.2", "tool_kind": "scientificforge",
+                "scientific_operation": "scientific_workflow", "used": False,
+                "status": "cancelled" if stop_active or cancel_event.is_set() else "blocked",
+                "reason": "scientific_request_cancelled" if stop_active or cancel_event.is_set() else "scientific_formulation_not_admitted",
+                "network_used": False, "source_mutated": False, "shell_used": False,
+                "raw_absolute_path_exposed": False, "node_receipts": [], "outputs": {},
+            }
+        model_context_summary += "\n\n" + _scientific_workflow_context(scientific_execution)
 
     journal_policy = build_runtime_journal_policy(
         session_state,
@@ -2512,6 +3531,18 @@ def handle_user_message(
                 "action."
             ),
         }
+    elif scientific_execution.get("reason") == "scientific_formulation_resource_limited":
+        # A safety trip is terminal for this owned request. Do not start a new
+        # interpretation inference (or provider fallback) after the cutoff.
+        internal_result = {
+            "status": "blocked", "allowed": False, "stayed_local": True,
+            "response_text": "", "error": "Scientific formulation stopped at a resource safety boundary.",
+            "block_reasons": ["local_resource_safety_cutoff"],
+            "provider_metadata": {"resource_limited": True},
+            "selected_role": model_routing.get("selected_role", ""),
+            "selected_model_runtime_tag": final_runtime_tag,
+            "used_fallback": False, "latency_ms": 0,
+        }
     elif _coerce_bool(aider_worker.get("used", False), False):
         aider_status = str(aider_worker.get("status", "") or "").strip().lower()
         internal_result = {
@@ -2555,10 +3586,90 @@ def handle_user_message(
             "num_gpu": (0 if compute_decision.selected_device == "cpu" else None),
             "max_output_tokens": governor.output_token_budget,
         }
+        if scientific_phase_deadline is not None:
+            from core.model_invoker import ModelInvocationLimits
+            invocation_kwargs["timeout_s"] = max(0, min(60.0, scientific_phase_deadline - time.monotonic()))
+            invocation_kwargs["limits"] = ModelInvocationLimits(
+                admitted_runtime_tag=final_runtime_tag,
+                require_gpu=compute_decision.selected_device.startswith("cuda"))
+            invocation_kwargs["max_output_tokens"] = min(2048, governor.output_token_budget)
+        from core.model_compute_scope import model_compute_scope, ModelComputeAdmissionError, ModelAttemptControls
+        admitted_tag = final_runtime_tag
+        attempt_receipts = []
+        initial_workload = WorkloadDescriptor(**compute_decision.workload)
+
+        def prepare_model_attempt(runtime_tag):
+            nonlocal compute_decision, admitted_tag, owned_profile
+            if cancel_event.is_set() or emergency_active():
+                raise ModelComputeAdmissionError("operator_cancelled")
+            if runtime_tag != admitted_tag:
+                # A finished/failed provider attempt cannot lend its reservation
+                # to a different model. Retire it before fresh measured admission.
+                ledger = ComputeLedger()
+                if compute_decision.lease_id:
+                    ledger.release(compute_decision.lease_id, reason="provider_model_change")
+                if compute_decision.reservation_id:
+                    ledger.release_job(compute_decision.reservation_id, reason="provider_model_change")
+                inventory = ModelRegistry().snapshot()
+                fresh_state = resource_snapshot()
+                resources = model_resource_estimate(inventory, runtime_tag)
+                owned_profile = (qualified_profile(configs, runtime_tag, inventory, fresh_state)
+                                 if codev_context() is None and context.get("compute_preference") != "cpu" else None)
+                if owned_profile is not None:
+                    resources = owned_profile.estimate(resources)
+                if resources.get("measurement_source") == "model_inventory_unavailable_cpu_safe_default":
+                    compute_decision = replace(compute_decision,
+                        decision="rejected", selected_device="none", lease_id=None,
+                        reservation_id=None, observed_vram_mb=None,
+                        workload={**compute_decision.workload, "required_model": runtime_tag,
+                                  "estimate_source": "unavailable"},
+                        reasons=("fallback_model_resource_estimate_unavailable",))
+                    attempt_receipts.append({"runtime_tag": runtime_tag,
+                        "decision": "rejected", "selected_device": "none",
+                        "reservation_id": None, "lease_id": None,
+                        "reasons": list(compute_decision.reasons)})
+                    raise ModelComputeAdmissionError("fallback_model_resource_estimate_unavailable")
+                compute_decision = decide_compute(
+                    replace(initial_workload, required_model=runtime_tag,
+                        cpu_fallback_allowed=owned_profile is None,
+                        estimated_ram_mb=int(resources["estimated_ram_mb"]),
+                        estimated_vram_mb=int(resources["estimated_vram_mb"]),
+                        incremental_vram_mb=int(resources["incremental_vram_mb"]),
+                        estimate_source=str(resources["measurement_source"])),
+                    preference=str(context.get("compute_preference") or "automatic"),
+                    cpu_percent_ceiling=int(context.get("cpu_percent_ceiling") or 85),
+                    ram_mb_ceiling=int(context.get("ram_mb_ceiling") or 16384),
+                    vram_mb_ceiling=vram_ceiling,
+                    max_background_jobs=int(2 if context.get("max_background_jobs") is None
+                                            else context["max_background_jobs"]),
+                    stop_active=cancel_event.is_set() or emergency_active(),
+                    resource_state=fresh_state,
+                )
+                admitted_tag = runtime_tag
+            attempt_receipts.append({"runtime_tag": runtime_tag,
+                "decision": compute_decision.decision,
+                "selected_device": compute_decision.selected_device,
+                "reservation_id": compute_decision.reservation_id,
+                "lease_id": compute_decision.lease_id,
+                "reasons": list(compute_decision.reasons)})
+            if compute_decision.decision in {"rejected", "deferred"}:
+                raise ModelComputeAdmissionError(";".join(compute_decision.reasons))
+            if owned_profile is not None:
+                if compute_decision.selected_device != "cuda:0":
+                    raise ModelComputeAdmissionError("qualified_owned_profile_requires_gpu_admission")
+                return ModelAttemptControls(owned_profile.gpu_layers, owned_profile)
+            return 0 if compute_decision.selected_device == "cpu" else None
+
+        def invoke_admitted_model():
+            with model_compute_scope(prepare_model_attempt):
+                return invoke_model(**invocation_kwargs)
+
         try:
             try:
-                internal_result = invoke_model(**invocation_kwargs)
+                internal_result = invoke_admitted_model()
             except TypeError as exc:
+                if scientific_phase_deadline is not None:
+                    raise  # Scientific interpretation cannot drop its cancellation contract.
                 # Preserve the long-standing invocation seam used by local adapters
                 # and deterministic tests that implement the pre-Part-2D protocol.
                 # A provider-side TypeError is never retried: only an explicit
@@ -2577,7 +3688,7 @@ def handle_user_message(
                     "max_output_tokens",
                 ):
                     invocation_kwargs.pop(key, None)
-                internal_result = invoke_model(**invocation_kwargs)
+                internal_result = invoke_admitted_model()
         except Exception as exc:
             failed_ledger = ComputeLedger()
             if is_accelerator_oom_error(exc):
@@ -2601,6 +3712,23 @@ def handle_user_message(
                     reason="model_invocation_exception",
                 )
             raise
+        internal_result["model_compute_attempts"] = attempt_receipts
+
+    if scientific_execution.get("protocol_version") == "scientific-ir-v0.2":
+        cancelled = cancel_event.is_set() or emergency_active() or "operator_cancelled" in internal_result.get("block_reasons", [])
+        timed_out = bool(_as_mapping(internal_result.get("provider_metadata")).get("timeout")) or "local_invocation_deadline_exceeded" in internal_result.get("block_reasons", [])
+        scientific_execution["interpretation_status"] = (
+            "cancelled" if cancelled else "timed_out" if timed_out else
+            "resource_limited" if _as_mapping(internal_result.get("provider_metadata")).get("resource_limited") else
+            "completed" if internal_result.get("status") == "ok" else "not_completed"
+        )
+        if cancelled:
+            # A late model/adaptor result can never override parent STOP.
+            internal_result.update(status="blocked", response_text="", error="operator_cancelled")
+            internal_result["block_reasons"] = list(internal_result.get("block_reasons", [])) + ["operator_cancelled"]
+            scientific_execution.update(status="cancelled", reason="scientific_request_cancelled",
+                outputs={}, result={}, partial_completion=bool(scientific_execution.get("completed_node_count")),
+                errors=["scientific_request_cancelled"])
 
     compute_ledger = ComputeLedger()
     if is_accelerator_oom_error(internal_result.get("error")):
@@ -2649,6 +3777,8 @@ def handle_user_message(
         )
 
     workspace.receipt.compute = compute_decision.to_payload()
+    workspace.receipt.compute["model_attempts"] = internal_result.get("model_compute_attempts", [])
+    workspace.receipt.compute["provider_attempts"] = internal_result.get("provider_attempts", [])
     try:
         from app.cognition.evidence_repository import EvidenceRepository
 
@@ -2664,6 +3794,7 @@ def handle_user_message(
 
     internal_result["math_execution"] = math_execution
     internal_result["data_execution"] = data_execution
+    internal_result["scientific_execution"] = scientific_execution
     internal_result["repo_context"] = repo_context
     internal_result["code_patch_plan"] = code_patch_plan
     internal_result["aider_worker"] = aider_worker
@@ -2857,6 +3988,41 @@ def handle_user_message(
             "data_execution_operation": data_execution.get("operation", ""),
             "data_execution_row_count": data_execution.get("row_count", 0),
             "data_execution_column_count": data_execution.get("column_count", 0),
+            "bounded_scientific_execution_candidate": plan.get(
+                "bounded_scientific_execution_candidate",
+                False,
+            ),
+            "scientific_execution_used": scientific_execution.get(
+                "used",
+                False,
+            ),
+            "scientific_execution_status": scientific_execution.get(
+                "status",
+                "not_needed",
+            ),
+            "scientific_execution_operation": scientific_execution.get(
+                "scientific_operation",
+                "",
+            ),
+            "scientific_execution_source_type": scientific_execution.get(
+                "source_type_id",
+                "",
+            ),
+            "scientific_execution_job_id": scientific_execution.get(
+                "scientific_job_id"
+            ),
+            "scientific_execution_source_mutated": scientific_execution.get(
+                "source_mutated",
+                False,
+            ),
+            "scientific_execution_network_used": scientific_execution.get(
+                "network_used",
+                False,
+            ),
+            "scientific_execution_shell_used": scientific_execution.get(
+                "shell_used",
+                False,
+            ),
             "repo_context_candidate": plan.get("repo_context_candidate", False),
             "repo_context_used": repo_context.get("used", False),
             "repo_context_status": repo_context.get("status", "not_needed"),
@@ -2944,6 +4110,7 @@ def handle_user_message(
         "internal_result": internal_result,
         "math_execution": math_execution,
         "data_execution": data_execution,
+        "scientific_execution": scientific_execution,
         "repo_context": repo_context,
         "code_patch_plan": code_patch_plan,
         "aider_worker": aider_worker,

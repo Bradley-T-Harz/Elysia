@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 from typing import Any
 
 import app.api.runtime_bridge as runtime_bridge
+from app.api.routes.memory import get_settings, update_settings
+from app.memory.canonical_models import MemorySettings
 
 
 def _disable_trace_writes(monkeypatch):
@@ -228,8 +231,13 @@ def test_attached_file_context_is_injected_into_runtime_message_and_response(
     assert "excerpt" not in ledger["files_attached"][0]
 
 
-def test_runtime_message_is_not_augmented_without_attached_file_ids(monkeypatch):
+def test_runtime_message_is_not_augmented_without_attached_file_ids(
+    monkeypatch, isolated_account_store,
+):
     _disable_trace_writes(monkeypatch)
+    settings = asyncio.run(get_settings())["data"]["settings"]
+    settings["internet_master_enabled"] = False
+    assert asyncio.run(update_settings(MemorySettings(**settings)))["status"] == "ok"
 
     captured: dict[str, Any] = {}
 

@@ -152,17 +152,27 @@ class TestRuntimeJournalPolicyFlow(unittest.TestCase):
     def test_tutor_mode_produces_expected_journal_policy(self):
         state = runtime.SessionState(autonomy_level=1)
 
-        result = runtime.handle_user_message(
-            "Can you explain derivatives step by step?",
-            state,
-        )
+        session_memory = [{
+            "source": "session_journal",
+            "path": "/tmp/synthetic_prior_runtime-session.md",
+            "title": "synthetic_prior_runtime-session.md",
+            "preview": "Synthetic prior local session note.",
+        }]
+        with patch(
+            "core.context_gatherer.get_recent_session_memory",
+            return_value=session_memory,
+        ):
+            result = runtime.handle_user_message(
+                "Can you explain derivatives step by step?",
+                state,
+            )
 
         self.assertEqual(result["session_state"]["active_mode"], "tutor")
         self._assert_policy_and_status_match(result, "standard")
         self._assert_memory_class_alignment(
             result,
             expected_memory_class="working_memory",
-            expected_memory_class_source="primary_memory_class",
+            expected_memory_class_source="forced_memory_class",
             expected_primary_memory_class="working_memory",
         )
         self._assert_model_routing_alignment(
@@ -188,7 +198,7 @@ class TestRuntimeJournalPolicyFlow(unittest.TestCase):
         )
         self.assertEqual(
             result["memory_class_policy"]["forced_memory_class"],
-            "",
+            "working_memory",
         )
         self.assertEqual(
             result["memory_class_policy"]["allowed_memory_classes"],
@@ -205,11 +215,14 @@ class TestRuntimeJournalPolicyFlow(unittest.TestCase):
         )
         self.assertEqual(
             result["memory_class_policy"]["applied_boundary_overrides"],
-            [],
+            ["local_session_memory"],
         )
         self.assertIn("mode=tutor", result["memory_class_policy"]["note"])
         self.assertIn("autonomy_level=1", result["memory_class_policy"]["note"])
-        self.assertNotIn("boundary_overrides=", result["memory_class_policy"]["note"])
+        self.assertIn(
+            "boundary_overrides=local_session_memory",
+            result["memory_class_policy"]["note"],
+        )
 
         self.assertTrue(result["journal_policy"]["include_plan_summary"])
         self.assertTrue(result["journal_policy"]["include_retrieval_summary"])
@@ -225,19 +238,19 @@ class TestRuntimeJournalPolicyFlow(unittest.TestCase):
         journal_contents = self._read_journal_contents(result)
         self.assertIn("## Memory class reasoning", journal_contents)
         self.assertIn("- Selected memory class: working_memory", journal_contents)
-        self.assertIn("- Memory class source: primary_memory_class", journal_contents)
+        self.assertIn("- Memory class source: forced_memory_class", journal_contents)
         self.assertIn("- Primary memory class: working_memory", journal_contents)
-        self.assertIn("- Forced memory class: none", journal_contents)
+        self.assertIn("- Forced memory class: working_memory", journal_contents)
         self.assertIn(
             "- Boundary-sensitive memory class: False",
             journal_contents,
         )
         self.assertIn(
-            "- Memory class requires boundary check: False",
+            "- Memory class requires boundary check: True",
             journal_contents,
         )
         self.assertIn(
-            "- Boundary flags: low_risk_nonexecuting_path",
+            "- Boundary flags: local_session_memory",
             journal_contents,
         )
         self.assertIn("## Model routing reasoning", journal_contents)
@@ -261,6 +274,9 @@ class TestRuntimeJournalPolicyFlow(unittest.TestCase):
 
         self.assertEqual(result["session_state"]["active_mode"], "writer")
         self._assert_policy_and_status_match(result, "minimal")
+        # A short rewrite is not an exact Reflex response: earn a model budget.
+        self.assertEqual(result["governor"]["selected_gear"], "quick")
+        self.assertGreater(result["governor"]["output_token_budget"], 0)
         self._assert_memory_class_alignment(
             result,
             expected_memory_class="project_memory",
@@ -269,8 +285,8 @@ class TestRuntimeJournalPolicyFlow(unittest.TestCase):
         )
         self._assert_model_routing_alignment(
             result,
-            expected_role="primary_general",
-            expected_target="mistral-small-3.1",
+            expected_role="lighter_backup",
+            expected_target="granite-3.3-8b-instruct",
             expected_runtime="ollama",
             expected_stayed_local=True,
             expected_allowed=True,
@@ -321,9 +337,9 @@ class TestRuntimeJournalPolicyFlow(unittest.TestCase):
         self.assertIn("- Primary memory class: project_memory", journal_contents)
         self.assertIn("- Forced memory class: none", journal_contents)
         self.assertIn("## Model routing reasoning", journal_contents)
-        self.assertIn("- Selected model role: primary_general", journal_contents)
+        self.assertIn("- Selected model role: lighter_backup", journal_contents)
         self.assertIn(
-            "- Selected model target: mistral-small-3.1",
+            "- Selected model target: granite-3.3-8b-instruct",
             journal_contents,
         )
 

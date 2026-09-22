@@ -17,7 +17,7 @@ from app.api.coding_engineering_policy_service import (
     load_robot_model_safety,
 )
 from app.api.coding_engineering_service import apply_engineering_preview, inspect_engineering, plan_engineering_preview
-from app.api.coding_engineering_type_registry import engineering_registry_payload
+from app.api.coding_engineering_type_registry import engineering_registry_payload, engineering_worker_truth
 from app.api.schemas.common import ApprovalState, CapabilityState, EnvelopeStatus, LocalityState
 from app.api.schemas.engineering import EngineeringInspectRequest, EngineeringPreviewApplyRequest, EngineeringPreviewPlanRequest
 from app.api.schemas.envelope import TraceSummary, build_response_envelope
@@ -74,6 +74,13 @@ def post_engineering_inspect(payload: EngineeringInspectRequest = Body(...)) -> 
     result = inspect_engineering(payload)
     state = ApprovalState.APPROVED if result.status == "completed" else ApprovalState.NEEDED if result.status == "approval_required" else ApprovalState.DENIED
     return _envelope("engineering_inspect", {"engineering": result.to_payload()}, state, request_id=result.request_id, log_written=result.audit_written)
+
+
+@router.get("/workers")
+async def get_engineering_workers() -> dict[str, Any]:
+    """Expose worker readiness only; this endpoint grants no launch authority."""
+    return _envelope("engineering_workers", {"workers": engineering_worker_truth()},
+                     ApprovalState.NOT_NEEDED)
 
 
 @router.post("/preview/plan")

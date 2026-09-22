@@ -29,6 +29,7 @@ class ArtifactKind(str, Enum):
     """Known artifact kinds."""
 
     DATA_SUMMARY = "data_summary"
+    SCIENTIFIC_RESULT = "scientific_result"
     TABLE_PREVIEW = "table_preview"
     PLOT_IMAGE = "plot_image"
     TEXT_REPORT = "text_report"
@@ -165,6 +166,112 @@ class DataSummaryArtifactPayload(ElysiaSchemaModel):
             "source-file mutation, folder scanning, or memory promotion."
         ),
         description="Compact boundary note for the artifact payload.",
+    )
+
+
+class ScientificResultArtifactPayload(ElysiaSchemaModel):
+    """Bounded reproducible result from one governed ScientificForge job."""
+
+    operation: str = Field(
+        ...,
+        min_length=1,
+        description="Fixed ScientificForge operation that produced this result.",
+    )
+
+    workflow_id: str | None = None
+    node_id: str | None = None
+    backend_family: str | None = None
+    solver_method: str | None = None
+    resource_controls: dict[str, Any] = Field(default_factory=dict)
+    upstream_result_hashes: list[str] = Field(default_factory=list, max_length=12)
+    diagnostics: dict[str, Any] = Field(default_factory=dict)
+    verification: str | None = None
+
+    result: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Bounded ScientificForge result payload.",
+    )
+
+    parameter_sha256: str = Field(
+        ...,
+        min_length=64,
+        max_length=64,
+        description="Canonical hash of ScientificForge execution parameters.",
+    )
+
+    result_sha256: str = Field(
+        ...,
+        min_length=64,
+        max_length=64,
+        description="Canonical hash of the ScientificForge result.",
+    )
+
+    source_sha256: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+        description="Verified staged source digest when the operation used a file.",
+    )
+
+    seed: int | None = Field(
+        default=None,
+        ge=0,
+        description="Deterministic RNG seed when the scientific operation used one.",
+    )
+
+    deterministic: bool = Field(
+        default=True,
+        description="Whether the scientific execution contract was deterministic.",
+    )
+
+    engine_versions: dict[str, str] = Field(
+        default_factory=dict,
+        description="Compact ScientificForge engine/version provenance.",
+    )
+
+    source_type_id: str = Field(
+        default="",
+        description="Canonical scientific data type identifier.",
+    )
+
+    source_category: str = Field(
+        default="",
+        description="Canonical scientific data category.",
+    )
+
+    relative_path: str = Field(
+        default="",
+        description=(
+            "Project/workspace-relative source label only. "
+            "Absolute local workspace roots are never stored here."
+        ),
+    )
+
+    staged_file_id: str | None = Field(
+        default=None,
+        description="Governed ingest file identifier used by ScientificForge.",
+    )
+
+    scientific_job_id: str | None = Field(
+        default=None,
+        description="ScientificForge job identifier.",
+    )
+
+    workspace_root_hash: str = Field(
+        default="",
+        description=(
+            "Non-reversible workspace root identity hash. "
+            "The raw workspace root is not stored."
+        ),
+    )
+
+    boundary_note: str = Field(
+        default=(
+            "Saved from governed ScientificForge execution. Source bytes were "
+            "not mutated; no arbitrary Python, shell, notebook, network, or "
+            "workspace-root disclosure is implied."
+        ),
+        description="Compact scientific artifact boundary statement.",
     )
 
 
@@ -317,6 +424,36 @@ class ArtifactSummary(ElysiaSchemaModel):
         default=None,
         description="Source file kind such as csv.",
     )
+    scientific_operation: str | None = Field(
+        default=None,
+        description="ScientificForge operation when this is a scientific result.",
+    )
+
+    scientific_job_id: str | None = Field(
+        default=None,
+        description="ScientificForge job id when available.",
+    )
+
+    parameter_sha256: str | None = Field(
+        default=None,
+        description="Scientific parameter hash when available.",
+    )
+
+    result_sha256: str | None = Field(
+        default=None,
+        description="Scientific result hash when available.",
+    )
+
+    source_sha256: str | None = Field(
+        default=None,
+        description="Verified scientific source hash when available.",
+    )
+
+    workspace_root_hash: str | None = Field(
+        default=None,
+        description="Non-reversible approved scientific-workspace identity hash.",
+    )
+
     row_count: int | None = Field(
         default=None,
         ge=0,
@@ -497,7 +634,7 @@ class ArtifactRecord(ElysiaSchemaModel):
         default_factory=ArtifactBoundaryTruth,
         description="Boundary truth for this artifact.",
     )
-    payload: DataSummaryArtifactPayload | PlotArtifactPayload | GeneratedMediaArtifactPayload = Field(
+    payload: DataSummaryArtifactPayload | ScientificResultArtifactPayload | PlotArtifactPayload | GeneratedMediaArtifactPayload = Field(
         default_factory=DataSummaryArtifactPayload,
         description="Artifact payload.",
     )
@@ -523,4 +660,5 @@ __all__ = (
     "DataSummaryArtifactPayload",
     "GeneratedMediaArtifactPayload",
     "PlotArtifactPayload",
+    "ScientificResultArtifactPayload",
 )

@@ -108,7 +108,8 @@ class RequestArtifactSummary(ElysiaSchemaModel):
     Compact UI-safe artifact truth for request summaries.
 
     This deliberately excludes raw payloads, artifact paths, source paths, and
-    inline SVG text.
+    inline SVG text. Content-free provenance from the existing trace allowlist
+    remains inspectable without exposing those private contents or locations.
     """
 
     artifact_id: str | None = Field(default=None)
@@ -123,6 +124,24 @@ class RequestArtifactSummary(ElysiaSchemaModel):
     source_file_id: str | None = Field(default=None)
     source_file_name: str | None = Field(default=None)
     source_file_kind: str | None = Field(default=None)
+    request_id: str | None = None
+    conversation_id: str | None = None
+    project_id: str | None = None
+    scientific_operation: str | None = None
+    scientific_job_id: str | None = None
+    parameter_sha256: str | None = None
+    result_sha256: str | None = None
+    source_sha256: str | None = None
+    workspace_root_hash: str | None = None
+    model_id: str | None = None
+    mime_type: str | None = None
+    output_sha256: str | None = None
+    output_bytes: int | None = Field(default=None, ge=0)
+    synthetic_media: bool = False
+    memory_promotion: bool = False
+    private_context_sent: bool = False
+    preview_available: bool = False
+    detail_available: bool = False
     warnings: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
 

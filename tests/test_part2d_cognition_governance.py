@@ -653,3 +653,24 @@ def test_per_request_cancellation_is_owner_scoped_and_content_free():
         assert event.is_set() is True
     finally:
         emergency_control.release_request(request_id)
+
+
+@pytest.mark.parametrize("requested", ["automatic", "reflex"])
+def test_short_non_reflex_answer_requires_model_budget(requested):
+    from app.cognition.governor import reflex_response
+    message = "Explain how to check a numerical residual."
+    assert reflex_response(message) is None
+    decision = decide_cognition(GovernorInput(
+        request_id="reflex-miss", message=message, mode="default",
+        intent={"primary": "conversation"}, autonomy_level=2, requested_gear=requested,
+    ))
+    assert decision.selected_gear == "quick"
+    assert decision.workload_kind == "language_model"
+    assert decision.output_token_budget > 0
+    assert decision.authority_increased is False
+    stopped = decide_cognition(GovernorInput(
+        request_id="reflex-stop", message=message, mode="default",
+        intent={"primary": "conversation"}, autonomy_level=2,
+        requested_gear=requested, stop_active=True,
+    ))
+    assert stopped.selected_gear == "reflex" and stopped.output_token_budget == 0

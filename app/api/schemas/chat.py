@@ -253,6 +253,15 @@ class ChatSendResponseData(ElysiaSchemaModel):
             "uses the local math checker."
         ),
     )
+    scientific_execution: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Compact public-safe truth for governed ScientificForge execution. "
+            "This may include operation, relative source label, provenance hashes, "
+            "result, and boundary truth, but never the raw approved workspace root."
+        ),
+    )
+
     repo_context: dict[str, Any] | None = Field(
         default=None,
         description=(
